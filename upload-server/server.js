@@ -187,6 +187,15 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/api/health')) {
     return send(res, 200, { ok: true, service: 'ChiActive upload server', repo: REPO, ready: !!TOKEN }, origin);
   }
+  if (req.method === 'GET' && url.pathname === '/api/check') {
+    // Diagnoses the GitHub connection without revealing the token.
+    const out = { repo: REPO, branch: BRANCH, tokenSet: !!TOKEN, tokenType: TOKEN ? (TOKEN.startsWith('github_pat_') ? 'fine-grained' : TOKEN.startsWith('ghp_') ? 'classic' : 'other') : null };
+    const step = async (name, fn) => { try { out[name] = await fn(); } catch (e) { out[name] = { error: e.status || 'failed', message: String(e.message).replace(/^GitHub [A-Z]+ \S+ failed /, '') }; } };
+    await step('repoAccess', async () => { const r = await gh('GET', `/repos/${REPO}`); return { found: true, private: r.private, canPush: !!(r.permissions && r.permissions.push) }; });
+    await step('branch', async () => { const r = await gh('GET', `/repos/${REPO}/git/ref/heads/${BRANCH}`); return { head: r.object.sha.slice(0, 7) }; });
+    await step('writeTest', async () => { const b = await gh('POST', `/repos/${REPO}/git/blobs`, { content: 'dGVzdA==', encoding: 'base64' }); return { canWrite: !!b.sha }; });
+    return send(res, 200, out, origin);
+  }
   if (req.method === 'POST' && url.pathname === '/api/upload') {
     if (!origin) return send(res, 403, { ok: false, error: 'Uploads are only accepted from the ChiActive site.' }, null);
     if (!TOKEN) return send(res, 503, { ok: false, error: 'The upload server isn’t connected to GitHub yet (missing GITHUB_TOKEN).' }, origin);
