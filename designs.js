@@ -15,6 +15,7 @@
   var card = document.getElementById('upload-card');
   var inner = document.getElementById('up-inner');
   var grid = document.getElementById('community');
+  var list = document.getElementById('design-list');  // where design cards go (under the upload box)
   var zipInput = document.getElementById('zip-input');
   var folderInput = document.getElementById('folder-input');
   var countChip = document.getElementById('community-count');
@@ -189,9 +190,9 @@
     xhr.onload = function () {
       var res = null; try { res = JSON.parse(xhr.responseText); } catch (e) {}
       if (xhr.status === 200 && res && res.ok) {
-        var link = onPages ? 'designs/' + encPath(res.folder) + '/' + encPath(res.entry) : res.url;
+        var link = API ? API + '/d/' + encPath(res.folder) + '/' + encPath(res.entry) : (onPages ? 'designs/' + encPath(res.folder) + '/' + encPath(res.entry) : res.url);
         try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]'); p.push({ folder: res.folder, name: res.name, by: student, entry: res.entry, uploadedAt: new Date().toISOString() }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
-        idle({ html: '“' + esc(res.name) + '” was uploaded' + (res.skipped && res.skipped.length ? ' (skipped ' + res.skipped.length + ' unsupported file' + (res.skipped.length === 1 ? '' : 's') + ')' : '') + '. It&rsquo;s live for everyone in about a minute: <a href="' + esc(link) + '">open it</a>.' });
+        idle({ html: '“' + esc(res.name) + '” was uploaded' + (res.skipped && res.skipped.length ? ' (skipped ' + res.skipped.length + ' unsupported file' + (res.skipped.length === 1 ? '' : 's') + ')' : '') + '. It&rsquo;s live for everyone right now: <a href="' + esc(link) + '">open it</a>.' });
         render(res.folder);
       } else {
         idle({ error: true, html: esc(res && res.error ? res.error : 'The upload didn’t go through (error ' + xhr.status + '). Try again.') });
@@ -218,6 +219,10 @@
       jobs.push(fetch(api + '?ref=' + BRANCH).then(function (r) { return r.ok ? r.json() : []; }).then(function (items) { add((items || []).filter(function (i) { return i.type === 'dir'; }).map(function (i) { return { folder: i.name }; })); }).catch(function () {}));
       jobs.push(fetch(api + '/manifest.json?ref=' + BRANCH).then(function (r) { return r.ok ? r.json() : null; }).then(function (f) { if (f && f.content) add(JSON.parse(b64utf8(f.content))); }).catch(function () {}));
     }
+    if (API) {  // freshest list, straight from the upload server (skipped if it's asleep)
+      var ctl2 = 'AbortController' in window ? new AbortController() : null; setTimeout(function () { if (ctl2) ctl2.abort(); }, 4000);
+      jobs.push(fetch(API + '/api/designs', { cache: 'no-store', signal: ctl2 ? ctl2.signal : undefined }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.designs) add(j.designs); }).catch(function () {}));
+    }
     jobs.push(fetch('designs/manifest.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(add).catch(function () {}));
     if (!onPages) jobs.push(fetch('designs/', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var re = /href="([^"?#\/]+)\/"/g, m, names = []; while ((m = re.exec(t))) names.push(decodeURIComponent(m[1])); add(names.map(function (n) { return { folder: n }; }));
@@ -230,10 +235,14 @@
         var tries = onPages ? [rel] : [rel].concat(PAGES ? [PAGES + rel] : []);
         return tries.reduce(function (p, u) {
           return p.then(function (ok) { return ok || fetch(u, { method: 'HEAD', cache: 'no-store' }).then(function (r) { return r.ok ? u : null; }).catch(function () { return null; }); });
-        }, Promise.resolve(null)).then(function (u) { d.url = u; d.publishing = !u; return d; });
+        }, Promise.resolve(null)).then(function (u) {
+          d.url = u; d.fresh = false;
+          if (!u && API) { d.url = API + '/d/' + encPath(d.folder) + '/' + encPath(d.entry); d.fresh = true; }  // served instantly by the upload server while GitHub Pages rebuilds
+          d.publishing = !d.url; return d;
+        });
       }));
     }).then(function (list) {
-      try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]').filter(function (x) { return !list.some(function (d) { return d.folder === x.folder && d.url; }); }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
+      try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]').filter(function (x) { return !list.some(function (d) { return d.folder === x.folder && d.url && !d.fresh; }); }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
       return list.sort(function (a, b) { return String(b.uploadedAt).localeCompare(String(a.uploadedAt)) || a.name.localeCompare(b.name); });
     });
   }
@@ -242,7 +251,7 @@
   function when(d) { var t = d.uploadedAt || d.createdAt; return t ? new Date(t).toLocaleDateString() : ''; }
   function cardHtml(d, kind) {
     var open = kind === 'local' ? 'uploaded/' + d.id + '/' + encPath(d.entry) : d.url;
-    var tag = kind === 'local' ? '<span class="tag up">This browser</span>' : (d.publishing ? '<span class="tag pub">Publishing</span>' : '<span class="tag shared">Class gallery</span>');
+    var tag = kind === 'local' ? '<span class="tag up">This browser</span>' : (d.publishing ? '<span class="tag pub">Publishing</span>' : d.fresh ? '<span class="tag up">Just added</span>' : '<span class="tag shared">Class gallery</span>');
     var meta = [d.by ? 'By ' + esc(d.by) : '', when(d) ? 'Added ' + when(d) : '', kind === 'local' ? d.count + ' files, saved in this browser only' : ''].filter(Boolean).join(' &middot; ');
     var stage = d.publishing
       ? '<div class="frame frame-wait"><div><b>Publishing&hellip;</b><span>New uploads go live in about a minute.</span><button class="btn btn-ghost" type="button" data-refresh>Check again</button></div></div>'
@@ -255,17 +264,19 @@
       '<div class="card-actions">' + (d.publishing ? '' : '<a class="btn" href="' + esc(open) + '">Open design <span>&rarr;</span></a>') +
       (kind === 'local' ? '<button class="btn-remove" type="button" data-remove="' + esc(d.id) + '">Remove</button>' : '') + '</div></div></article>';
   }
-  function scaleFrames() { grid.querySelectorAll('.frame').forEach(function (fr) { fr.style.setProperty('--s', (fr.clientWidth / 1200).toFixed(4)); }); }
+  function scaleFrames() { (list || grid).querySelectorAll('.frame').forEach(function (fr) { fr.style.setProperty('--s', (fr.clientWidth / 1200).toFixed(4)); }); }
   var ro = 'ResizeObserver' in window ? new ResizeObserver(scaleFrames) : null;
   function render(highlight) {
     return Promise.all([sharedDesigns(), listLocal()]).then(function (res) {
-      grid.querySelectorAll('.community-card').forEach(function (c) { c.remove(); });
+      document.querySelectorAll('.community-card').forEach(function (c) { c.remove(); });
       var local = res[1].sort(function (a, b) { return b.createdAt - a.createdAt; });
-      card.insertAdjacentHTML('afterend', res[0].map(function (d) { return cardHtml(d, 'shared'); }).join('') + local.map(function (d) { return cardHtml(d, 'local'); }).join(''));
+      var cardsHtml = res[0].map(function (d) { return cardHtml(d, 'shared'); }).join('') + local.map(function (d) { return cardHtml(d, 'local'); }).join('');
+      if (list) list.insertAdjacentHTML('afterbegin', cardsHtml);  // newest uploads right under the upload box
+      else card.insertAdjacentHTML('afterend', cardsHtml);
       var n = res[0].length + local.length;
       if (countChip) countChip.textContent = n ? n + ' design' + (n === 1 ? '' : 's') + ' uploaded' : 'No uploads yet. Be the first!';
-      grid.querySelectorAll('.frame').forEach(function (fr) { if (ro) ro.observe(fr); }); scaleFrames();
-      if (highlight) { var el = grid.querySelector('[data-id="' + highlight + '"]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      (list || grid).querySelectorAll('.frame').forEach(function (fr) { if (ro) ro.observe(fr); }); scaleFrames();
+      if (highlight) { var el = (list || grid).querySelector('[data-id="' + highlight + '"]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     });
   }
 
@@ -283,7 +294,7 @@
   ['dragenter', 'dragover'].forEach(function (ev) { card.addEventListener(ev, function (e) { e.preventDefault(); card.classList.add('drag'); }); });
   ['dragleave', 'drop'].forEach(function (ev) { card.addEventListener(ev, function (e) { if (ev === 'dragleave' && card.contains(e.relatedTarget)) return; card.classList.remove('drag'); }); });
   card.addEventListener('drop', function (e) { e.preventDefault(); handleDrop(e.dataTransfer); });
-  grid.addEventListener('click', function (e) {
+  (list || grid).addEventListener('click', function (e) {
     if (e.target.closest('[data-refresh]')) { e.preventDefault(); render(); return; }
     var b = e.target.closest('[data-remove]'); if (!b) return;
     e.preventDefault();

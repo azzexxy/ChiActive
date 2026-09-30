@@ -4,6 +4,10 @@
  *   designs/website-design-<student-name>/...
  * and adds it to designs/manifest.json, so it shows up for everyone.
  *
+ * Instant preview: GitHub Pages needs ~1 minute to republish, so the server also
+ * serves every design itself at /d/<folder>/<path>, right after the upload.
+ * Files come from memory (fresh uploads) or from the exact GitHub commit.
+ *
  * Environment variables (set these in Render, never in the code):
  *   GITHUB_TOKEN     fine-grained token with "Contents: read and write" on the repo   (required)
  *   GITHUB_REPO      owner/repo, default "azzexxy/ChiActive"
@@ -176,6 +180,63 @@ async function commitDesign(student, info) {
   }
 }
 
+
+/* ---------- instant preview (/d/<folder>/<path>) ---------- */
+const MIME = { html: 'text/html; charset=utf-8', htm: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8', js: 'text/javascript; charset=utf-8', mjs: 'text/javascript; charset=utf-8',
+  json: 'application/json; charset=utf-8', map: 'application/json; charset=utf-8', txt: 'text/plain; charset=utf-8', md: 'text/plain; charset=utf-8', xml: 'application/xml; charset=utf-8', csv: 'text/csv; charset=utf-8',
+  svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', ico: 'image/x-icon', bmp: 'image/bmp',
+  woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf', eot: 'application/vnd.ms-fontobject', mp4: 'video/mp4', webm: 'video/webm', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', pdf: 'application/pdf' };
+const LIVE_MAX = 150 * 1024 * 1024;       // keep recent uploads in memory (Render free has 512 MB)
+const live = new Map();                    // folder -> { files: Map(path -> Buffer), entry, commit, size }
+let liveSize = 0;
+function remember(folder, info, commit, meta) {
+  if (live.has(folder)) { liveSize -= live.get(folder).size; live.delete(folder); }
+  const files = new Map(info.files.map(f => [f.path, f.data]));
+  live.set(folder, { files, entry: info.entry, commit, size: info.total, meta });
+  liveSize += info.total;
+  for (const [k, v] of live) { if (liveSize <= LIVE_MAX || k === folder) break; live.delete(k); liveSize -= v.size; }
+}
+let manifestCache = { at: 0, list: [] };
+async function designInfo(folder) {
+  if (live.has(folder)) return live.get(folder);
+  if (Date.now() - manifestCache.at > 30e3) {
+    try { manifestCache = { at: Date.now(), list: await readManifest() }; } catch (e) { /* keep old */ }
+  }
+  const d = manifestCache.list.find(x => x && x.folder === folder);
+  return d ? { entry: d.entry || 'index.html', commit: d.commit || BRANCH } : { entry: 'index.html', commit: BRANCH };
+}
+const rawCache = new Map();                // `${commit}/${folder}/${path}` -> Buffer (commit-addressed, never changes)
+let rawSize = 0;
+async function fromGitHub(commit, folder, path) {
+  const key = `${commit}/${folder}/${path}`;
+  if (rawCache.has(key)) return rawCache.get(key);
+  const u = `https://raw.githubusercontent.com/${REPO}/${commit}/${DIR}/${folder}/${path}`.split('/').map((x, i) => i < 3 ? x : encodeURIComponent(x)).join('/');
+  const r = await fetch(u, { headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {} });
+  if (!r.ok) return null;
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (commit !== BRANCH && buf.length < 5 * 1024 * 1024) {
+    rawCache.set(key, buf); rawSize += buf.length;
+    for (const [k, v] of rawCache) { if (rawSize <= 80 * 1024 * 1024) break; rawCache.delete(k); rawSize -= v.length; }
+  }
+  return buf;
+}
+async function servePreview(req, res, url) {
+  const parts = url.pathname.slice(3).split('/').map(x => { try { return decodeURIComponent(x); } catch (e) { return '\u0000'; } });
+  const folder = parts.shift();
+  if (!folder || !/^[a-z0-9-]+$/.test(folder)) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+  const d = await designInfo(folder);
+  let path = parts.join('/');
+  if (!path) { res.writeHead(302, { Location: `/d/${folder}/${d.entry.split('/').map(encodeURIComponent).join('/')}` }); return res.end(); }
+  if (path.endsWith('/')) path += 'index.html';
+  if (!safePath(path)) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+  let buf = d.files ? d.files.get(path) : null;
+  if (!buf) { try { buf = await fromGitHub(d.commit, folder, path); } catch (e) { buf = null; } }
+  if (!buf) { res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<!doctype html><title>Not found</title><p style="font:16px system-ui;padding:40px">This page isn&rsquo;t part of the design. <a href="' + PAGES_URL + 'upload.html">Back to the class gallery</a></p>'); }
+  const ext = path.split('.').pop().toLowerCase();
+  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=300', 'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff' });
+  res.end(req.method === 'HEAD' ? undefined : buf);
+}
+
 /* ---------- HTTP ---------- */
 const server = http.createServer(async (req, res) => {
   const origin = allowedOrigin(req);
@@ -187,14 +248,16 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/api/health')) {
     return send(res, 200, { ok: true, service: 'ChiActive upload server', repo: REPO, ready: !!TOKEN }, origin);
   }
-  if (req.method === 'GET' && url.pathname === '/api/check') {
-    // Diagnoses the GitHub connection without revealing the token.
-    const out = { repo: REPO, branch: BRANCH, tokenSet: !!TOKEN, tokenType: TOKEN ? (TOKEN.startsWith('github_pat_') ? 'fine-grained' : TOKEN.startsWith('ghp_') ? 'classic' : 'other') : null };
-    const step = async (name, fn) => { try { out[name] = await fn(); } catch (e) { out[name] = { error: e.status || 'failed', message: String(e.message).replace(/^GitHub [A-Z]+ \S+ failed /, '') }; } };
-    await step('repoAccess', async () => { const r = await gh('GET', `/repos/${REPO}`); return { found: true, private: r.private, canPush: !!(r.permissions && r.permissions.push) }; });
-    await step('branch', async () => { const r = await gh('GET', `/repos/${REPO}/git/ref/heads/${BRANCH}`); return { head: r.object.sha.slice(0, 7) }; });
-    await step('writeTest', async () => { const b = await gh('POST', `/repos/${REPO}/git/blobs`, { content: 'dGVzdA==', encoding: 'base64' }); return { canWrite: !!b.sha }; });
-    return send(res, 200, out, origin);
+  if (req.method === 'GET' && url.pathname === '/api/designs') {
+    try {
+      if (Date.now() - manifestCache.at > 5e3) manifestCache = { at: Date.now(), list: await readManifest() };
+      const list = manifestCache.list.slice();
+      for (const v of live.values()) if (v.meta && !list.some(d => d && d.folder === v.meta.folder)) list.push(v.meta);
+      return send(res, 200, { ok: true, designs: list }, origin || '*');
+    } catch (e) { console.error(e); return send(res, 502, { ok: false, designs: manifestCache.list }, origin || '*'); }
+  }
+  if ((req.method === 'GET' || req.method === 'HEAD') && url.pathname.startsWith('/d/')) {
+    return servePreview(req, res, url).catch(e => { console.error(e); if (!res.headersSent) { res.writeHead(500); } res.end(); });
   }
   if (req.method === 'POST' && url.pathname === '/api/upload') {
     if (!origin) return send(res, 403, { ok: false, error: 'Uploads are only accepted from the ChiActive site.' }, null);
@@ -209,6 +272,10 @@ const server = http.createServer(async (req, res) => {
       let paths = []; try { paths = JSON.parse(fields.paths || '[]'); } catch (e) {}
       const info = await collectFiles(files.map((f, i) => ({ name: (Array.isArray(paths) && paths[i]) || f.name, data: f.data })));
       const saved = await commitDesign(student, info);
+      remember(saved.folder, info, saved.commit, { folder: saved.folder, name: saved.name, by: student, entry: info.entry, uploadedAt: new Date().toISOString() });
+      manifestCache.at = 0;
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      saved.preview = `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${host}/d/${saved.folder}/${info.entry.split('/').map(encodeURIComponent).join('/')}`;
       console.log(`Saved ${saved.name}: ${info.files.length} files, ${(info.total / 1048576).toFixed(1)} MB`);
       return send(res, 200, { ok: true, ...saved, files: info.files.length, skipped: info.skipped.slice(0, 20) }, origin);
     } catch (e) {

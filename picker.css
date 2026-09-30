@@ -135,3 +135,19 @@ footer { border-top: 1px solid var(--line); padding-block: 26px 40px; color: var
 .top-links { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
 @media (max-width: 900px) { .gallery-hero { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .share-row { flex-direction: column; } }
+
+/* single featured design */
+.grid.solo { grid-template-columns: 1fr; }
+.grid.solo .option { display: grid; grid-template-columns: 1.35fr 1fr; }
+.grid.solo .stage { min-height: 100%; }
+.grid.solo .body { justify-content: center; padding: 36px 36px 40px; }
+@media (max-width: 900px) { .grid.solo .option { display: flex; } }
+
+/* ---------- combined start page: hero, wide upload box, all styles ---------- */
+.hero-brand { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; }
+.hero-brand > img { margin-top: 6px; }
+.upload-card.wide { min-height: 0; margin-bottom: 48px; }
+.upload-card.wide .up-inner { padding: 40px 28px; }
+.community { padding-top: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 600px) { .hero-brand { grid-template-columns: 1fr; gap: 12px; } .hero-brand > img { width: 64px; height: 64px; } }
