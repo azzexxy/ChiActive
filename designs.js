@@ -35,6 +35,10 @@
     return f.replace(/[-_]+/g, ' ');
   }
   function encPath(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+  function viewUrl(d, kind) {
+    var q = kind === 'local' ? 'local=' + encodeURIComponent(d.id) : 'd=' + encodeURIComponent(d.folder);
+    return 'view.html?' + q + '&e=' + encodeURIComponent(d.entry || 'index.html') + (d.by ? '&by=' + encodeURIComponent(d.by) : '');
+  }
 
   /* ---------- this-browser storage (fallback) ---------- */
   function openDb() {
@@ -190,7 +194,7 @@
     xhr.onload = function () {
       var res = null; try { res = JSON.parse(xhr.responseText); } catch (e) {}
       if (xhr.status === 200 && res && res.ok) {
-        var link = API ? API + '/d/' + encPath(res.folder) + '/' + encPath(res.entry) : (onPages ? 'designs/' + encPath(res.folder) + '/' + encPath(res.entry) : res.url);
+        var link = viewUrl({ folder: res.folder, entry: res.entry, by: student }, 'shared');
         try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]'); p.push({ folder: res.folder, name: res.name, by: student, entry: res.entry, uploadedAt: new Date().toISOString() }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
         idle({ html: '“' + esc(res.name) + '” was uploaded' + (res.skipped && res.skipped.length ? ' (skipped ' + res.skipped.length + ' unsupported file' + (res.skipped.length === 1 ? '' : 's') + ')' : '') + '. It&rsquo;s live for everyone right now: <a href="' + esc(link) + '">open it</a>.' });
         render(res.folder);
@@ -251,17 +255,18 @@
   function when(d) { var t = d.uploadedAt || d.createdAt; return t ? new Date(t).toLocaleDateString() : ''; }
   function cardHtml(d, kind) {
     var open = kind === 'local' ? 'uploaded/' + d.id + '/' + encPath(d.entry) : d.url;
+    var view = viewUrl(d, kind);  // opens inside the demo bar
     var tag = kind === 'local' ? '<span class="tag up">This browser</span>' : (d.publishing ? '<span class="tag pub">Publishing</span>' : d.fresh ? '<span class="tag up">Just added</span>' : '<span class="tag shared">Class gallery</span>');
     var meta = [d.by ? 'By ' + esc(d.by) : '', when(d) ? 'Added ' + when(d) : '', kind === 'local' ? d.count + ' files, saved in this browser only' : ''].filter(Boolean).join(' &middot; ');
     var stage = d.publishing
       ? '<div class="frame frame-wait"><div><b>Publishing&hellip;</b><span>New uploads go live in about a minute.</span><button class="btn btn-ghost" type="button" data-refresh>Check again</button></div></div>'
       : '<div class="frame"><iframe src="' + esc(open) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-same-origin"></iframe></div>';
     return '<article class="option community-card" data-kind="' + kind + '" data-id="' + esc(d.id || d.folder) + '">' +
-      (d.publishing ? '' : '<a class="cover" href="' + esc(open) + '" aria-label="Open ' + esc(d.name) + '"></a>') +
+      (d.publishing ? '' : '<a class="cover" href="' + esc(view) + '" aria-label="Open ' + esc(d.name) + '"></a>') +
       '<div class="stage"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>' + esc(kind === 'local' ? 'this browser / ' + d.name : 'designs / ' + d.folder) + '</span></div>' + stage + '</div></div>' +
       '<div class="body"><div class="name-row"><h2 class="name">' + esc(d.name) + '</h2>' + tag + '</div>' +
       (meta ? '<p class="meta-line">' + meta + '</p>' : '') +
-      '<div class="card-actions">' + (d.publishing ? '' : '<a class="btn" href="' + esc(open) + '">Open design <span>&rarr;</span></a>') +
+      '<div class="card-actions">' + (d.publishing ? '' : '<a class="btn" href="' + esc(view) + '">Open design <span>&rarr;</span></a>') +
       (kind === 'local' ? '<button class="btn-remove" type="button" data-remove="' + esc(d.id) + '">Remove</button>' : '') + '</div></div></article>';
   }
   function scaleFrames() { (list || grid).querySelectorAll('.frame').forEach(function (fr) { fr.style.setProperty('--s', (fr.clientWidth / 1200).toFixed(4)); }); }

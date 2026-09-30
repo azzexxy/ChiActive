@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo website | ChiActive class gallery</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#16202C">
+<link rel="icon" type="image/png" href="images/favicon.png">
+<style>
+@font-face { font-family: 'Google Sans'; src: url('fonts/GoogleSansFlex-Variable.woff2') format('woff2'); font-weight: 100 1000; font-display: swap; }
+:root { --bar: 52px; --bg: #16202C; --sky: #41B6E6; --sand: #F5E7BE; --red: #E4022B; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+body { font-family: "Google Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+.demo-bar { position: fixed; inset: 0 0 auto 0; height: var(--bar); z-index: 10; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: var(--bg); color: #E6ECF2; border-bottom: 3px solid var(--sky); box-shadow: 0 6px 18px -10px rgba(0,0,0,.6); }
+.back { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 10px; border-radius: 999px; background: var(--red); color: #fff; font-weight: 700; font-size: .9rem; text-decoration: none; transition: background .15s, transform .15s; }
+.back:hover { background: #c10224; }
+.back:hover svg { transform: translateX(-3px); }
+.back svg { width: 18px; height: 18px; transition: transform .15s; }
+.back:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.label { flex: 1; min-width: 0; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label b { color: var(--sand); font-weight: 700; }
+.label .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--sky); margin-right: 10px; vertical-align: 1px; }
+.stage { position: fixed; inset: var(--bar) 0 0 0; }
+.stage iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+.msg { position: fixed; inset: var(--bar) 0 0 0; display: grid; place-items: center; background: var(--bg); color: #E6ECF2; text-align: center; padding: 24px; }
+.msg b { display: block; color: var(--sand); font-size: 1.3rem; margin-bottom: 6px; }
+.msg a { color: var(--sky); font-weight: 700; }
+@media (max-width: 560px) { :root { --bar: 60px; } .demo-bar { gap: 12px; padding: 0 12px; } .back span { display: none; } .back { padding: 0 8px; } .label { font-size: .84rem; line-height: 1.3; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } .label .dot { display: none; } }
+</style>
+</head>
+<body>
+<header class="demo-bar" role="banner">
+  <a class="back" id="back" href="index.html" aria-label="Back to the gallery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg><span>Back to gallery</span></a>
+  <p class="label" id="label"><span class="dot" aria-hidden="true"></span>You are viewing a demo website of <b id="who">a student</b></p>
+</header>
+<main class="stage" id="stage"></main>
+<script src="site-config.js?v=9"></script>
+<script>
+/* Demo viewer: shows a class design under a permanent "You are viewing a demo website of ..." bar.
+   view.html?d=<folder>&e=<start page>&by=<student name>   (shared designs)
+   view.html?local=<id>&e=<start page>&by=<student name>   (designs saved in this browser) */
+(function () {
+  var CFG = window.CHIACTIVE || {};
+  var API = (CFG.uploadApi || '').replace(/\/+$/, '');
+  var q = new URLSearchParams(location.search);
+  var folder = q.get('d') || '', local = q.get('local') || '', by = (q.get('by') || '').slice(0, 60);
+  var entry = (q.get('e') || 'index.html').replace(/^\/+/, '');
+  var page = (q.get('p') || '').replace(/^\/+/, '');
+  var stage = document.getElementById('stage');
+  function enc(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+  function show(html) { stage.outerHTML = '<div class="msg"><div>' + html + '</div></div>'; }
+  function name(n) {
+    n = String(n || '').replace(/^Website design - /, '').trim() || 'a student';
+    document.getElementById('who').textContent = n;
+    document.title = 'Demo website of ' + n + ' | ChiActive class gallery';
+  }
+  function prettyFolder(f) { return f.replace(/^website-design-/, '').replace(/-\d+$/, '').split('-').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' '); }
+  var backHref = 'index.html' + (folder || local ? '#design-list' : '');
+  document.getElementById('back').href = backHref;
+
+  // only folders/ids we recognise, never arbitrary URLs
+  if (folder && !/^[a-z0-9-]+$/.test(folder)) folder = '';
+  if (local && !/^[a-z0-9]+$/.test(local)) local = '';
+  if (/(^|\/)\.\.(\/|$)/.test(entry) || /^[a-z]+:/i.test(entry)) entry = 'index.html';
+  if (/(^|\/)\.\.(\/|$)/.test(page) || /^[a-z]+:/i.test(page)) page = '';
+  if (!folder && !local) { name(''); return show('<b>No design picked</b>Go <a href="index.html">back to the gallery</a> and choose one.'); }
+  name(by || (folder ? prettyFolder(folder) : ''));
+
+  // student name from the class manifest if it wasn't in the link
+  if (!by && folder) {
+    var tries = [fetch('designs/manifest.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; })];
+    if (API) tries.push(fetch(API + '/api/designs', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) { return j.designs || []; }));
+    tries.forEach(function (p) { p.then(function (list) { (list || []).forEach(function (d) { if (d && d.folder === folder && (d.by || d.name)) name(d.by || d.name); }); }).catch(function () {}); });
+  }
+
+  function mount(base) {
+    var f = document.createElement('iframe');
+    f.title = 'Demo website';
+    f.src = base + enc(page || entry);
+    f.setAttribute('allow', 'fullscreen; clipboard-write');
+    stage.appendChild(f);
+    // keep the address bar in sync (same-origin designs), so a reload stays on the same page
+    f.addEventListener('load', function () {
+      try {
+        var path = decodeURIComponent(f.contentWindow.location.pathname);
+        var root = decodeURIComponent(new URL(base, location.href).pathname);
+        if (path.indexOf(root) === 0) {
+          var rel = path.slice(root.length);
+          if (rel && rel !== entry) q.set('p', rel); else q.delete('p');
+          history.replaceState(null, '', '?' + q.toString());
+        }
+        // links that try to break out of the frame stay inside it
+        f.contentDocument.querySelectorAll('a[target="_top"], a[target="_parent"]').forEach(function (a) { a.target = '_self'; });
+      } catch (e) { /* design served from the upload server: a different origin, nothing to sync */ }
+    });
+  }
+
+  if (local) return mount('uploaded/' + local + '/');
+  // published on GitHub Pages? otherwise use the upload server's instant copy
+  var pagesBase = 'designs/' + folder + '/';
+  fetch(pagesBase + enc(entry), { method: 'HEAD', cache: 'no-store' })
+    .then(function (r) { return r.ok; }).catch(function () { return false; })
+    .then(function (ok) {
+      if (ok) return mount(pagesBase);
+      if (API) return mount(API + '/d/' + folder + '/');
+      show('<b>This design is still publishing</b>Try again in a minute, or go <a href="index.html">back to the gallery</a>.');
+    });
+})();
+</script>
+</body>
+</html>

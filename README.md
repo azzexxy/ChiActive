@@ -9,6 +9,7 @@ The store has 21 pages: homepage, Shop, Sale, Help & FAQ, About, 5 category page
 
 - Students drop a **.zip** (unzipped automatically) or a **folder**, and must enter their **student name**. The design is saved as **"Website design - <student name>"** in `designs/website-design-<student-name>/` and listed in `designs/manifest.json`. A second upload by the same name becomes "(2)", so nothing is overwritten.
 - Uploads go through the **upload server** (`upload-server/`, deployed on Render with `render.yaml`), which commits them to this GitHub repo. The design can be opened **instantly**: the upload server serves it straight away at `https://chiactive-uploads.onrender.com/d/<folder>/` (from memory, or from the exact GitHub commit). Meanwhile GitHub Pages republishes the site (usually under a minute, faster thanks to `.nojekyll`), and the gallery switches to the Pages link automatically once it is live.
+- Designs open in `view.html`, which keeps a bar on top: "You are viewing a demo website of <student name>" with a **Back to gallery** button. The student's site runs underneath it, so the bar stays while you click through their pages.
 - A `.zip` added straight to `designs/` on GitHub is unpacked the same way by the GitHub Action in `.github/workflows/unzip-designs.yml`.
 - If the upload server isn't set up or isn't answering, uploads are saved in that visitor's browser only (IndexedDB, served by `sw.js`).
 - Settings live in `site-config.js` (upload server address, repo, Pages address).
