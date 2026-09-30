@@ -1,0 +1,10 @@
+{
+  "name": "chiactive-upload-server",
+  "version": "1.0.0",
+  "description": "Receives ChiActive website designs from students and commits them to the GitHub repo's designs/ folder.",
+  "main": "server.js",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "busboy": "1.6.0", "jszip": "3.10.1" }
+}

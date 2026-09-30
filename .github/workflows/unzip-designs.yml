@@ -1,0 +1,29 @@
+name: Unzip uploaded designs
+# When someone adds a .zip to designs/ directly on GitHub, unpack it into its own
+# folder ("website-design-<name>"), add it to designs/manifest.json and remove the zip.
+on:
+  push:
+    branches: [main]
+    paths: ['designs/**.zip', 'designs/**.ZIP']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: unzip-designs
+  cancel-in-progress: false
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack zips
+        run: python3 .github/scripts/unzip_designs.py
+      - name: Commit
+        run: |
+          if [ -n "$(git status --porcelain designs)" ]; then
+            git config user.name "chiactive-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A designs
+            git commit -m "Unpack uploaded design zip(s)"
+            git push
+          fi

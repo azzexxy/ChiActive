@@ -1,0 +1,22 @@
+# Render Blueprint for the ChiActive upload server.
+# In Render: New > Blueprint > pick the azzexxy/ChiActive repo. It will ask for GITHUB_TOKEN.
+services:
+  - type: web
+    name: chiactive-uploads
+    runtime: node
+    plan: free
+    rootDir: upload-server
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: azzexxy/ChiActive
+      - key: GITHUB_BRANCH
+        value: main
+      - key: PAGES_URL
+        value: https://azzexxy.github.io/ChiActive/
+      - key: ALLOWED_ORIGINS
+        value: https://azzexxy.github.io,http://localhost:8000,http://127.0.0.1:8000

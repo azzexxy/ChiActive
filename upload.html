@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChiActive Design Gallery</title>
+<meta name="description" content="Upload your ChiActive website design and see every design from the class.">
+<meta name="theme-color" content="#16202C">
+<meta property="og:title" content="ChiActive Design Gallery">
+<meta property="og:description" content="Upload your ChiActive website design (a .zip or a folder) with your student name, and see every design from the class.">
+<meta property="og:image" content="images/previews/forecast-desktop.webp">
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="stylesheet" href="picker.css">
+</head>
+<body>
+<div class="stripes" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="gallery-hero">
+    <div>
+      <p class="kicker">ChiActive &middot; Class design gallery</p>
+      <h1>Share your <span>ChiActive</span> design.</h1>
+      <p class="intro">Upload your website and it shows up here for everyone, with a live preview.</p>
+      <ol class="steps">
+        <li><span class="n">1</span><span>Drop your site as a <b>.zip</b> or a <b>folder</b>. Zips are unzipped automatically.</span></li>
+        <li><span class="n">2</span><span>Enter your <b>student name</b>. Your design is named &ldquo;Website design - your name&rdquo;.</span></li>
+        <li><span class="n">3</span><span>It&rsquo;s live for everyone in about a minute.</span></li>
+      </ol>
+      <a class="back-link" href="index.html">&larr; See the four ChiActive storefront designs</a>
+    </div>
+    <aside class="share" aria-labelledby="share-title">
+      <h2 id="share-title">Share this page</h2>
+      <p>Send this link to your class so everyone can upload and see all the designs.</p>
+      <div class="share-row">
+        <label class="sr-only" for="share-link" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Gallery link</label>
+        <input id="share-link" type="text" readonly>
+        <button class="btn" type="button" id="copy-link">Copy link</button>
+      </div>
+      <p class="share-done" id="copy-done" role="status"></p>
+    </aside>
+  </header>
+
+  <section class="community" aria-labelledby="community-title" style="padding-top:10px">
+    <div class="community-head">
+      <div>
+        <h2 id="community-title">All designs</h2>
+        <p>Newest first. Click a design to open it; every page, style and image works like the real thing.</p>
+      </div>
+      <span class="count-chip" id="community-count"></span>
+    </div>
+    <div class="grid community-grid" id="community">
+      <article class="option upload-card" id="upload-card">
+        <div class="up-inner" id="up-inner"></div>
+      </article>
+    </div>
+    <input type="file" id="zip-input" accept=".zip,application/zip,application/x-zip-compressed" hidden>
+    <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
+  </section>
+
+  <footer><span>&copy; 2026 ChiActive &middot; Class project gallery. Only upload your own work.</span><span>Built for the four-season city.</span></footer>
+</div>
+<script src="site-config.js"></script>
+<script>
+(function () {
+  var cfg = window.CHIACTIVE || {};
+  var link = (cfg.pages && /^https?:/.test(cfg.pages)) ? cfg.pages.replace(/\/?$/, '/') + 'upload.html' : location.href.split('#')[0];
+  var input = document.getElementById('share-link'), done = document.getElementById('copy-done');
+  input.value = link;
+  input.addEventListener('focus', function () { input.select(); });
+  document.getElementById('copy-link').addEventListener('click', function () {
+    function ok() { done.textContent = 'Link copied. Paste it anywhere to share.'; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(ok, function () { input.select(); done.textContent = 'Press Cmd+C (or Ctrl+C) to copy.'; });
+    else { input.select(); try { document.execCommand('copy'); ok(); } catch (e) { done.textContent = 'Press Cmd+C (or Ctrl+C) to copy.'; } }
+  });
+})();
+</script>
+<script src="vendor/jszip.min.js"></script>
+<script src="designs.js"></script>
+</body>
+</html>
