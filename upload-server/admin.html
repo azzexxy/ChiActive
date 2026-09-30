@@ -124,6 +124,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   <header class="top">
     <h1>ChiActive <span>admin</span></h1>
     <div class="top-right">
+      <a class="btn small" href="/studio" target="_blank" rel="noopener">Upload / Studio ↗</a>
       <a class="btn ghost small" id="gallery-link" href="#" target="_blank" rel="noopener">Open gallery ↗</a>
       <button class="btn ghost small" id="logout" type="button">Log out</button>
     </div>
@@ -160,6 +161,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   </section>
 
   <section id="accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden>
+    <p class="meta"><button class="btn small" type="button" id="new-test">➕ Create a test student and open Studio as them</button></p>
     <p class="meta">Students sign up in <a href="/studio" target="_blank" rel="noopener">ChiActive Studio</a> with a username and password. Forgot a password? Set a new one here and tell the student (they can change it afterwards). Deleting an account keeps its designs in the gallery, without an owner.</p>
     <div class="designs" id="account-list"><p class="empty">Loading accounts…</p></div>
   </section>
@@ -189,7 +191,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin']
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
   function inFilter(e, f) {
@@ -409,12 +411,20 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     $('account-list').innerHTML = accs.map(function (a, i) {
       return '<article class="design" data-a="' + i + '"><div><h3>' + esc(a.name) + ' <span class="dev">@' + esc(a.username) + '</span></h3>' +
         '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + '</p></div>' +
-        '<div class="acts"><button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button></div></article>';
+        '<div class="acts"><button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button><button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button></div></article>';
     }).join('');
   }
   $('account-list').addEventListener('click', function (e) {
     var card = e.target.closest('.design'); if (!card) return;
     var a = accs[+card.getAttribute('data-a')];
+    if (e.target.closest('[data-viewas]')) {
+      var w = window.open('about:blank', '_blank');
+      api('/api/admin/view-as', { body: { id: a.id } }).then(function (j) {
+        if (!j.ok) { if (w) w.close(); return rowError(card, j.error || 'That didn’t work.'); }
+        if (w) w.location = '/studio'; else location.href = '/studio';
+      });
+      return;
+    }
     if (e.target.closest('[data-reset]')) {
       if (card.querySelector('form')) return card.querySelector('form').remove();
       card.insertAdjacentHTML('beforeend', '<form><label>New password for @' + esc(a.username) + ' (at least 8 characters)<input type="text" name="pw" autocomplete="off" required></label><span></span><button class="btn small" type="submit">Save password</button><button class="btn ghost small" type="button" data-cancel>Cancel</button></form>');
@@ -431,6 +441,14 @@ header.top { display: flex; align-items: center; justify-content: space-between;
         toast('Account @' + a.username + ' deleted.'); loadAccounts();
       });
     }
+  });
+  $('new-test').addEventListener('click', function () {
+    var w = window.open('about:blank', '_blank');
+    api('/api/admin/view-as', { body: { createTest: true } }).then(function (j) {
+      if (!j.ok) { if (w) w.close(); return toast(j.error || 'That didn’t work.', true); }
+      if (w) w.location = '/studio'; else location.href = '/studio';
+      toast('Created @' + j.user.username + '. Studio opened as them.'); loadAccounts();
+    });
   });
   $('account-list').addEventListener('submit', function (e) {
     e.preventDefault();

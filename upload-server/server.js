@@ -357,14 +357,20 @@ async function handleStart(req, res, origin, user) {
   try {
     if (!TOKEN) throw userError(503, 'no-token', 'The upload server isn’t connected to GitHub yet (GITHUB_TOKEN is missing in Render). Tell the gallery admin.');
     body = await readJson(req);
-    const student = cleanName(user.name);
+    let owner = user.isAdmin ? undefined : user.id;
+    const student = cleanName(user.isAdmin ? (body.name || 'Admin') : user.name);
+    if (user.isAdmin && body.owner) {
+      const acc = (await loadAccounts()).find(a => a.id === String(body.owner));
+      if (!acc) throw userError(400, 'no-account', 'That student account doesn’t exist anymore. Pick another owner.');
+      owner = acc.id;
+    }
     if (student.length < 2) throw userError(400, 'no-name', 'Enter your student name. It becomes the design name.');
     if (uploadLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many uploads from your network in the last hour (the limit is 30). Try again later.');
     const p = plan(body.files);
     const { folder, name } = await chooseFolder(student);   // also checks the GitHub connection before anything is sent
     const id = newId(), dir = path.join(TMP, id);
     await fsp.mkdir(dir, { recursive: true });
-    const s = { id, dir, student, owner: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
+    const s = { id, dir, student, owner, actor: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
       files: p.files.map((f, k) => ({ i: f.i, path: f.path, size: f.size, got: 0, file: path.join(dir, String(k)) })),
       status: 'receiving', created: Date.now(), lastActive: Date.now(), who };
     await Promise.all(s.files.map(f => fsp.writeFile(f.file, '')));
@@ -383,7 +389,7 @@ async function handleStart(req, res, origin, user) {
 
 async function handleChunk(req, res, origin, url, user) {
   let s = uploads.get(url.searchParams.get('id') || '');
-  if (s && s.owner !== user.id) s = null;
+  if (s && s.actor !== user.id) s = null;
   if (!s) { req.resume(); return send(res, 404, { ok: false, code: 'expired', error: 'This upload was lost because the upload server restarted or it took over an hour. Please upload again.' }, origin); }
   if (s.status !== 'receiving') { req.resume(); return send(res, 409, { ok: false, code: 'finished', error: 'This upload is already being saved.' }, origin); }
   const f = s.files[+url.searchParams.get('k')], o = +url.searchParams.get('o');
@@ -409,7 +415,7 @@ async function handleFinish(req, res, origin, user) {
   let body;
   try { body = await readJson(req, 64 * 1024); } catch (e) { return send(res, 400, { ok: false, error: e.message }, origin); }
   const s0 = uploads.get(String(body.id || ''));
-  const s = s0 && s0.owner === user.id ? s0 : null;
+  const s = s0 && s0.actor === user.id ? s0 : null;
   if (!s) return send(res, 404, { ok: false, code: 'expired', error: 'This upload was lost because the upload server restarted. Please upload again.' }, origin);
   if (s.status !== 'receiving') return send(res, 200, publicStatus(s), origin);
   const missing = s.files.filter(f => f.got !== f.size);
@@ -582,6 +588,8 @@ async function loadLogs(days) {
 const SESSION_KEY = ADMIN_PASSWORD ? crypto.createHash('sha256').update('session:' + ADMIN_PASSWORD).digest() : null;
 const hmac = (k, v) => crypto.createHmac('sha256', k).update(v).digest('hex');
 function cookies(req) { const out = {}; String(req.headers.cookie || '').split(';').forEach(c => { const i = c.indexOf('='); if (i > 0) { try { out[c.slice(0, i).trim()] = decodeURIComponent(c.slice(i + 1).trim()); } catch (e) { /* ignore */ } } }); return out; }
+// admin in the Studio, unless they switched to viewing it as a student
+function studioAdmin(req) { return isAdmin(req) && cookies(req).ca_as !== '1'; }
 function isAdmin(req) {
   if (!SESSION_KEY) return false;
   const [exp, sig] = String(cookies(req).ca_admin || '').split('.');
@@ -686,6 +694,10 @@ function changeAccounts(fn) {   // one change at a time; saved to GitHub before 
     return result;
   });
 }
+function viewAsCookie(req, on) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
+  return `ca_as=${on ? '1' : ''}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${on ? 12 * 3600 : 0}${secure}`;
+}
 function userCookie(req, a, maxAge = 30 * 86400) {
   const secure = String(req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
   if (!a) return `ca_user=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
@@ -720,16 +732,18 @@ async function handleAccount(req, res, route) {
   if (req.method === 'POST' && !sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, error: 'Accounts only work from ChiActive Studio.' }); }
   try {
     if (req.method === 'GET' && route === '/api/account/me') {
-      const admin = isAdmin(req);
+      const admin = studioAdmin(req), viewingAs = isAdmin(req) && !admin;
       let user = null, error = '';
       try { user = await currentUser(req); } catch (e) { error = explain(e); }
       if (!DATA_KEY) error = 'Student accounts aren’t switched on yet: the gallery admin needs to set ADMIN_PASSWORD in Render. Try again later.';
-      return send(res, 200, { ok: true, admin, error, pages: PAGES_URL, user: user && { id: user.id, username: user.username, name: user.name, created: user.created },
-        designs: user || admin ? await myDesigns(user, admin) : [] });
+      let accounts = [];
+      if (admin) { try { accounts = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name })); } catch (e) { /* not set up */ } }
+      return send(res, 200, { ok: true, admin, viewingAs, accounts, error, pages: PAGES_URL, user: user && { id: user.id, username: user.username, name: user.name, created: user.created },
+        designs: user || admin ? await myDesigns(admin ? null : user, admin) : [] });
     }
     if (req.method !== 'POST') return send(res, 404, { ok: false, error: 'Not found' });
     const body = await readJson(req, 16 * 1024);
-    if (route === '/api/account/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': userCookie(req, null) });
+    if (route === '/api/account/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false)] });
     if (route === '/api/account/signup') {
       if (signupLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many new accounts from your network in the last hour. Try again later.');
       const username = String(body.username || '').trim().toLowerCase(), name = cleanName(body.name);
@@ -780,7 +794,7 @@ const editLocks = new Map();
 function folderLock(folder) { if (!editLocks.has(folder)) editLocks.set(folder, mutex()); return editLocks.get(folder); }
 const sha1 = s => crypto.createHash('sha1').update(s).digest('hex');
 async function canEdit(req, folder) {
-  if (isAdmin(req)) return { admin: true, user: await currentUser(req).catch(() => null) };
+  if (studioAdmin(req)) return { admin: true, user: null };
   const user = await currentUser(req);
   if (!user) throw userError(401, 'login', 'Your login expired. Log in again to keep editing.');
   const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
@@ -925,14 +939,14 @@ const server = http.createServer(async (req, res) => {
     if (route.startsWith('/api/upload')) {
       if (origin) { req.resume(); return send(res, 410, { ok: false, code: 'old-page', error: 'Uploading moved to ChiActive Studio, where you log in first. Refresh the gallery page and click “Sign up or log in”.' }, origin); }
       if (!sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, code: 'origin', error: 'Uploads are only accepted from ChiActive Studio.' }); }
-      const user = await currentUser(req).catch(() => null);
+      const user = studioAdmin(req) ? { id: 'admin', username: 'admin', name: 'Admin', isAdmin: true } : await currentUser(req).catch(() => null);
       if (!user) { req.resume(); return send(res, 401, { ok: false, code: 'login', error: 'Your login expired. Log in again, then upload.' }); }
       if (req.method === 'POST' && route === '/api/upload/start') return await handleStart(req, res, null, user);
       if (req.method === 'POST' && route === '/api/upload/chunk') return await handleChunk(req, res, null, url, user);
       if (req.method === 'POST' && route === '/api/upload/finish') return await handleFinish(req, res, null, user);
       if (req.method === 'GET' && route === '/api/upload/status') {
         const s = uploads.get(url.searchParams.get('id') || '');
-        if (s && s.owner !== user.id) return send(res, 404, { ok: false, code: 'expired', error: 'Upload not found.' });
+        if (s && s.actor !== user.id) return send(res, 404, { ok: false, code: 'expired', error: 'Upload not found.' });
         return s ? send(res, 200, publicStatus(s), origin) : send(res, 404, { ok: false, code: 'expired', error: 'The upload server restarted and lost track of this upload. Check the gallery; if your design isn’t there, upload it again.' }, origin);
       }
       if (route === '/api/upload') { req.resume(); return send(res, 410, { ok: false, code: 'old-page', error: 'The gallery page was updated. Refresh the page (Cmd+Shift+R or Ctrl+F5) and upload again.' }, origin); }
@@ -990,6 +1004,26 @@ const server = http.createServer(async (req, res) => {
           const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name) }));
           return send(res, 200, { ok: true, accounts: list.sort((a, b) => String(b.created).localeCompare(String(a.created))) });
         } catch (e) { return send(res, 200, { ok: false, error: explain(e), accounts: [] }); }
+      }
+      if (req.method === 'POST' && route === '/api/admin/view-as') {
+        const body = await readJson(req, 4096);
+        try {
+          if (body.stop) { logEvent('admin-view-as', { message: 'Back to admin in Studio' }, req); return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false)] }); }
+          let acc;
+          if (body.createTest) {
+            const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(crypto.randomBytes(18).toString('base64'), salt)).toString('hex');
+            acc = await changeAccounts(list => {
+              let u = 'test-student', n = 2; while (list.some(a => a.username === u)) u = `test-student-${n++}`;
+              const a = { id: newId(), username: u, name: 'Test Student' + (n > 2 ? ' ' + (n - 1) : ''), salt, hash, pwv: 0, created: new Date().toISOString(), test: true };
+              list.push(a); return a;
+            });
+          } else {
+            acc = (await loadAccounts()).find(a => a.id === String(body.id || ''));
+            if (!acc) throw userError(404, 'no-account', 'That student account doesn’t exist.');
+          }
+          logEvent('admin-view-as', { username: acc.username, student: acc.name, message: body.createTest ? 'Created a test student and opened Studio as them' : `Opened Studio as @${acc.username}` }, req);
+          return send(res, 200, { ok: true, user: { username: acc.username, name: acc.name } }, null, { 'Set-Cookie': [userCookie(req, acc, 12 * 3600), viewAsCookie(req, true)] });
+        } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) }); }
       }
       if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
         const body = await readJson(req, 16 * 1024);

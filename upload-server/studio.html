@@ -156,7 +156,7 @@ body.editing { overflow: hidden; }
 <main class="wrap" id="home-view" hidden>
   <header class="top">
     <a class="brandline" href="/studio" data-route>ChiActive <span>Studio</span></a>
-    <div class="top-right"><span class="who" id="who"></span><a class="btn ghost small" href="#" data-gallery>Class gallery ↗</a><button class="btn ghost small" type="button" id="pw-btn">Change password</button><button class="btn ghost small" type="button" id="logout-btn">Log out</button></div>
+    <div class="top-right"><span class="who" id="who"></span><a class="btn ghost small" href="#" data-gallery>Class gallery ↗</a><button class="btn small" type="button" id="viewas-btn" hidden>View as student</button><button class="btn ghost small" type="button" id="pw-btn">Change password</button><button class="btn ghost small" type="button" id="logout-btn">Log out</button></div>
   </header>
   <div id="admin-banner" class="admin-banner" hidden></div>
   <div id="upload-area">
@@ -270,6 +270,20 @@ body.editing { overflow: hidden; }
     });
   });
   $('logout-btn').onclick = function () { api('/api/account/logout', {}).then(function () { toast('You’re logged out.'); authTab('login'); go('/studio'); }); };
+  $('viewas-btn').onclick = function () {
+    var accs = ME.accounts || [];
+    modal('View Studio as a student', '<p class="muted">See exactly what a student sees: only their designs, uploads under their name, and editing only their own work. Switch back any time with <b>Back to admin</b>.</p>' +
+      '<form class="stack" id="va-form" onsubmit="return false"><label>Student<select name="acc" style="background:var(--bg);color:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit">' +
+      '<option value="__new">➕ Create a new test student</option>' + accs.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + '</select></label></form>',
+      [{ label: 'Cancel', ghost: true, value: false }, { label: 'Switch', value: true }]).then(function (ok) {
+      if (!ok) return;
+      var v = $('va-form').elements.acc.value;
+      api('/api/admin/view-as', v === '__new' ? { createTest: true } : { id: v }).then(function (j) {
+        if (!j.ok) return toast(j.error || 'Switching didn’t work.', true);
+        toast('Now viewing as @' + j.user.username + '.'); drop.innerHTML = ''; go('/studio');
+      });
+    });
+  };
   $('pw-btn').onclick = function () {
     modal('Change your password', '<form class="stack" id="pw-form" onsubmit="return false"><label>Current password<input type="password" name="current" autocomplete="current-password"></label><label>New password <small>at least 8 characters</small><input type="password" name="next" autocomplete="new-password"></label><p class="err" id="pw-err"></p></form>',
       [{ label: 'Cancel', ghost: true, value: false }, { label: 'Change password', value: true }]).then(function (ok) {
@@ -281,12 +295,17 @@ body.editing { overflow: hidden; }
 
   /* ---------- home ---------- */
   function renderHome() {
-    var u = ME.user;
-    $('who').innerHTML = u ? 'Logged in as <b>' + esc(u.name) + '</b> (@' + esc(u.username) + ')' : '<b>Admin</b>';
-    $('pw-btn').hidden = !u;
-    $('admin-banner').hidden = !ME.admin;
-    $('admin-banner').textContent = ME.admin ? 'Admin mode: you can edit every design in the gallery.' + (u ? '' : ' To upload, log in with a student account.') : '';
-    $('upload-area').hidden = !u;
+    var u = ME.admin ? null : ME.user;
+    $('who').innerHTML = u ? (ME.viewingAs ? 'Viewing as ' : 'Logged in as ') + '<b>' + esc(u.name) + '</b> (@' + esc(u.username) + ')' : '<b>Admin</b>';
+    $('pw-btn').hidden = !u || ME.viewingAs;
+    $('viewas-btn').hidden = !ME.admin;
+    $('logout-btn').hidden = !!ME.viewingAs;
+    $('admin-banner').hidden = !ME.admin && !ME.viewingAs;
+    $('admin-banner').innerHTML = ME.viewingAs
+      ? '<b>Admin test mode:</b> you’re seeing ChiActive Studio exactly like @' + esc(u.username) + ' does, with only their designs and permissions. <button class="btn small" type="button" id="back-admin">Back to admin</button>'
+      : ME.admin ? 'Admin mode: you can upload designs and edit every design in the gallery. Use <b>View as student</b> to test the student experience.' : '';
+    var back = $('back-admin'); if (back) back.onclick = function () { api('/api/admin/view-as', { stop: true }).then(function (j) { if (!j.ok) return toast(j.error, true); toast('Back in admin mode.'); drop.innerHTML = ''; route(); }); };
+    $('upload-area').hidden = !u && !ME.admin;
     $('designs-title').textContent = u && !ME.admin ? 'Your designs' : 'Designs';
     var list = ME.designs || [];
     $('designs-count').textContent = list.length ? list.length + ' design' + (list.length === 1 ? '' : 's') : '';
@@ -311,7 +330,7 @@ body.editing { overflow: hidden; }
     drop.innerHTML = ICON + '<h3>Add a design</h3><p>Drop a <b>.zip</b> or a <b>folder</b> here. It needs an <code>index.html</code> (or any .html page). Files up to 100 MB, designs up to 1 GB.</p>' +
       '<div class="acts"><button class="btn" type="button" data-pick="zip">Choose .zip</button><button class="btn ghost" type="button" data-pick="folder">Choose folder</button></div>' +
       (message ? '<p class="' + (message.error ? 'err' : 'ok') + '" role="status">' + message.html + '</p>' : '') +
-      '<p class="fine">It appears in the class gallery as “Website design - ' + esc(ME && ME.user ? ME.user.name : 'your name') + '”.</p>';
+      '<p class="fine">' + (ME && ME.admin ? 'As admin you choose the name and, if you like, the student who owns it.' : 'It appears in the class gallery as “Website design - ' + esc(ME && ME.user ? ME.user.name : 'your name') + '”.') + '</p>';
   }
   function status(text, fraction, extra) { drop.innerHTML = ICON + '<h3>Working on it</h3><p role="status">' + esc(text) + '</p><div class="progress"><span style="width:' + Math.round((fraction || 0) * 100) + '%"></span></div>' + (extra || ''); }
   function readZip(file) {
@@ -352,7 +371,11 @@ body.editing { overflow: hidden; }
     p.then(function (files) {
       var info = analyse(files); pending = info;
       drop.innerHTML = ICON + '<h3>Ready to upload</h3><div class="found">Found <b>' + info.files.length + ' files</b> (' + fmtBytes(info.size) + '). Starts at <b>' + esc(info.entry) + '</b>.</div>' +
-        '<p>It will be saved as <b>“Website design - ' + esc(ME.user.name) + '”</b>.</p><div class="acts"><button class="btn" type="button" data-go>Upload to the gallery</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>';
+        (ME.admin
+          ? '<form class="stack" id="admin-up" onsubmit="return false" style="width:min(460px,100%);text-align:left"><label>Name on the design <small>saved as “Website design - …”</small><input type="text" name="name" maxlength="60" value="Admin"></label>' +
+            '<label>Owner <small>who can edit it in Studio</small><select name="owner" style="background:var(--bg);color:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit"><option value="">No owner (only admins can edit)</option>' +
+            (ME.accounts || []).map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + '</select></label></form>'
+          : '<p>It will be saved as <b>“Website design - ' + esc(ME.user.name) + '”</b>.</p>') + '<div class="acts"><button class="btn" type="button" data-go>Upload to the gallery</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>';
       drop.querySelector('[data-go]').focus();
     }).catch(function (err) { idle({ error: true, html: esc(err && err.message ? err.message : 'That upload couldn’t be read.') }); });
   }
@@ -360,7 +383,11 @@ body.editing { overflow: hidden; }
     var b = e.target.closest('button'); if (!b) return;
     if (b.getAttribute('data-pick') === 'zip') $('zip-input').click();
     if (b.getAttribute('data-pick') === 'folder') $('folder-input').click();
-    if (b.hasAttribute('data-go') && pending) upload(pending);
+    if (b.hasAttribute('data-go') && pending) {
+      var af = $('admin-up');
+      if (af) { var el = af.elements, nm = el.name.value.trim(); if (nm.length < 2) { toast('Enter a name for the design (at least 2 characters).', true); el.name.focus(); return; } pending.admin = { name: nm, owner: el.owner.value }; }
+      upload(pending);
+    }
     if (b.hasAttribute('data-cancel')) idle();
   });
   $('zip-input').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (!f) return; if (!/\.zip$/i.test(f.name) && !/zip/.test(f.type)) return idle({ error: true, html: 'That wasn’t a .zip file. Choose a .zip, or use Choose folder.' }); handle(readZip(f)); });
@@ -395,7 +422,8 @@ body.editing { overflow: hidden; }
   function upload(info) {
     pending = null;
     status('Checking your design…', 0.02);
-    request('POST', '/api/upload/start', JSON.stringify({ files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
+    var extra = info.admin || {};
+    request('POST', '/api/upload/start', JSON.stringify({ name: extra.name, owner: extra.owner, files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
       if (r.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
       if (r.status !== 200 || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref);
       var s = r.json, size = s.chunk || 8388608;
