@@ -13,7 +13,16 @@
  *   GET  /api/designs                       fresh list of designs
  *   POST /api/event                         visit / view / page / client-error beacons
  *   GET  /admin                             admin page (password: ADMIN_PASSWORD):
- *                                           activity log, rename and delete designs
+ *                                           activity log, rename/delete designs, owners, accounts
+ *   GET  /studio                            ChiActive Studio: students sign up / log in, upload their
+ *                                           design and edit its text right on the page (pencil + trash)
+ *   POST /api/account/(signup|login|logout|password), GET /api/account/me
+ *   GET  /api/edit/pages|page, POST /api/edit/block   the Studio editor
+ *
+ * Student accounts (username + scrypt password hash) are saved encrypted on the "activity-log"
+ * branch (accounts/accounts.enc) with a key made from DATA_KEY, LOG_KEY or ADMIN_PASSWORD.
+ * Logins use an HttpOnly cookie on this server's own address, so student designs (which run on
+ * the GitHub Pages address) can never read them.
  *
  * Activity log: every upload, error, view and admin action is kept in memory and saved,
  * encrypted with a key made from LOG_KEY (or ADMIN_PASSWORD), on the repo branch
@@ -23,6 +32,8 @@
  *   GITHUB_TOKEN     fine-grained token with "Contents: Read and write" on the repo   (required)
  *   ADMIN_PASSWORD   password for /admin                                               (required for the admin page)
  *   LOG_KEY          optional separate key for the log encryption (default: ADMIN_PASSWORD)
+ *   DATA_KEY         optional separate key for the accounts file (default: LOG_KEY or ADMIN_PASSWORD).
+ *                    If you ever change ADMIN_PASSWORD, set DATA_KEY and LOG_KEY to the OLD password first.
  *   GITHUB_REPO      owner/repo, default "azzexxy/ChiActive"
  *   GITHUB_BRANCH    default "main"
  *   LOG_BRANCH       default "activity-log"
@@ -38,6 +49,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const { Readable } = require('stream');
+const blocksLib = require('./blocks');
 
 const PORT = process.env.PORT || 10000;
 const TOKEN = process.env.GITHUB_TOKEN || '';
@@ -247,6 +259,7 @@ async function commitToMain(message, treeEntries, changeManifest, note) {
     try {
       await gh('PATCH', `/repos/${REPO}/git/refs/heads/${BRANCH}`, { sha: commit.sha }, { note, retries: 2 });
       manifestCache = { at: Date.now(), list: manifest };
+      headCache = { at: Date.now(), sha: commit.sha };
       return commit.sha;
     } catch (e) { if (e.status !== 422 || attempt === 4) throw e; await sleep(400 * (attempt + 1)); }
   }
@@ -310,7 +323,7 @@ async function saveToGitHub(s) {
   const designTree = await gh('POST', `/repos/${REPO}/git/trees`, { tree }, { note });
   s.commit = await commitToMain(`Add ${s.name}`, [{ path: `${DIR}/${s.folder}`, mode: '040000', type: 'tree', sha: designTree.sha }], list => {
     list = list.filter(d => d.folder !== s.folder);
-    list.push({ folder: s.folder, name: s.name, by: s.student, entry: s.entry, uploadedAt: new Date().toISOString() });
+    list.push({ folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date().toISOString() });
     return list;
   }, note);
   s.done++;
@@ -338,25 +351,25 @@ setInterval(() => {
   }
 }, 5 * 60e3).unref();
 
-async function handleStart(req, res, origin) {
+async function handleStart(req, res, origin, user) {
   const who = { ip: ipTag(req), device: device(req.headers['user-agent']) };
   let body = {};
   try {
     if (!TOKEN) throw userError(503, 'no-token', 'The upload server isn’t connected to GitHub yet (GITHUB_TOKEN is missing in Render). Tell the gallery admin.');
     body = await readJson(req);
-    const student = cleanName(body.student);
+    const student = cleanName(user.name);
     if (student.length < 2) throw userError(400, 'no-name', 'Enter your student name. It becomes the design name.');
     if (uploadLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many uploads from your network in the last hour (the limit is 30). Try again later.');
     const p = plan(body.files);
     const { folder, name } = await chooseFolder(student);   // also checks the GitHub connection before anything is sent
     const id = newId(), dir = path.join(TMP, id);
     await fsp.mkdir(dir, { recursive: true });
-    const s = { id, dir, student, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
+    const s = { id, dir, student, owner: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
       files: p.files.map((f, k) => ({ i: f.i, path: f.path, size: f.size, got: 0, file: path.join(dir, String(k)) })),
       status: 'receiving', created: Date.now(), lastActive: Date.now(), who };
     await Promise.all(s.files.map(f => fsp.writeFile(f.file, '')));
     uploads.set(id, s);
-    logEvent('upload-start', { ref: id, student, visitor: s.visitor, folder, files: s.files.length, size: s.total, skipped: p.skipped.length || undefined }, req);
+    logEvent('upload-start', { ref: id, student, username: user.username, visitor: s.visitor, folder, files: s.files.length, size: s.total, skipped: p.skipped.length || undefined }, req);
     return send(res, 200, { ok: true, id, ref: id, folder, name, entry: p.entry, chunk: CHUNK, files: s.files.map(f => f.i), skipped: p.skipped.slice(0, 50) }, origin);
   } catch (e) {
     const msg = explain(e), ref = newId();
@@ -368,8 +381,9 @@ async function handleStart(req, res, origin) {
   }
 }
 
-async function handleChunk(req, res, origin, url) {
-  const s = uploads.get(url.searchParams.get('id') || '');
+async function handleChunk(req, res, origin, url, user) {
+  let s = uploads.get(url.searchParams.get('id') || '');
+  if (s && s.owner !== user.id) s = null;
   if (!s) { req.resume(); return send(res, 404, { ok: false, code: 'expired', error: 'This upload was lost because the upload server restarted or it took over an hour. Please upload again.' }, origin); }
   if (s.status !== 'receiving') { req.resume(); return send(res, 409, { ok: false, code: 'finished', error: 'This upload is already being saved.' }, origin); }
   const f = s.files[+url.searchParams.get('k')], o = +url.searchParams.get('o');
@@ -391,10 +405,11 @@ async function handleChunk(req, res, origin, url) {
   return send(res, 200, { ok: true, got: f.got }, origin);
 }
 
-async function handleFinish(req, res, origin) {
+async function handleFinish(req, res, origin, user) {
   let body;
   try { body = await readJson(req, 64 * 1024); } catch (e) { return send(res, 400, { ok: false, error: e.message }, origin); }
-  const s = uploads.get(String(body.id || ''));
+  const s0 = uploads.get(String(body.id || ''));
+  const s = s0 && s0.owner === user.id ? s0 : null;
   if (!s) return send(res, 404, { ok: false, code: 'expired', error: 'This upload was lost because the upload server restarted. Please upload again.' }, origin);
   if (s.status !== 'receiving') return send(res, 200, publicStatus(s), origin);
   const missing = s.files.filter(f => f.got !== f.size);
@@ -422,6 +437,12 @@ async function handleFinish(req, res, origin) {
 
 /* ---------- instant preview (/d/<folder>/<path>) ---------- */
 let manifestCache = { at: 0, list: [] };
+let headCache = { at: 0, sha: '' };
+async function headSha() {   // raw.githubusercontent caches branch names for minutes; commit ids are always fresh
+  if (headCache.sha && Date.now() - headCache.at < 10e3) return headCache.sha;
+  try { const r = await gh('GET', `/repos/${REPO}/git/ref/heads/${BRANCH}`, null, { retries: 1 }); headCache = { at: Date.now(), sha: r.object.sha }; } catch (e) { /* keep the old one */ }
+  return headCache.sha || BRANCH;
+}
 async function freshManifest(maxAge) {
   if (Date.now() - manifestCache.at > maxAge) { try { manifestCache = { at: Date.now(), list: await readManifest() }; } catch (e) { /* keep the old copy */ } }
   return manifestCache.list;
@@ -439,11 +460,14 @@ async function servePreview(req, res, url) {
   if (p.endsWith('/')) p += 'index.html';
   if (!safePath(p)) return notFound();
   const type = MIME[extOf(p)] || 'application/octet-stream';
-  const head = { 'Content-Type': type, 'Cache-Control': 'public, max-age=300', 'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff' };
+  const head = { 'Content-Type': type, 'Cache-Control': 'public, max-age=60', 'X-Robots-Tag': 'noindex', 'X-Content-Type-Options': 'nosniff',
+    'Access-Control-Allow-Origin': '*', 'Cross-Origin-Resource-Policy': 'cross-origin',
+    // student code runs in a sandbox (its own blank origin), so it can't use this server's logins
+    'Content-Security-Policy': 'sandbox allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-popups-to-escape-sandbox' };
   const local = s && s.files.find(f => f.path === p);
   if (local) { res.writeHead(200, { ...head, 'Content-Length': local.size }); return req.method === 'HEAD' ? res.end() : fs.createReadStream(local.file).pipe(res); }
   try {
-    const u = `${RAW}/${REPO}/${BRANCH}/${DIR}/${folder}/${p}`.split('/').map((x, i) => i < 3 ? x : encodeURIComponent(x)).join('/');
+    const u = `${RAW}/${REPO}/${await headSha()}/${DIR}/${folder}/${p}`.split('/').map((x, i) => i < 3 ? x : encodeURIComponent(x)).join('/');
     const r = await fetch(u, { headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {} });
     if (!r.ok) return notFound();
     const buf = Buffer.from(await r.arrayBuffer());
@@ -486,18 +510,18 @@ function flushLogs() {
   });
   return logState.chain;
 }
-function encrypt(obj) {
-  const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', LOG_KEY, iv);
+function encrypt(obj, key = LOG_KEY) {
+  const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', key, iv);
   const ct = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
   return 'v1.' + Buffer.concat([iv, c.getAuthTag(), ct]).toString('base64');
 }
-function decrypt(line) {
+function decrypt(line, key = LOG_KEY, any = false) {
   try {
     const raw = Buffer.from(line.trim().replace(/^v1\./, ''), 'base64');
-    const d = crypto.createDecipheriv('aes-256-gcm', LOG_KEY, raw.subarray(0, 12));
+    const d = crypto.createDecipheriv('aes-256-gcm', key, raw.subarray(0, 12));
     d.setAuthTag(raw.subarray(12, 28));
     const v = JSON.parse(Buffer.concat([d.update(raw.subarray(28)), d.final()]).toString('utf8'));
-    return Array.isArray(v) ? v : null;
+    return any || Array.isArray(v) ? v : null;
   } catch (e) { return null; }
 }
 let logBranchReady = null;
@@ -585,7 +609,9 @@ async function adminDesigns() {
   const manifest = await freshManifest(0);
   let dirs = [];
   try { dirs = (await gh('GET', `/repos/${REPO}/contents/${DIR}?ref=${BRANCH}`, null, { retries: 2 })).filter(i => i.type === 'dir').map(i => i.name); } catch (e) { if (e.status !== 404) throw e; }
-  const list = manifest.filter(d => d && d.folder).map(d => ({ ...d, missing: !dirs.includes(d.folder) }));
+  let accounts = []; try { accounts = await loadAccounts(); } catch (e) { /* accounts not set up yet */ }
+  const ownerName = id => { const a = accounts.find(x => x.id === id); return a ? `${a.name} (@${a.username})` : id ? 'deleted account' : ''; };
+  const list = manifest.filter(d => d && d.folder).map(d => ({ ...d, ownerName: ownerName(d.owner), missing: !dirs.includes(d.folder) }));
   dirs.filter(f => !list.some(d => d.folder === f)).forEach(f => list.push({ folder: f, name: f, by: '', entry: 'index.html', unlisted: true }));
   return list.sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
 }
@@ -620,6 +646,259 @@ async function adminDelete(req, body) {
 }
 
 const EVENT_TYPES = new Set(['visit', 'view', 'page', 'client-error']);
+
+/* ---------- student accounts ---------- */
+const DATA_SECRET = process.env.DATA_KEY || process.env.LOG_KEY || ADMIN_PASSWORD;
+const DATA_KEY = DATA_SECRET ? crypto.scryptSync(DATA_SECRET, 'chiactive-accounts', 32) : null;
+const USER_KEY = DATA_SECRET ? crypto.createHash('sha256').update('user-session:' + DATA_SECRET).digest() : null;
+const ACCOUNTS_PATH = 'accounts/accounts.enc';
+const acct = { list: null, sha: null, loading: null, lock: mutex() };
+const signupLimited = limiter(10, 3600e3), accountLoginLimited = limiter(10, 900e3), userLoginLimited = limiter(10, 900e3), editLimited = limiter(240, 600e3);
+function scryptAsync(pw, salt) { return new Promise((ok, no) => crypto.scrypt(String(pw), salt, 32, { N: 16384, r: 8, p: 1 }, (e, k) => e ? no(e) : ok(k))); }
+async function loadAccounts() {
+  if (acct.list) return acct.list;
+  if (!acct.loading) acct.loading = (async () => {
+    if (!DATA_KEY) throw userError(503, 'no-key', 'Student accounts aren’t switched on yet: the gallery admin needs to set ADMIN_PASSWORD in Render.');
+    if (!TOKEN) throw userError(503, 'no-token', 'The upload server isn’t connected to GitHub yet. Tell the gallery admin.');
+    let f = null;
+    try { f = await gh('GET', `/repos/${REPO}/contents/${ACCOUNTS_PATH}?ref=${LOG_BRANCH}`, null, { retries: 2 }); } catch (e) { if (e.status !== 404) throw e; }
+    if (!f) { acct.sha = null; acct.list = []; return acct.list; }
+    const data = decrypt(Buffer.from(f.content || '', 'base64').toString('utf8'), DATA_KEY, true);
+    if (!data || !Array.isArray(data.accounts)) throw userError(503, 'locked', 'Student accounts are locked because the admin key changed. Admin: set DATA_KEY in Render to the previous ADMIN_PASSWORD.');
+    acct.sha = f.sha; acct.list = data.accounts; return acct.list;
+  })().finally(() => { acct.loading = null; });
+  return acct.loading;
+}
+function changeAccounts(fn) {   // one change at a time; saved to GitHub before it counts
+  return acct.lock(async () => {
+    const list = JSON.parse(JSON.stringify(await loadAccounts()));
+    const result = await fn(list);
+    await ensureLogBranch();
+    const body = { message: 'Update student accounts', branch: LOG_BRANCH, content: Buffer.from(encrypt({ v: 1, accounts: list }, DATA_KEY)).toString('base64') };
+    for (let attempt = 0; ; attempt++) {
+      try { const r = await gh('PUT', `/repos/${REPO}/contents/${ACCOUNTS_PATH}`, { ...body, ...(acct.sha ? { sha: acct.sha } : {}) }, { retries: 2 }); acct.sha = r.content.sha; break; }
+      catch (e) {
+        if ((e.status !== 409 && e.status !== 422) || attempt > 2) throw e;
+        try { acct.sha = (await gh('GET', `/repos/${REPO}/contents/${ACCOUNTS_PATH}?ref=${LOG_BRANCH}`, null, { retries: 1 })).sha; } catch (x) { if (x.status === 404) acct.sha = null; else throw x; }
+      }
+    }
+    acct.list = list;
+    return result;
+  });
+}
+function userCookie(req, a, maxAge = 30 * 86400) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
+  if (!a) return `ca_user=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+  const exp = String(Date.now() + maxAge * 1000), body = `${a.id}.${a.pwv || 0}.${exp}`;
+  return `ca_user=${body}.${hmac(USER_KEY, body)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+}
+async function currentUser(req) {
+  if (!USER_KEY) return null;
+  const parts = String(cookies(req).ca_user || '').split('.');
+  if (parts.length !== 4 || +parts[2] < Date.now()) return null;
+  const body = parts.slice(0, 3).join('.'), good = hmac(USER_KEY, body);
+  if (parts[3].length !== good.length || !crypto.timingSafeEqual(Buffer.from(parts[3]), Buffer.from(good))) return null;
+  const a = (await loadAccounts()).find(x => x.id === parts[0]);
+  return a && String(a.pwv || 0) === parts[1] ? a : null;
+}
+const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,23}$/;
+function checkPassword(pw, username) {
+  pw = String(pw || '');
+  if (pw.length < 8) throw userError(400, 'weak', 'Use a password of at least 8 characters.');
+  if (pw.length > 200) throw userError(400, 'weak', 'That password is too long.');
+  if (pw.toLowerCase() === String(username || '').toLowerCase()) throw userError(400, 'weak', 'Your password can’t be your username.');
+  if (/^(.)\1+$/.test(pw) || /^(12345678|password|qwertyui|abcdefgh)/i.test(pw)) throw userError(400, 'weak', 'That password is too easy to guess. Try three random words.');
+  return pw;
+}
+async function myDesigns(user, admin) {
+  const list = (await freshManifest(3e3)).filter(d => d && d.folder && (admin || (user && d.owner === user.id)));
+  for (const s of live.values()) if ((admin || (user && s.owner === user.id)) && !list.some(d => d.folder === s.folder)) list.push({ folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date(s.created).toISOString(), saving: s.status !== 'done' });
+  return list.sort((a, b) => String(b.editedAt || b.uploadedAt || '').localeCompare(String(a.editedAt || a.uploadedAt || '')));
+}
+async function handleAccount(req, res, route) {
+  const who = { ip: ipTag(req), device: device(req.headers['user-agent']) };
+  if (req.method === 'POST' && !sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, error: 'Accounts only work from ChiActive Studio.' }); }
+  try {
+    if (req.method === 'GET' && route === '/api/account/me') {
+      const admin = isAdmin(req);
+      let user = null, error = '';
+      try { user = await currentUser(req); } catch (e) { error = explain(e); }
+      if (!DATA_KEY) error = 'Student accounts aren’t switched on yet: the gallery admin needs to set ADMIN_PASSWORD in Render. Try again later.';
+      return send(res, 200, { ok: true, admin, error, pages: PAGES_URL, user: user && { id: user.id, username: user.username, name: user.name, created: user.created },
+        designs: user || admin ? await myDesigns(user, admin) : [] });
+    }
+    if (req.method !== 'POST') return send(res, 404, { ok: false, error: 'Not found' });
+    const body = await readJson(req, 16 * 1024);
+    if (route === '/api/account/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': userCookie(req, null) });
+    if (route === '/api/account/signup') {
+      if (signupLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many new accounts from your network in the last hour. Try again later.');
+      const username = String(body.username || '').trim().toLowerCase(), name = cleanName(body.name);
+      if (!USERNAME_RE.test(username)) throw userError(400, 'bad-username', 'Pick a username of 3 to 24 characters: letters, numbers, dots, dashes or underscores.');
+      if (name.length < 2) throw userError(400, 'bad-name', 'Enter your name (at least 2 characters). It’s shown on your design.');
+      const pw = checkPassword(body.password, username);
+      const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(pw, salt)).toString('hex');
+      const a = await changeAccounts(list => {
+        if (list.some(x => x.username === username)) throw userError(409, 'taken', `The username “${username}” is taken. Pick another one.`);
+        const a = { id: newId(), username, name, salt, hash, pwv: 0, created: new Date().toISOString() };
+        list.push(a); return a;
+      });
+      logEvent('account-signup', { username, student: name }, req);
+      return send(res, 200, { ok: true, user: { username, name } }, null, { 'Set-Cookie': userCookie(req, a) });
+    }
+    if (route === '/api/account/login') {
+      const username = String(body.username || '').trim().toLowerCase();
+      if (accountLoginLimited(clientIp(req)) || userLoginLimited(username)) throw userError(429, 'rate-limited', 'Too many login attempts. Wait 15 minutes and try again.');
+      const a = (await loadAccounts()).find(x => x.username === username);
+      const hash = await scryptAsync(String(body.password || ''), a ? a.salt : 'no-such-user-salt');
+      if (!a || !crypto.timingSafeEqual(hash, Buffer.from(a.hash, 'hex'))) {
+        logEvent('account-login-failed', { username: cleanText(username, 40) }, req); await sleep(400);
+        throw userError(401, 'bad-login', 'That username and password don’t match. Check them and try again.');
+      }
+      logEvent('account-login', { username, student: a.name }, req);
+      return send(res, 200, { ok: true, user: { username: a.username, name: a.name } }, null, { 'Set-Cookie': userCookie(req, a) });
+    }
+    if (route === '/api/account/password') {
+      const me = await currentUser(req);
+      if (!me) throw userError(401, 'login', 'Log in first.');
+      const cur = await scryptAsync(String(body.current || ''), me.salt);
+      if (!crypto.timingSafeEqual(cur, Buffer.from(me.hash, 'hex'))) throw userError(401, 'bad-login', 'Your current password isn’t right.');
+      const pw = checkPassword(body.next, me.username);
+      const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(pw, salt)).toString('hex');
+      const a = await changeAccounts(list => { const x = list.find(y => y.id === me.id); x.salt = salt; x.hash = hash; x.pwv = (x.pwv || 0) + 1; return x; });
+      logEvent('account-password', { username: me.username, student: me.name }, req);
+      return send(res, 200, { ok: true }, null, { 'Set-Cookie': userCookie(req, a) });
+    }
+    return send(res, 404, { ok: false, error: 'Not found' });
+  } catch (e) {
+    if (!e.user) { console.error(e); logEvent('account-error', { stage: route.split('/').pop(), error: explain(e), detail: cleanText(e.message, 300) }, null, who); }
+    return send(res, e.user && e.status ? e.status : 502, { ok: false, code: e.code, error: explain(e) });
+  }
+}
+
+/* ---------- Studio editor: edit / delete text blocks right on the page ---------- */
+const editLocks = new Map();
+function folderLock(folder) { if (!editLocks.has(folder)) editLocks.set(folder, mutex()); return editLocks.get(folder); }
+const sha1 = s => crypto.createHash('sha1').update(s).digest('hex');
+async function canEdit(req, folder) {
+  if (isAdmin(req)) return { admin: true, user: await currentUser(req).catch(() => null) };
+  const user = await currentUser(req);
+  if (!user) throw userError(401, 'login', 'Your login expired. Log in again to keep editing.');
+  const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
+  if (!d || d.owner !== user.id) throw userError(403, 'not-yours', 'You can only edit your own designs.');
+  return { user };
+}
+async function readDesignFile(folder, p) {
+  const f = await gh('GET', `/repos/${REPO}/contents/${encodeURI(`${DIR}/${folder}/${p}`)}?ref=${await headSha()}`, null, { retries: 2 });
+  if (Array.isArray(f) || f.type !== 'file') throw userError(404, 'not-found', 'That page doesn’t exist.');
+  if (f.content) return Buffer.from(f.content, 'base64').toString('utf8');
+  const b = await gh('GET', `/repos/${REPO}/git/blobs/${f.sha}`, null, { retries: 2 });   // pages over 1 MB
+  return Buffer.from(b.content, 'base64').toString('utf8');
+}
+async function listPages(folder) {
+  const dir = (await gh('GET', `/repos/${REPO}/contents/${DIR}?ref=${await headSha()}`, null, { retries: 2 })).find(i => i.type === 'dir' && i.name === folder);
+  if (!dir) throw userError(404, 'not-found', 'That design isn’t on GitHub yet. If you just uploaded it, wait until saving finishes.');
+  const t = await gh('GET', `/repos/${REPO}/git/trees/${dir.sha}?recursive=1`, null, { retries: 2 });
+  return (t.tree || []).filter(x => x.type === 'blob' && /\.html?$/i.test(x.path)).map(x => x.path).sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+}
+function selfUrl(req) { return `${String(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`; }
+let editorAssets = null;
+function editorPage(req, folder, p, src, name) {
+  if (!editorAssets) editorAssets = { js: fs.readFileSync(path.join(__dirname, 'editor-frame.js'), 'utf8'), css: fs.readFileSync(path.join(__dirname, 'editor-frame.css'), 'utf8') };
+  const dirPart = p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+  const base = `${selfUrl(req)}/d/${folder}/${dirPart.split('/').map(encodeURIComponent).join('/')}`;
+  // storage shim: the editor frame is sandboxed, so localStorage/cookies would throw and break the site's own scripts
+  const shim = `<script>(function(){function M(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}['localStorage','sessionStorage'].forEach(function(n){try{window[n].length}catch(e){try{Object.defineProperty(window,n,{value:M(),configurable:true})}catch(x){}}});try{document.cookie}catch(e){try{var c='';Object.defineProperty(document,'cookie',{get:function(){return c},set:function(v){},configurable:true})}catch(x){}}})();</script>`;
+  const cfg = `<script>window.__CA=${JSON.stringify({ path: p, folder, name }).replace(/</g, '\\u003c')};</script>`;
+  return blocksLib.annotate(src, { headStart: `<base href="${base}">${shim}`, bodyEnd: `<style>${editorAssets.css}</style>${cfg}<script>${editorAssets.js}</script>` });
+}
+async function handleEdit(req, res, route, url) {
+  if (req.method === 'POST' && !sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, error: 'Editing only works from ChiActive Studio.' }); }
+  const folder = String(url.searchParams.get('folder') || '');
+  let body = {}, who = null;
+  try {
+    if (req.method === 'POST') body = await readJson(req, 512 * 1024);
+    const f = folder || String(body.folder || '');
+    if (!/^[a-z0-9-]+$/.test(f)) throw userError(400, 'bad-folder', 'That design doesn’t exist.');
+    who = await canEdit(req, f);
+    const d = (await freshManifest(3e3)).find(x => x && x.folder === f) || { folder: f, name: f, entry: 'index.html' };
+    if (req.method === 'GET' && route === '/api/edit/pages') {
+      return send(res, 200, { ok: true, folder: f, name: d.name, by: d.by || '', entry: d.entry || 'index.html', pages: await listPages(f), pagesUrl: PAGES_URL, admin: !!who.admin });
+    }
+    const p = String(url.searchParams.get('path') || body.path || '').replace(/^\/+/, '');
+    if (!safePath(p) || !/\.html?$/i.test(p)) throw userError(400, 'bad-path', 'That isn’t a page of this design.');
+    if (req.method === 'GET' && route === '/api/edit/page') {
+      const src = await readDesignFile(f, p);
+      const out = editorPage(req, f, p, src, d.name);
+      return send(res, 200, { ok: true, path: p, sha: sha1(src), count: out.count, html: out.html });
+    }
+    if (req.method === 'POST' && route === '/api/edit/block') {
+      const actor = who.user || { id: 'admin', username: 'admin', name: 'Admin' };
+      if (editLimited(actor.id)) throw userError(429, 'rate-limited', 'That’s a lot of changes in a short time. Wait a few minutes and try again.');
+      const action = body.action === 'delete' ? 'delete' : 'edit', index = +body.block;
+      return await folderLock(f)(async () => {
+        const src = await readDesignFile(f, p);
+        if (sha1(src) !== body.sha) throw userError(409, 'stale', 'This page changed since you opened it (maybe in another tab), so it was reloaded. Please make your change again.');
+        const before = blocksLib.blockInfo(src, index);
+        const next = action === 'delete' ? blocksLib.applyDelete(src, index) : blocksLib.applyEdit(src, index, { html: body.html, text: body.text, href: body.href });
+        const after = action === 'delete' ? null : blocksLib.blockInfo(next, index);
+        if (next !== src) {
+          await commitToMain(`${action === 'delete' ? 'Delete text in' : 'Edit'} ${d.name}: ${p}`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', content: next }], list => {
+            const m = list.find(x => x.folder === f); if (m) m.editedAt = new Date().toISOString(); return list;
+          });
+          const s = live.get(f); if (s && s.status === 'done') live.delete(f);
+        }
+        const count = blocksLib.countBlocks(next);
+        logEvent(action === 'delete' ? 'edit-delete' : 'edit-save', { folder: f, name: d.name, page: p, student: actor.name, username: actor.username,
+          message: action === 'delete' ? `Deleted “${cleanText(before.text, 120)}”` : `“${cleanText(before.text, 100)}” → “${cleanText(after.text, 100)}”${after.href && after.href !== before.href ? ` (link: ${after.href})` : ''}` }, req);
+        return send(res, 200, { ok: true, sha: sha1(next), count, reload: action === 'delete' || count !== blocksLib.countBlocks(src), changed: next !== src });
+      });
+    }
+    return send(res, 404, { ok: false, error: 'Not found' });
+  } catch (e) {
+    if (!e.user) console.error(e);
+    if (!(e.user && (e.status === 401 || e.status === 409))) logEvent('edit-failed', { folder: folder || cleanText(body.folder, 80), page: cleanText(body.path || url.searchParams.get('path'), 120), student: who && who.user ? who.user.name : undefined, error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+    return send(res, e.user && e.status ? e.status : 502, { ok: false, code: e.code, error: explain(e) });
+  }
+}
+
+/* ---------- admin: owners and accounts ---------- */
+async function adminSetOwner(req, body) {
+  const folder = String(body.folder || ''), owner = String(body.owner || '');
+  if (!/^[a-z0-9-]+$/.test(folder)) throw userError(400, 'bad-folder', 'That design folder isn’t valid.');
+  let acc = null;
+  if (owner) { acc = (await loadAccounts()).find(a => a.id === owner); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.'); }
+  await commitToMain(`Set owner of ${folder}`, [], list => {
+    const d = list.find(x => x.folder === folder); if (!d) throw userError(404, 'not-found', 'That design isn’t in the gallery list. Rename it first to add it.');
+    if (acc) d.owner = acc.id; else delete d.owner; return list;
+  });
+  logEvent('admin-owner', { folder, message: acc ? `Owner is now ${acc.name} (@${acc.username})` : 'Owner removed' }, req);
+}
+async function adminResetPassword(req, body) {
+  const id = String(body.id || '');
+  const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
+  const pw = checkPassword(body.password, acc.username);
+  const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(pw, salt)).toString('hex');
+  await changeAccounts(list => { const x = list.find(a => a.id === id); x.salt = salt; x.hash = hash; x.pwv = (x.pwv || 0) + 1; });
+  logEvent('admin-reset', { username: acc.username, student: acc.name, message: 'Admin set a new password (the student is logged out everywhere)' }, req);
+}
+async function adminDeleteAccount(req, body) {
+  const id = String(body.id || '');
+  const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
+  await changeAccounts(list => { list.splice(list.findIndex(a => a.id === id), 1); });
+  logEvent('admin-account-delete', { username: acc.username, student: acc.name, message: 'Account deleted (their designs stay in the gallery without an owner)' }, req);
+}
+let studioHtml = null;
+function studioPage(res) {
+  if (!studioHtml) studioHtml = fs.readFileSync(path.join(__dirname, 'studio.html'));
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' });
+  res.end(studioHtml);
+}
+const staticCache = new Map();
+function staticFile(res, rel, type) {
+  if (!staticCache.has(rel)) staticCache.set(rel, fs.readFileSync(path.join(__dirname, rel)));
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400' });
+  res.end(staticCache.get(rel));
+}
 const EVENT_FIELDS = ['folder', 'page', 'student', 'visitor', 'message', 'stage', 'size', 'files', 'ref', 'by', 'path'];
 
 /* ---------- HTTP ---------- */
@@ -644,12 +923,16 @@ const server = http.createServer(async (req, res) => {
 
     // uploads
     if (route.startsWith('/api/upload')) {
-      if (!origin) { req.resume(); return send(res, 403, { ok: false, code: 'origin', error: 'Uploads are only accepted from the ChiActive gallery page.' }, null); }
-      if (req.method === 'POST' && route === '/api/upload/start') return await handleStart(req, res, origin);
-      if (req.method === 'POST' && route === '/api/upload/chunk') return await handleChunk(req, res, origin, url);
-      if (req.method === 'POST' && route === '/api/upload/finish') return await handleFinish(req, res, origin);
+      if (origin) { req.resume(); return send(res, 410, { ok: false, code: 'old-page', error: 'Uploading moved to ChiActive Studio, where you log in first. Refresh the gallery page and click “Sign up or log in”.' }, origin); }
+      if (!sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, code: 'origin', error: 'Uploads are only accepted from ChiActive Studio.' }); }
+      const user = await currentUser(req).catch(() => null);
+      if (!user) { req.resume(); return send(res, 401, { ok: false, code: 'login', error: 'Your login expired. Log in again, then upload.' }); }
+      if (req.method === 'POST' && route === '/api/upload/start') return await handleStart(req, res, null, user);
+      if (req.method === 'POST' && route === '/api/upload/chunk') return await handleChunk(req, res, null, url, user);
+      if (req.method === 'POST' && route === '/api/upload/finish') return await handleFinish(req, res, null, user);
       if (req.method === 'GET' && route === '/api/upload/status') {
         const s = uploads.get(url.searchParams.get('id') || '');
+        if (s && s.owner !== user.id) return send(res, 404, { ok: false, code: 'expired', error: 'Upload not found.' });
         return s ? send(res, 200, publicStatus(s), origin) : send(res, 404, { ok: false, code: 'expired', error: 'The upload server restarted and lost track of this upload. Check the gallery; if your design isn’t there, upload it again.' }, origin);
       }
       if (route === '/api/upload') { req.resume(); return send(res, 410, { ok: false, code: 'old-page', error: 'The gallery page was updated. Refresh the page (Cmd+Shift+R or Ctrl+F5) and upload again.' }, origin); }
@@ -668,6 +951,12 @@ const server = http.createServer(async (req, res) => {
       }
       res.writeHead(204, cors(origin)); return res.end();
     }
+
+    // ChiActive Studio (accounts, uploads, editor)
+    if (req.method === 'GET' && (route === '/studio' || route.startsWith('/studio/'))) return studioPage(res);
+    if (req.method === 'GET' && route === '/vendor/jszip.min.js') return staticFile(res, 'vendor/jszip.min.js', 'text/javascript; charset=utf-8');
+    if (route.startsWith('/api/account/')) return await handleAccount(req, res, route);
+    if (route.startsWith('/api/edit/')) return await handleEdit(req, res, route, url);
 
     // admin
     if (req.method === 'GET' && (route === '/admin' || route === '/admin/')) return adminPage(res);
@@ -690,7 +979,30 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, { ok: true, days, ...data, server: { repo: REPO, branch: BRANCH, logBranch: LOG_BRANCH, tokenSet: !!TOKEN, pages: PAGES_URL,
           uptimeMin: Math.round(process.uptime() / 60), activeUploads: [...uploads.values()].filter(s => s.status !== 'done').map(s => ({ student: s.student, status: s.status, stage: s.stage, done: s.done || 0, steps: s.steps || 0, note: s.note || '', size: s.total, files: s.files.length })) } });
       }
-      if (req.method === 'GET' && route === '/api/admin/designs') return send(res, 200, { ok: true, pages: PAGES_URL, designs: await adminDesigns() });
+      if (req.method === 'GET' && route === '/api/admin/designs') {
+        let accounts = [], accountsError = '';
+        try { accounts = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name })); } catch (e) { accountsError = explain(e); }
+        return send(res, 200, { ok: true, pages: PAGES_URL, designs: await adminDesigns(), accounts, accountsError });
+      }
+      if (req.method === 'GET' && route === '/api/admin/accounts') {
+        try {
+          const manifest = await freshManifest(5e3);
+          const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name) }));
+          return send(res, 200, { ok: true, accounts: list.sort((a, b) => String(b.created).localeCompare(String(a.created))) });
+        } catch (e) { return send(res, 200, { ok: false, error: explain(e), accounts: [] }); }
+      }
+      if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
+        const body = await readJson(req, 16 * 1024);
+        try {
+          if (route === '/api/admin/owner') await adminSetOwner(req, body);
+          else if (route === '/api/admin/account/reset') await adminResetPassword(req, body);
+          else await adminDeleteAccount(req, body);
+          return send(res, 200, { ok: true });
+        } catch (e) {
+          logEvent('admin-error', { stage: route.split('/').pop(), error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+          return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) });
+        }
+      }
       if (req.method === 'POST' && (route === '/api/admin/rename' || route === '/api/admin/delete')) {
         const body = await readJson(req, 16 * 1024);
         try {

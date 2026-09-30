@@ -1,0 +1,39 @@
+/* ChiActive Studio editor styles (injected into the design page in edit mode) */
+[data-ca-b] { cursor: text; }
+[data-ca-b].ca-hover { outline: 2px dashed #41B6E6 !important; outline-offset: 3px !important; }
+[data-ca-b].ca-editing { outline: 2px solid #41B6E6 !important; outline-offset: 3px !important; }
+[data-ca-b].ca-deleting { outline: 2px solid #E4022B !important; outline-offset: 3px !important; background-color: rgba(228, 2, 43, .12) !important; }
+[data-ca-b].ca-flash { outline: 3px solid #3DBE73 !important; outline-offset: 3px !important; }
+ca-text { display: inline; }
+#ca-layer { all: initial; position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2147483600; }
+#ca-layer .ca-tools { all: initial; position: absolute; left: 0; top: 0; display: flex; gap: 4px; opacity: .6; transition: opacity .12s; z-index: 1; }
+#ca-layer .ca-tools.on, #ca-layer .ca-tools:hover, #ca-layer .ca-tools:focus-within { opacity: 1; z-index: 3; }
+body.ca-busy #ca-layer .ca-tools { opacity: .15; }
+#ca-layer .ca-btn { all: initial; box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: #16202C; color: #fff; border: 2px solid #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); cursor: pointer; }
+#ca-layer .ca-btn svg { width: 13px; height: 13px; display: block; }
+#ca-layer .ca-edit:hover, #ca-layer .ca-edit:focus-visible { background: #1d8fc4; outline: none; }
+#ca-layer .ca-del:hover, #ca-layer .ca-del:focus-visible { background: #E4022B; outline: none; }
+#ca-pop { all: initial; position: absolute; z-index: 2147483647; box-sizing: border-box; width: min(440px, calc(100vw - 16px)); background: #16202C; color: #E6ECF2;
+  border-radius: 14px; padding: 14px; box-shadow: 0 24px 60px -12px rgba(0, 0, 0, .65); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: left; }
+#ca-pop * { box-sizing: border-box; }
+#ca-pop .ca-title { all: initial; display: block; margin-bottom: 8px; font: 700 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #41B6E6; }
+#ca-pop .ca-input { all: initial; display: block; min-height: 44px; max-height: 240px; overflow: auto; background: #fff; color: #16202C; border-radius: 10px; padding: 10px 12px;
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: pre-wrap; word-break: break-word; outline: 2px solid transparent; cursor: text; }
+#ca-pop .ca-input:focus { outline-color: #41B6E6; }
+#ca-pop .ca-input * { all: revert; font-family: inherit; color: inherit; }
+#ca-pop .ca-input a { color: #1a6fb0; text-decoration: underline; }
+#ca-pop .ca-field { all: initial; display: block; margin-top: 10px; }
+#ca-pop .ca-flabel { all: initial; display: block; margin-bottom: 4px; font: 600 12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #F5E7BE; }
+#ca-pop .ca-href { all: initial; display: block; width: 100%; box-sizing: border-box; background: #0F1720; color: #fff; border: 1px solid rgba(245, 231, 190, .3); border-radius: 8px; padding: 8px 10px;
+  font: 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#ca-pop .ca-href:focus { border-color: #41B6E6; }
+#ca-pop .ca-tip { all: initial; display: block; margin-top: 8px; font: 12px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #9DAABB; }
+#ca-pop .ca-actions { all: initial; display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+#ca-pop .ca-b2 { all: initial; cursor: pointer; border-radius: 999px; padding: 8px 16px; font: 700 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .35); }
+#ca-pop .ca-b2:hover { background: rgba(255, 255, 255, .08); }
+#ca-pop .ca-save { background: #E4022B; box-shadow: none; }
+#ca-pop .ca-save:hover { background: #c10224; }
+#ca-pop .ca-b2:focus-visible { outline: 2px solid #41B6E6; outline-offset: 2px; }
+#ca-pop .ca-b2[disabled] { opacity: .55; cursor: default; }
+#ca-pop .ca-msg { all: initial; display: block; margin-top: 8px; min-height: 1em; font: 600 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #ff9fb0; }

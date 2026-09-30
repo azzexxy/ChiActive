@@ -10,7 +10,7 @@
 <meta property="og:description" content="Upload your ChiActive website design (a .zip or a folder) with your student name, and see every design from the class.">
 <meta property="og:image" content="images/previews/classic-desktop.webp">
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link rel="stylesheet" href="picker.css?v=10">
+<link rel="stylesheet" href="picker.css?v=11">
 </head>
 <body>
 <div class="stripes" aria-hidden="true"></div>
@@ -21,11 +21,11 @@
       <div>
         <p class="kicker">ChiActive &middot; Class design gallery</p>
         <h1>Pick your <span>style.</span></h1>
-        <p class="intro">Every ChiActive website design from the class in one place. Upload yours below and it appears right under the upload box, for everyone, straight away.</p>
+        <p class="intro">Every ChiActive website design from the class in one place. Sign up in ChiActive Studio, upload yours, and fix any text right on the page whenever you like.</p>
         <ol class="steps">
-          <li><span class="n">1</span><span>Drop your site as a <b>.zip</b> or a <b>folder</b>. Zips are unzipped automatically.</span></li>
-          <li><span class="n">2</span><span>Enter your <b>student name</b>. Your design is named &ldquo;Website design - your name&rdquo;.</span></li>
-          <li><span class="n">3</span><span>It opens right away, for everyone. No waiting.</span></li>
+          <li><span class="n">1</span><span>Create an account in <b>ChiActive Studio</b> with a username and password.</span></li>
+          <li><span class="n">2</span><span>Upload your site as a <b>.zip</b> or a <b>folder</b>. It&rsquo;s named &ldquo;Website design - your name&rdquo;.</span></li>
+          <li><span class="n">3</span><span>Click <b>✎</b> next to any text on your site to change it, or <b>🗑</b> to delete it. Only you can edit your design.</span></li>
         </ol>
       </div>
     </div>
@@ -48,8 +48,6 @@
         <div class="up-inner" id="up-inner"></div>
       </article>
     </div>
-    <input type="file" id="zip-input" accept=".zip,application/zip,application/x-zip-compressed" hidden>
-    <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
 
     <div class="community-head">
       <div>
@@ -64,8 +62,8 @@
 
   <footer><span>&copy; 2026 ChiActive &middot; Class design gallery. No real orders are placed. Only upload your own work.<br><span class="privacy">For the class admin, this gallery keeps a log of uploads, errors and which designs are viewed (with a random visitor id, and your student name if you uploaded).</span></span><span>Built for the four-season city.</span></footer>
 </div>
-<script src="site-config.js?v=10"></script>
-<script src="track.js?v=10"></script>
+<script src="site-config.js?v=11"></script>
+<script src="track.js?v=11"></script>
 <script>
 (function () {
   var cfg = window.CHIACTIVE || {};
@@ -81,8 +79,7 @@
   });
 })();
 </script>
-<script src="vendor/jszip.min.js"></script>
-<script src="designs.js?v=10"></script>
+<script src="designs.js?v=11"></script>
 <script>window.chiTrack && window.chiTrack('visit');</script>
 </body>
 </html>

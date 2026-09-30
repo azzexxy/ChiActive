@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#16202C">
+<title>ChiActive Studio</title>
+<style>
+:root { --bg: #16202C; --card: #1F2B3A; --card-2: #263446; --line: rgba(245,231,190,.14); --text: #E6ECF2; --muted: #9DAABB; --sky: #41B6E6; --sand: #F5E7BE; --red: #E4022B; --green: #3DBE73; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--sky); }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.stripes { height: 10px; background: linear-gradient(to bottom, var(--sky) 0 33%, var(--bg) 33% 66%, var(--sky) 66%); }
+.wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+h1, h2, h3 { margin: 0; line-height: 1.1; }
+.brandline { font-weight: 800; font-size: 1.35rem; letter-spacing: -.01em; text-transform: uppercase; color: var(--sand); text-decoration: none; }
+.brandline span { color: var(--sky); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 10px; padding: 11px 18px; background: var(--red); color: #fff; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn:hover { background: #c10224; }
+.btn.ghost { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28); }
+.btn.ghost:hover { background: rgba(255,255,255,.07); }
+.btn.small { padding: 7px 12px; font-size: .9rem; border-radius: 8px; }
+.btn[disabled] { opacity: .55; cursor: default; }
+input[type=text], input[type=password] { width: 100%; background: var(--bg); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+input:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+.err { color: #ff8fa3; font-weight: 700; margin: 0; min-height: 1.4em; }
+.ok { color: #86e0a8; font-weight: 700; }
+.muted { color: var(--muted); }
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 18px 0; }
+.top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.who { color: var(--muted); font-size: .92rem; }
+.who b { color: #fff; }
+
+/* auth */
+.auth { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 80px; }
+.auth h1 { font-size: clamp(2.4rem, 5vw, 3.8rem); text-transform: uppercase; font-weight: 800; color: var(--sand); letter-spacing: -.01em; }
+.auth h1 span { color: var(--sky); }
+.steps { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; }
+.steps li { display: flex; gap: 12px; align-items: baseline; }
+.steps .n { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--sky); color: var(--bg); font-weight: 800; font-size: .85rem; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 26px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 18px; background: var(--bg); padding: 4px; border-radius: 12px; }
+.tabs button { flex: 1; border: 0; background: none; color: var(--muted); padding: 10px; border-radius: 9px; font-weight: 700; cursor: pointer; }
+.tabs button[aria-selected=true] { background: var(--card-2); color: #fff; }
+form.stack { display: grid; gap: 12px; }
+form.stack label { display: grid; gap: 5px; font-size: .88rem; font-weight: 700; color: var(--sand); }
+form.stack label small { font-weight: 500; color: var(--muted); }
+.fine { font-size: .82rem; color: var(--muted); margin: 4px 0 0; }
+
+/* home */
+.section-title { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin: 36px 0 16px; }
+.section-title h2 { font-size: 1.6rem; text-transform: uppercase; color: var(--sand); }
+.drop { border: 2px dashed rgba(65,182,230,.55); background: rgba(65,182,230,.05); border-radius: 18px; padding: 32px 24px; text-align: center; display: grid; justify-items: center; gap: 12px; }
+.drop.drag { border-color: var(--sky); background: rgba(65,182,230,.14); }
+.drop h3 { font-size: 1.5rem; text-transform: uppercase; color: #fff; }
+.drop p { margin: 0; color: var(--muted); max-width: 60ch; }
+.drop .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.icon-circle { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--sky); color: var(--bg); }
+.icon-circle svg { width: 30px; height: 30px; }
+.progress { width: min(360px, 100%); height: 8px; border-radius: 8px; background: var(--card-2); overflow: hidden; }
+.progress span { display: block; height: 100%; width: 0; background: var(--sky); transition: width .2s; }
+.found { background: var(--card-2); border-radius: 10px; padding: 12px 14px; }
+.designs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.dcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.dcard .thumb { position: relative; aspect-ratio: 16 / 10; background: #fff; overflow: hidden; }
+.dcard .thumb iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; border: 0; transform-origin: 0 0; transform: scale(var(--s, .25)); pointer-events: none; }
+.dcard .body { padding: 16px; display: grid; gap: 6px; flex: 1; }
+.dcard h3 { font-size: 1.1rem; color: #fff; }
+.dcard .meta { font-size: .85rem; color: var(--muted); }
+.dcard .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
+.tag { display: inline-block; font-size: .72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(242,179,61,.18); color: #ffd27a; margin-left: 6px; vertical-align: 2px; }
+.empty { color: var(--muted); padding: 24px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; }
+.admin-banner { background: rgba(245,231,190,.1); border: 1px solid rgba(245,231,190,.3); color: var(--sand); padding: 10px 14px; border-radius: 12px; margin-top: 8px; }
+
+/* editor */
+body.editing { overflow: hidden; }
+.ebar { position: fixed; inset: 0 0 auto 0; z-index: 10; background: var(--bg); border-bottom: 3px solid var(--sky); }
+.ebar-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
+.ebar .name { font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 28ch; }
+.ebar select { background: var(--card); color: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: inherit; max-width: 240px; }
+.ebar .grow { flex: 1; }
+.pill { font-size: .85rem; font-weight: 700; padding: 5px 12px; border-radius: 999px; background: var(--card-2); color: var(--muted); white-space: nowrap; }
+.pill.saving { color: #ffd27a; } .pill.saved { color: #86e0a8; } .pill.bad { color: #ff8fa3; }
+.help { font-size: .85rem; color: var(--muted); padding: 0 14px 10px; margin: 0; }
+.help b { color: var(--text); }
+.eframe { position: fixed; left: 0; right: 0; bottom: 0; top: var(--bar, 96px); background: #fff; }
+.eframe iframe { width: 100%; height: 100%; border: 0; display: block; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); color: var(--muted); font-weight: 700; }
+
+/* modal + toast */
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(10,16,24,.65); display: grid; place-items: center; padding: 16px; }
+.modal-box { width: min(520px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.7); }
+.modal-box h2 { font-size: 1.4rem; color: #fff; margin-bottom: 12px; }
+.cmp { display: grid; gap: 8px; margin: 12px 0; }
+.cmp div { background: var(--bg); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--muted); word-break: break-word; max-height: 160px; overflow: auto; }
+.cmp .before { border-left-color: #ff8fa3; } .cmp .after { border-left-color: #86e0a8; }
+.cmp small { display: block; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.modal-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 16px); background: var(--card-2); border: 1px solid var(--line); color: #fff; padding: 12px 18px; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); opacity: 0; transition: all .2s; pointer-events: none; z-index: 60; max-width: min(560px, calc(100% - 32px)); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.bad { border-color: rgba(228,2,43,.6); }
+
+@media (max-width: 860px) { .auth { grid-template-columns: 1fr; gap: 28px; padding-top: 16px; } .ebar .name { max-width: 16ch; } }
+@media (max-width: 560px) { .help { display: none; } .ebar select { max-width: 150px; } }
+</style>
+</head>
+<body>
+<div class="stripes" aria-hidden="true"></div>
+
+<!-- sign up / log in -->
+<main class="wrap" id="auth-view" hidden>
+  <header class="top"><a class="brandline" href="#" data-gallery>ChiActive <span>Studio</span></a><a class="btn ghost small" href="#" data-gallery>← Class gallery</a></header>
+  <section class="auth">
+    <div>
+      <h1>Your design,<br><span>live and editable.</span></h1>
+      <p class="muted">Create an account to add your ChiActive website design to the class gallery, then fix any text right on the page.</p>
+      <ol class="steps">
+        <li><span class="n">1</span><span>Sign up with a username and password.</span></li>
+        <li><span class="n">2</span><span>Upload your site as a <b>.zip</b> or a <b>folder</b>. It shows up in the gallery as “Website design - your name”.</span></li>
+        <li><span class="n">3</span><span>Click <b>Edit text</b>, then the ✎ pencil next to any title, paragraph or button to change it, or the 🗑 trash to delete it. You confirm every change, and it’s saved to GitHub straight away.</span></li>
+      </ol>
+    </div>
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-signup" aria-selected="true">Sign up</button>
+        <button type="button" role="tab" id="tab-login" aria-selected="false">Log in</button>
+      </div>
+      <form class="stack" id="signup-form" novalidate>
+        <label>Your name <small>shown on your design, e.g. “Maya Rodríguez”</small><input type="text" name="name" maxlength="60" autocomplete="name" required></label>
+        <label>Username <small>3–24 letters, numbers, dots, dashes or underscores</small><input type="text" name="username" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label>Password <small>at least 8 characters</small><input type="password" name="password" autocomplete="new-password" required></label>
+        <label>Password again<input type="password" name="password2" autocomplete="new-password" required></label>
+        <button class="btn" type="submit">Create my account</button>
+        <p class="err" role="alert"></p>
+        <p class="fine">Your password is stored only as a scrambled hash, never as plain text. Forgot it later? The gallery admin can set a new one for you.</p>
+      </form>
+      <form class="stack" id="login-form" novalidate hidden>
+        <label>Username<input type="text" name="username" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="btn" type="submit">Log in</button>
+        <p class="err" role="alert"></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<!-- my designs + upload -->
+<main class="wrap" id="home-view" hidden>
+  <header class="top">
+    <a class="brandline" href="/studio" data-route>ChiActive <span>Studio</span></a>
+    <div class="top-right"><span class="who" id="who"></span><a class="btn ghost small" href="#" data-gallery>Class gallery ↗</a><button class="btn ghost small" type="button" id="pw-btn">Change password</button><button class="btn ghost small" type="button" id="logout-btn">Log out</button></div>
+  </header>
+  <div id="admin-banner" class="admin-banner" hidden></div>
+  <div id="upload-area">
+    <div class="section-title"><h2>Upload a design</h2></div>
+    <div class="drop" id="drop"></div>
+    <input type="file" id="zip-input" accept=".zip,application/zip,application/x-zip-compressed" hidden>
+    <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
+  </div>
+  <div class="section-title"><h2 id="designs-title">Your designs</h2><span class="muted" id="designs-count"></span></div>
+  <div class="designs" id="designs"></div>
+  <p style="height:60px"></p>
+</main>
+
+<!-- editor -->
+<div id="editor-view" hidden>
+  <div class="ebar" id="ebar">
+    <div class="ebar-row">
+      <a class="btn ghost small" href="/studio" data-route>← Your designs</a>
+      <span class="name" id="ed-name"></span>
+      <label class="sr" for="ed-page">Page</label>
+      <select id="ed-page"></select>
+      <span class="grow"></span>
+      <span class="pill" id="ed-status">Loading…</span>
+      <a class="btn small" id="ed-live" href="#" target="_blank" rel="noopener">View live ↗</a>
+    </div>
+    <p class="help">Click <b>✎</b> next to any text to change it, or <b>🗑</b> to delete it. You’ll confirm each change before it’s saved to GitHub. Links take you to other pages of your site.</p>
+  </div>
+  <div class="eframe" id="eframe"><div class="loading" id="ed-loading">Loading your page…</div></div>
+</div>
+
+<div class="modal" id="modal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title"></h2><div id="modal-body"></div><div class="modal-acts" id="modal-acts"></div></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="/vendor/jszip.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmtBytes(n) { return n >= 1073741824 ? (n / 1073741824).toFixed(2) + ' GB' : n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function toast(msg, bad) { var t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, bad ? 7000 : 4000); }
+  function api(path, body) {
+    return fetch(path, { method: body ? 'POST' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'The server answered with error ' + r.status + '. Try again in a minute.' }; }).then(function (j) { j.status = r.status; return j; }); })
+      .catch(function () { return { ok: false, status: 0, error: navigator.onLine === false ? 'You’re offline. Reconnect and try again.' : 'Couldn’t reach the server. It may be waking up; try again in a minute.' }; });
+  }
+  var ME = null, PAGES = '';
+  function viewUrl(d) { return PAGES + 'view.html?d=' + encodeURIComponent(d.folder) + '&e=' + encodeURIComponent(d.entry || 'index.html') + (d.by ? '&by=' + encodeURIComponent(d.by) : ''); }
+
+  /* ---------- modal ---------- */
+  function modal(title, bodyHtml, buttons) {
+    return new Promise(function (resolve) {
+      $('modal-title').textContent = title; $('modal-body').innerHTML = bodyHtml;
+      $('modal-acts').innerHTML = buttons.map(function (b, i) { return '<button type="button" class="btn' + (b.ghost ? ' ghost' : '') + '" data-i="' + i + '">' + esc(b.label) + '</button>'; }).join('');
+      $('modal').hidden = false;
+      var last = $('modal-acts').lastChild; if (last) last.focus();
+      function done(v) { $('modal').hidden = true; $('modal-acts').onclick = null; document.removeEventListener('keydown', key); resolve(v); }
+      function key(e) { if (e.key === 'Escape') done(buttons[0].value); }
+      document.addEventListener('keydown', key);
+      $('modal-acts').onclick = function (e) { var b = e.target.closest('[data-i]'); if (b) done(buttons[+b.getAttribute('data-i')].value); };
+    });
+  }
+
+  /* ---------- routing ---------- */
+  function go(path, replace) { if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path); route(); }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[data-route]'); if (a) { e.preventDefault(); go(a.getAttribute('href')); }
+    var g = e.target.closest('a[data-gallery]'); if (g && PAGES) { g.href = PAGES; }
+  });
+  window.addEventListener('popstate', route);
+  function show(view) { ['auth-view', 'home-view', 'editor-view'].forEach(function (v) { $(v).hidden = v !== view; }); document.body.classList.toggle('editing', view === 'editor-view'); }
+  function loadMe() { return api('/api/account/me').then(function (j) { ME = j.ok ? j : null; PAGES = (j && j.pages) || ''; document.querySelectorAll('a[data-gallery]').forEach(function (a) { a.href = PAGES || '#'; }); return j; }); }
+  function route() {
+    return loadMe().then(function (j) {
+      if (!j.ok) { show('auth-view'); authError(j.error || ''); return; }
+      if (!j.user && !j.admin) { show('auth-view'); if (j.error) authError(j.error); return; }
+      var m = location.pathname.match(/^\/studio\/edit\/([a-z0-9-]+)\/?$/);
+      if (m) return openEditor(m[1], new URLSearchParams(location.search).get('page') || '');
+      closeEditor(); renderHome(); show('home-view');
+    });
+  }
+
+  /* ---------- sign up / log in ---------- */
+  function authTab(which) {
+    $('tab-signup').setAttribute('aria-selected', String(which === 'signup')); $('tab-login').setAttribute('aria-selected', String(which === 'login'));
+    $('signup-form').hidden = which !== 'signup'; $('login-form').hidden = which !== 'login';
+    try { localStorage.setItem('ca-studio-tab', which); } catch (e) {}
+  }
+  function authError(msg) { var f = $('signup-form').hidden ? $('login-form') : $('signup-form'); f.querySelector('.err').textContent = msg || ''; }
+  $('tab-signup').onclick = function () { authTab('signup'); };
+  $('tab-login').onclick = function () { authTab('login'); };
+  try { if (localStorage.getItem('ca-studio-tab') === 'login') authTab('login'); } catch (e) {}
+  $('signup-form').addEventListener('submit', function (e) {
+    e.preventDefault(); var f = e.target, err = f.querySelector('.err'), b = f.querySelector('button');
+    if (f.password.value !== f.password2.value) { err.textContent = 'The two passwords don’t match.'; f.password2.focus(); return; }
+    b.disabled = true; b.textContent = 'Creating your account…'; err.textContent = '';
+    api('/api/account/signup', { name: f.name.value, username: f.username.value, password: f.password.value }).then(function (j) {
+      b.disabled = false; b.textContent = 'Create my account';
+      if (!j.ok) { err.textContent = j.error; return; }
+      f.reset(); toast('Welcome, ' + j.user.name + '! Your account is ready.'); go('/studio', true);
+    });
+  });
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault(); var f = e.target, err = f.querySelector('.err'), b = f.querySelector('button');
+    b.disabled = true; b.textContent = 'Logging in…'; err.textContent = '';
+    api('/api/account/login', { username: f.username.value, password: f.password.value }).then(function (j) {
+      b.disabled = false; b.textContent = 'Log in';
+      if (!j.ok) { err.textContent = j.error; return; }
+      f.reset(); route();
+    });
+  });
+  $('logout-btn').onclick = function () { api('/api/account/logout', {}).then(function () { toast('You’re logged out.'); authTab('login'); go('/studio'); }); };
+  $('pw-btn').onclick = function () {
+    modal('Change your password', '<form class="stack" id="pw-form" onsubmit="return false"><label>Current password<input type="password" name="current" autocomplete="current-password"></label><label>New password <small>at least 8 characters</small><input type="password" name="next" autocomplete="new-password"></label><p class="err" id="pw-err"></p></form>',
+      [{ label: 'Cancel', ghost: true, value: false }, { label: 'Change password', value: true }]).then(function (ok) {
+      if (!ok) return;
+      var f = $('pw-form');
+      api('/api/account/password', { current: f.current.value, next: f.next.value }).then(function (j) { toast(j.ok ? 'Password changed.' : j.error, !j.ok); });
+    });
+  };
+
+  /* ---------- home ---------- */
+  function renderHome() {
+    var u = ME.user;
+    $('who').innerHTML = u ? 'Logged in as <b>' + esc(u.name) + '</b> (@' + esc(u.username) + ')' : '<b>Admin</b>';
+    $('pw-btn').hidden = !u;
+    $('admin-banner').hidden = !ME.admin;
+    $('admin-banner').textContent = ME.admin ? 'Admin mode: you can edit every design in the gallery.' + (u ? '' : ' To upload, log in with a student account.') : '';
+    $('upload-area').hidden = !u;
+    $('designs-title').textContent = u && !ME.admin ? 'Your designs' : 'Designs';
+    var list = ME.designs || [];
+    $('designs-count').textContent = list.length ? list.length + ' design' + (list.length === 1 ? '' : 's') : '';
+    $('designs').innerHTML = list.length ? list.map(function (d) {
+      var when = d.editedAt ? 'Edited ' + new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : d.uploadedAt ? 'Uploaded ' + new Date(d.uploadedAt).toLocaleDateString() : '';
+      return '<article class="dcard"><div class="thumb"><iframe src="' + esc(PAGES + 'designs/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox></iframe></div>' +
+        '<div class="body"><h3>' + esc(d.name) + (d.saving ? '<span class="tag">saving…</span>' : '') + '</h3><p class="meta">' + esc(when) + (ME.admin && d.by ? ' · by ' + esc(d.by) : '') + '</p>' +
+        '<div class="acts"><a class="btn small" href="/studio/edit/' + esc(d.folder) + '" data-route' + (d.saving ? ' aria-disabled="true"' : '') + '>✎ Edit text</a><a class="btn ghost small" href="' + esc(viewUrl(d)) + '" target="_blank" rel="noopener">View live ↗</a></div></div></article>';
+    }).join('') : '<p class="empty">' + (u ? 'No designs yet. Upload your first one above.' : 'No designs in the gallery yet.') + '</p>';
+    scaleThumbs();
+    if (u && !pending && !drop.innerHTML.trim()) idle();
+  }
+  function scaleThumbs() { document.querySelectorAll('.dcard .thumb').forEach(function (t) { t.style.setProperty('--s', (t.clientWidth / 1280).toFixed(4)); }); }
+  window.addEventListener('resize', scaleThumbs);
+
+  /* ---------- upload (zip is unzipped here, then sent in 8 MB pieces) ---------- */
+  var ICON = '<span class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>';
+  var JUNK = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db|desktop\.ini|\.git|node_modules)(\/|$)/i, MAX_FILE = 100 * 1048576, MAX_TOTAL = 1024 * 1048576;
+  var drop = $('drop'), pending = null;
+  function idle(message) {
+    pending = null;
+    drop.innerHTML = ICON + '<h3>Add a design</h3><p>Drop a <b>.zip</b> or a <b>folder</b> here. It needs an <code>index.html</code> (or any .html page). Files up to 100 MB, designs up to 1 GB.</p>' +
+      '<div class="acts"><button class="btn" type="button" data-pick="zip">Choose .zip</button><button class="btn ghost" type="button" data-pick="folder">Choose folder</button></div>' +
+      (message ? '<p class="' + (message.error ? 'err' : 'ok') + '" role="status">' + message.html + '</p>' : '') +
+      '<p class="fine">It appears in the class gallery as “Website design - ' + esc(ME && ME.user ? ME.user.name : 'your name') + '”.</p>';
+  }
+  function status(text, fraction, extra) { drop.innerHTML = ICON + '<h3>Working on it</h3><p role="status">' + esc(text) + '</p><div class="progress"><span style="width:' + Math.round((fraction || 0) * 100) + '%"></span></div>' + (extra || ''); }
+  function readZip(file) {
+    return JSZip.loadAsync(file).then(function (zip) {
+      var entries = []; zip.forEach(function (p, e) { if (!e.dir) entries.push(e); });
+      var out = [], n = 0;
+      return entries.reduce(function (p, e) { return p.then(function () { return e.async('blob').then(function (b) { out.push({ path: e.name, blob: b }); n++; if (n % 15 === 0) status('Unzipping: ' + n + ' of ' + entries.length + ' files', n / entries.length * 0.3); }); }); }, Promise.resolve()).then(function () { return out; });
+    }).catch(function (e) { throw new Error(e && /zip|central|signature/i.test(e.message) ? 'That .zip couldn’t be opened. Try zipping the folder again.' : (e.message || 'That .zip couldn’t be read.')); });
+  }
+  function readEntry(entry, prefix) {
+    return new Promise(function (resolve) {
+      if (entry.isFile) entry.file(function (f) { resolve([{ path: prefix + f.name, blob: f }]); }, function () { resolve([]); });
+      else if (entry.isDirectory) {
+        var reader = entry.createReader(), all = [];
+        (function next() { reader.readEntries(function (batch) { if (!batch.length) Promise.all(all.map(function (e) { return readEntry(e, prefix + entry.name + '/'); })).then(function (l) { resolve([].concat.apply([], l)); }); else { all = all.concat([].slice.call(batch)); next(); } }, function () { resolve([]); }); })();
+      } else resolve([]);
+    });
+  }
+  function analyse(files) {
+    files = files.filter(function (f) { return f.path && !JUNK.test(f.path) && !/(^|\/)\._/.test(f.path); }).map(function (f) { return { path: f.path.replace(/\\/g, '/').replace(/^\/+/, ''), blob: f.blob }; });
+    if (!files.length) throw new Error('That upload was empty.');
+    var tops = {}; files.forEach(function (f) { tops[f.path.split('/')[0]] = 1; });
+    var t = Object.keys(tops);
+    if (t.length === 1 && files.every(function (f) { return f.path.indexOf('/') > -1; })) files = files.map(function (f) { return { path: f.path.slice(t[0].length + 1), blob: f.blob }; });
+    var html = files.filter(function (f) { return /\.html?$/i.test(f.path); });
+    if (!html.length) throw new Error('No web page found. A design needs at least one .html file, ideally index.html.');
+    var depth = function (p) { return p.split('/').length; };
+    var idx = html.filter(function (f) { return /(^|\/)index\.html?$/i.test(f.path); }).sort(function (a, b) { return depth(a.path) - depth(b.path); });
+    var entry = (idx[0] || html.sort(function (a, b) { return depth(a.path) - depth(b.path) || a.path.localeCompare(b.path); })[0]).path;
+    var size = files.reduce(function (s, f) { return s + (f.blob.size || 0); }, 0);
+    var big = files.filter(function (f) { return (f.blob.size || 0) > MAX_FILE; });
+    if (big.length) throw new Error(big.slice(0, 3).map(function (f) { return '“' + f.path + '” is ' + fmtBytes(f.blob.size); }).join(', ') + '. GitHub doesn’t accept single files over 100 MB. Compress ' + (big.length === 1 ? 'it' : 'them') + ' (videos shrink a lot with HandBrake) or leave ' + (big.length === 1 ? 'it' : 'them') + ' out.');
+    if (size > MAX_TOTAL) throw new Error('That design is ' + fmtBytes(size) + '. The gallery takes designs up to 1 GB (the most GitHub Pages publishes). Compress large videos and images.');
+    return { files: files, entry: entry, size: size };
+  }
+  function handle(p) {
+    status('Reading the files…', 0.02);
+    p.then(function (files) {
+      var info = analyse(files); pending = info;
+      drop.innerHTML = ICON + '<h3>Ready to upload</h3><div class="found">Found <b>' + info.files.length + ' files</b> (' + fmtBytes(info.size) + '). Starts at <b>' + esc(info.entry) + '</b>.</div>' +
+        '<p>It will be saved as <b>“Website design - ' + esc(ME.user.name) + '”</b>.</p><div class="acts"><button class="btn" type="button" data-go>Upload to the gallery</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>';
+      drop.querySelector('[data-go]').focus();
+    }).catch(function (err) { idle({ error: true, html: esc(err && err.message ? err.message : 'That upload couldn’t be read.') }); });
+  }
+  drop.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.getAttribute('data-pick') === 'zip') $('zip-input').click();
+    if (b.getAttribute('data-pick') === 'folder') $('folder-input').click();
+    if (b.hasAttribute('data-go') && pending) upload(pending);
+    if (b.hasAttribute('data-cancel')) idle();
+  });
+  $('zip-input').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (!f) return; if (!/\.zip$/i.test(f.name) && !/zip/.test(f.type)) return idle({ error: true, html: 'That wasn’t a .zip file. Choose a .zip, or use Choose folder.' }); handle(readZip(f)); });
+  $('folder-input').addEventListener('change', function () { var l = [].slice.call(this.files).map(function (f) { return { path: f.webkitRelativePath || f.name, blob: f }; }); this.value = ''; if (l.length) handle(Promise.resolve(l)); });
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { if (ev === 'dragleave' && drop.contains(e.relatedTarget)) return; drop.classList.remove('drag'); }); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault(); var dt = e.dataTransfer;
+    var entries = (dt.items ? [].slice.call(dt.items) : []).map(function (it) { return it.webkitGetAsEntry && it.webkitGetAsEntry(); }).filter(Boolean);
+    if (entries.length === 1 && entries[0].isFile && /\.zip$/i.test(entries[0].name)) return handle(readZip(dt.files[0]));
+    if (entries.length) return handle(Promise.all(entries.map(function (x) { return readEntry(x, ''); })).then(function (l) { return [].concat.apply([], l); }));
+    if (dt.files.length && /\.zip$/i.test(dt.files[0].name)) handle(readZip(dt.files[0]));
+  });
+  function httpError(status, res, what) {
+    if (res && res.error) return res.error;
+    if (status === 0) return navigator.onLine === false ? 'You went offline while ' + what + '. Reconnect and try again.' : 'Lost the connection to the server while ' + what + '. Check your Wi-Fi; if it keeps happening the server may be restarting, so wait a minute and try again.';
+    if (status === 502 || status === 503 || status === 504) return 'The server is restarting or busy (error ' + status + ') while ' + what + '. Wait a minute and try again.';
+    return 'The server answered with error ' + status + ' while ' + what + '. Try again.';
+  }
+  function request(method, url, body, onProgress) {
+    return new Promise(function (resolve) {
+      var xhr = new XMLHttpRequest(); xhr.open(method, url);
+      if (body != null) xhr.setRequestHeader('Content-Type', typeof body === 'string' ? 'application/json' : 'application/octet-stream');
+      if (onProgress && xhr.upload) xhr.upload.onprogress = function (e) { onProgress(e.loaded); };
+      xhr.timeout = 5 * 60 * 1000;
+      xhr.onload = function () { var j = null; try { j = JSON.parse(xhr.responseText); } catch (e) {} resolve({ status: xhr.status, json: j }); };
+      xhr.onerror = xhr.ontimeout = function () { resolve({ status: 0, json: null }); };
+      xhr.send(body == null ? null : body);
+    });
+  }
+  function fail(msg, ref) { idle({ error: true, html: esc(msg) + (ref ? '<br><small class="muted">Error code: ' + esc(ref) + '</small>' : '') }); }
+  function upload(info) {
+    pending = null;
+    status('Checking your design…', 0.02);
+    request('POST', '/api/upload/start', JSON.stringify({ files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
+      if (r.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
+      if (r.status !== 200 || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref);
+      var s = r.json, size = s.chunk || 8388608;
+      var queues = s.files.map(function (orig, k) { var blob = info.files[orig].blob, q = []; for (var o = 0; o < blob.size; o += size) q.push({ k: k, o: o, blob: blob.slice(o, Math.min(o + size, blob.size)), name: info.files[orig].path }); return q; }).filter(function (q) { return q.length; });
+      var total = 0; queues.forEach(function (q) { q.forEach(function (p) { total += p.blob.size; }); });
+      var sent = 0, inflight = {}, failed = null, qi = 0;
+      function progress() { var now = sent; for (var k in inflight) now += inflight[k]; status('Uploading ' + fmtBytes(now) + ' of ' + fmtBytes(total || 1) + '…', 0.03 + 0.77 * (total ? now / total : 1)); }
+      function sendPart(p, attempt) {
+        var key = p.k + ':' + p.o;
+        return request('POST', '/api/upload/chunk?id=' + encodeURIComponent(s.id) + '&k=' + p.k + '&o=' + p.o, p.blob, function (n) { inflight[key] = n; progress(); }).then(function (r) {
+          delete inflight[key];
+          if (r.status === 200) { sent += p.blob.size; progress(); return; }
+          var retry = r.status === 0 || r.status >= 500 || r.status === 429 || (r.json && (r.json.code === 'aborted' || r.json.code === 'gap'));
+          if (retry && attempt < 6 && !(r.json && r.json.code === 'expired')) return sleep(Math.min(1000 * Math.pow(2, attempt), 20000)).then(function () { return sendPart(p, attempt + 1); });
+          throw { msg: httpError(r.status, r.json, 'sending “' + p.name + '” (' + Math.round(100 * sent / (total || 1)) + '% uploaded)'), ref: (r.json && r.json.ref) || s.id };
+        });
+      }
+      function worker() { if (failed || qi >= queues.length) return Promise.resolve(); var q = queues[qi++]; return q.reduce(function (pr, p) { return pr.then(function () { if (!failed) return sendPart(p, 0); }); }, Promise.resolve()).then(worker); }
+      progress();
+      Promise.all([worker(), worker(), worker()]).then(finish, function (e) { if (failed) return; failed = e; fail(e.msg, e.ref); });
+      function finish() {
+        if (failed) return;
+        status('Everything arrived. Saving it to the class gallery…', 0.82);
+        request('POST', '/api/upload/finish', JSON.stringify({ id: s.id })).then(function (r) { if ((r.status !== 202 && r.status !== 200) || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'finishing the upload'), s.id); follow(r.json, 0); });
+      }
+      function follow(st, misses) {
+        if (st.status === 'done') {
+          idle({ html: '“' + esc(st.name) + '” is saved and live in the gallery' + (s.skipped && s.skipped.length ? ' (skipped ' + s.skipped.length + ' file' + (s.skipped.length === 1 ? '' : 's') + ' a website can’t use)' : '') + '. <a href="/studio/edit/' + esc(st.folder) + '" data-route>Edit its text now →</a>' });
+          loadMe().then(function () { renderHome(); });
+          return;
+        }
+        if (st.status === 'failed') return fail(st.error || 'Saving to GitHub failed.', st.ref);
+        var pct = st.steps ? st.done / st.steps : 0;
+        status(st.stage === 'commit' || st.steps <= 1 ? 'Publishing it…' : 'Saving images and media to GitHub: ' + st.done + ' of ' + (st.steps - 1), 0.82 + 0.18 * pct, st.note ? '<p class="fine">' + esc(st.note) + '</p>' : '');
+        setTimeout(function () {
+          request('GET', '/api/upload/status?id=' + encodeURIComponent(s.id)).then(function (r) {
+            if (r.status === 200 && r.json && r.json.ok) return follow(r.json, 0);
+            if (r.status === 404) return fail(httpError(r.status, r.json, 'saving'), s.id);
+            if (misses < 20) return follow(st, misses + 1);
+            fail('Lost contact with the server while it was saving your design. Refresh this page in a minute; if your design isn’t listed, upload it again.', s.id);
+          });
+        }, misses ? 3000 : 1500);
+      }
+    });
+  }
+
+  /* ---------- editor ---------- */
+  var ED = null;   // { folder, name, entry, pages, path, sha, y, frame }
+  function setStatus(text, cls) { var p = $('ed-status'); p.textContent = text; p.className = 'pill' + (cls ? ' ' + cls : ''); }
+  function sizeBar() { document.documentElement.style.setProperty('--bar', $('ebar').offsetHeight + 'px'); }
+  window.addEventListener('resize', function () { if (ED) sizeBar(); });
+  function closeEditor() { if (!ED) return; if (ED.frame) ED.frame.remove(); ED = null; }
+  function openEditor(folder, page) {
+    show('editor-view'); sizeBar();
+    if (ED && ED.folder === folder) { if (page && page !== ED.path) loadPage(page); return; }
+    closeEditor();
+    ED = { folder: folder };
+    setStatus('Loading…'); $('ed-name').textContent = ''; $('ed-loading').hidden = false;
+    api('/api/edit/pages?folder=' + encodeURIComponent(folder)).then(function (j) {
+      if (!ED || ED.folder !== folder) return;
+      if (j.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
+      if (!j.ok) { setStatus('Can’t open', 'bad'); $('ed-loading').textContent = j.error; return; }
+      ED.name = j.name; ED.entry = j.entry; ED.pages = j.pages; ED.by = j.by;
+      $('ed-name').textContent = j.name; document.title = 'Editing ' + j.name + ' | ChiActive Studio';
+      $('ed-page').innerHTML = j.pages.map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + '</option>'; }).join('');
+      $('ed-live').href = viewUrl({ folder: folder, entry: j.entry, by: j.by });
+      sizeBar();
+      loadPage(page && j.pages.indexOf(page) > -1 ? page : (j.pages.indexOf(j.entry) > -1 ? j.entry : j.pages[0]));
+    });
+  }
+  $('ed-page').addEventListener('change', function () { loadPage(this.value); });
+  function loadPage(p, keepScroll) {
+    if (!ED) return;
+    var folder = ED.folder, y = keepScroll && ED.path === p ? ED.y || 0 : 0;
+    ED.path = p; $('ed-page').value = p;
+    history.replaceState(null, '', '/studio/edit/' + folder + (p !== ED.entry ? '?page=' + encodeURIComponent(p) : ''));
+    setStatus('Loading…'); if (!keepScroll) $('ed-loading').hidden = false;
+    api('/api/edit/page?folder=' + encodeURIComponent(folder) + '&path=' + encodeURIComponent(p)).then(function (j) {
+      if (!ED || ED.folder !== folder || ED.path !== p) return;
+      if (j.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
+      if (!j.ok) { setStatus('Can’t open', 'bad'); $('ed-loading').hidden = false; $('ed-loading').textContent = j.error; return; }
+      ED.sha = j.sha; ED.count = j.count; ED.wantY = y;
+      var f = document.createElement('iframe');
+      f.setAttribute('sandbox', 'allow-scripts');   // the student's page can't touch the Studio or your login
+      f.title = 'Editing ' + p;
+      f.srcdoc = j.html;
+      if (ED.frame) ED.frame.remove();
+      ED.frame = f; $('eframe').appendChild(f);
+    });
+  }
+  function reply(id, data) { if (ED && ED.frame) ED.frame.contentWindow.postMessage(Object.assign({ caStudio: true, type: 'result', id: id }, data), '*'); }
+  window.addEventListener('message', function (e) {
+    if (!ED || !ED.frame || e.source !== ED.frame.contentWindow || !e.data || !e.data.caEditor) return;
+    var d = e.data;
+    if (d.type === 'ready') {
+      $('ed-loading').hidden = true;
+      setStatus(d.count + ' editable text blocks');
+      if (ED.wantY) ED.frame.contentWindow.postMessage({ caStudio: true, type: 'scrollTo', y: ED.wantY }, '*');
+      if (ED.flash != null) { ED.frame.contentWindow.postMessage({ caStudio: true, type: 'flash', block: ED.flash }, '*'); ED.flash = null; }
+    }
+    if (d.type === 'scroll') ED.y = d.y;
+    if (d.type === 'nav') return navigate(d.href);
+    if (d.type === 'ask') return confirmChange(d);
+  });
+  function navigate(href) {
+    var base = location.origin + '/d/' + ED.folder + '/';
+    if (href.indexOf(base) !== 0) return toast('That link leaves your site. Use “View live” to follow it.');
+    var p = decodeURIComponent(href.slice(base.length).split('#')[0].split('?')[0]);
+    if (!p || /\/$/.test(p)) p += 'index.html';
+    if (ED.pages.indexOf(p) > -1) return loadPage(p);
+    toast(/\.html?$/i.test(p) ? 'That page (' + p + ') isn’t part of your design.' : 'That link opens a file (' + p + '), not a page. Use “View live” to follow it.');
+  }
+  function confirmChange(d) {
+    var edit = d.action === 'edit';
+    var body = edit
+      ? '<div class="cmp"><div class="before"><small>Before</small>' + esc(d.before) + '</div><div class="after"><small>After</small>' + esc(d.after) + '</div>' +
+        (d.afterHref != null && d.afterHref !== d.beforeHref ? '<div class="after"><small>Link goes to</small>' + esc(d.afterHref || '(no link)') + '</div>' : '') + '</div>' +
+        '<p class="muted">It’s saved to GitHub right away. The public site shows it within about a minute.</p>'
+      : '<div class="cmp"><div class="before"><small>This ' + esc(d.kind) + ' will be removed</small>' + esc(d.before) + '</div></div><p class="muted">It’s removed from your live site. The gallery admin can bring it back from GitHub’s history if needed.</p>';
+    modal(edit ? 'Save this change?' : 'Delete this ' + d.kind + '?', body, [{ label: edit ? 'Keep editing' : 'Cancel', ghost: true, value: false }, { label: edit ? 'Save change' : 'Delete', value: true }]).then(function (yes) {
+      if (!yes) return reply(d.id, { ok: false, cancelled: true });
+      setStatus('Saving…', 'saving');
+      var folder = ED.folder, p = ED.path;
+      api('/api/edit/block', { folder: folder, path: p, sha: ED.sha, block: d.block, action: d.action, html: d.html, text: d.text, href: d.href }).then(function (j) {
+        if (!ED || ED.folder !== folder || ED.path !== p) return;
+        if (j.ok) {
+          ED.sha = j.sha;
+          setStatus(edit ? 'Saved to GitHub ✓' : 'Deleted and saved ✓', 'saved');
+          reply(d.id, { ok: true });
+          toast(edit ? 'Saved. Your live site updates within about a minute.' : 'Deleted. Your live site updates within about a minute.');
+          if (j.reload) loadPage(p, true);
+          return;
+        }
+        setStatus('Not saved', 'bad');
+        reply(d.id, { ok: false, message: j.error });
+        toast(j.error || 'Saving didn’t work.', true);
+        if (j.status === 401) return route();
+        if (j.status === 409) loadPage(p, true);
+      });
+    });
+  }
+
+  route();
+})();
+</script>
+</body>
+</html>

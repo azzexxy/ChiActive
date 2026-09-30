@@ -36,8 +36,8 @@ body { font-family: "Google Sans", system-ui, -apple-system, "Segoe UI", sans-se
   <p class="label" id="label"><span class="dot" aria-hidden="true"></span>You are viewing a demo website of <b id="who">a student</b></p>
 </header>
 <main class="stage" id="stage"></main>
-<script src="site-config.js?v=10"></script>
-<script src="track.js?v=10"></script>
+<script src="site-config.js?v=11"></script>
+<script src="track.js?v=11"></script>
 <script>
 /* Demo viewer: shows a class design under a permanent "You are viewing a demo website of ..." bar.
    view.html?d=<folder>&e=<start page>&by=<student name>   (shared designs)
@@ -76,13 +76,13 @@ body { font-family: "Google Sans", system-ui, -apple-system, "Segoe UI", sans-se
     tries.forEach(function (p) { p.then(function (list) { (list || []).forEach(function (d) { if (d && d.folder === folder && (d.by || d.name)) name(d.by || d.name); }); }).catch(function () {}); });
   }
 
-  var lastPage = '';
+  var lastPage = '', version = '';
   function track(type, pg) { if (window.chiTrack) window.chiTrack(type, { folder: folder || ('local:' + local), by: document.getElementById('who').textContent, page: pg }); }
   function mount(base) {
     track('view', page || entry); lastPage = page || entry;
     var f = document.createElement('iframe');
     f.title = 'Demo website';
-    f.src = base + enc(page || entry);
+    f.src = base + enc(page || entry) + (version ? '?v=' + encodeURIComponent(version) : '');
     f.setAttribute('allow', 'fullscreen; clipboard-write');
     stage.appendChild(f);
     // keep the address bar in sync (same-origin designs), so a reload stays on the same page
@@ -105,9 +105,12 @@ body { font-family: "Google Sans", system-ui, -apple-system, "Segoe UI", sans-se
   if (local) return mount('uploaded/' + local + '/');
   // published on GitHub Pages? otherwise use the upload server's instant copy
   var pagesBase = 'designs/' + folder + '/';
-  fetch(pagesBase + enc(entry), { method: 'HEAD', cache: 'no-store' })
-    .then(function (r) { return r.ok; }).catch(function () { return false; })
-    .then(function (ok) {
+  // after an edit, skip the browser's cached copy of the page (GitHub Pages lets browsers keep pages for 10 minutes)
+  var fresh = fetch('designs/manifest.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; })
+    .then(function (l) { var d = (l || []).filter(function (x) { return x && x.folder === folder; })[0]; return d && (d.editedAt || d.uploadedAt) || ''; }).catch(function () { return ''; });
+  Promise.all([fetch(pagesBase + enc(entry), { method: 'HEAD', cache: 'no-store' }).then(function (r) { return r.ok; }).catch(function () { return false; }), fresh])
+    .then(function (res) {
+      var ok = res[0]; version = res[1];
       if (ok) return mount(pagesBase);
       if (API) return mount(API + '/d/' + folder + '/');
       show('<b>This design is still publishing</b>Try again in a minute, or go <a href="index.html">back to the gallery</a>.');
