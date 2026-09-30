@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ChiActive | Pick your style</title>
-<meta name="description" content="The ChiActive store and every website design from the class. Upload yours with your student name.">
+<meta name="description" content="Every ChiActive website design from the class. Upload yours with your student name.">
 <meta name="theme-color" content="#16202C">
 <meta property="og:title" content="ChiActive | Pick your style">
 <meta property="og:description" content="Upload your ChiActive website design (a .zip or a folder) with your student name, and see every design from the class.">
 <meta property="og:image" content="images/previews/classic-desktop.webp">
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link rel="stylesheet" href="picker.css?v=9">
+<link rel="stylesheet" href="picker.css?v=10">
 </head>
 <body>
 <div class="stripes" aria-hidden="true"></div>
@@ -27,7 +27,6 @@
           <li><span class="n">2</span><span>Enter your <b>student name</b>. Your design is named &ldquo;Website design - your name&rdquo;.</span></li>
           <li><span class="n">3</span><span>It opens right away, for everyone. No waiting.</span></li>
         </ol>
-        <p class="status"><span class="chip" id="bag-chip" hidden>Your store bag: <b id="bag-n">0</b> item(s)</span></p>
       </div>
     </div>
     <aside class="share" aria-labelledby="share-title">
@@ -55,29 +54,18 @@
     <div class="community-head">
       <div>
         <h2 id="community-title">All styles</h2>
-        <p>Newest uploads first. Click a design to open it; every page, style and image works like the real site.</p>
+        <p>Newest first. Click a design to open it; every page, style and image works like the real site.</p>
       </div>
       <span class="count-chip" id="community-count"></span>
     </div>
     <div class="grid community-grid" id="design-list">
-      <article class="option store-card" data-design="classic">
-        <a class="cover" href="classic/index.html" aria-label="Open the ChiActive Store"></a>
-        <div class="stage">
-          <div class="browser"><div class="bar"><i></i><i></i><i></i><span>chiactive / store</span></div><img src="images/previews/classic-desktop.webp" alt="Preview of the ChiActive Store homepage"></div>
-          <div class="phone"><img src="images/previews/classic-phone.webp" alt=""></div>
-        </div>
-        <div class="body">
-          <div class="name-row"><h2 class="name">ChiActive Store</h2><span class="tag orig">Original</span></div>
-          <p class="meta-line">The full store: Layer Finder, Shop menu, product pages and a working bag.</p>
-          <div class="card-actions"><a class="btn" href="classic/index.html">Open the store <span>&rarr;</span></a></div>
-        </div>
-      </article>
     </div>
   </section>
 
-  <footer><span>&copy; 2026 ChiActive &middot; Practice storefront and class gallery. No real orders are placed. Only upload your own work.</span><span>Built for the four-season city.</span></footer>
+  <footer><span>&copy; 2026 ChiActive &middot; Class design gallery. No real orders are placed. Only upload your own work.<br><span class="privacy">For the class admin, this gallery keeps a log of uploads, errors and which designs are viewed (with a random visitor id, and your student name if you uploaded).</span></span><span>Built for the four-season city.</span></footer>
 </div>
-<script src="site-config.js?v=9"></script>
+<script src="site-config.js?v=10"></script>
+<script src="track.js?v=10"></script>
 <script>
 (function () {
   var cfg = window.CHIACTIVE || {};
@@ -91,15 +79,10 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(ok, manual);
     else { try { input.select(); document.execCommand('copy'); ok(); } catch (e) { manual(); } }
   });
-  try {
-    var bag = JSON.parse(localStorage.getItem('chiactive-bag') || '[]');
-    var n = Array.isArray(bag) ? bag.reduce(function (s, i) { return s + (i.qty || 0); }, 0) : 0;
-    if (n) { document.getElementById('bag-n').textContent = n; document.getElementById('bag-chip').hidden = false; }
-  } catch (e) {}
-  document.querySelector('.store-card').addEventListener('click', function () { try { localStorage.setItem('chiactive-design', 'classic'); } catch (e) {} });
 })();
 </script>
 <script src="vendor/jszip.min.js"></script>
-<script src="designs.js?v=9"></script>
+<script src="designs.js?v=10"></script>
+<script>window.chiTrack && window.chiTrack('visit');</script>
 </body>
 </html>

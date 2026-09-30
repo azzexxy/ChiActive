@@ -11,7 +11,8 @@
   var PAGES = (CFG.pages || '').replace(/\/?$/, '/');
   var DB_NAME = 'chiactive-designs', DB_VERSION = 1;
   var JUNK = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db|desktop\.ini|\.git|node_modules)(\/|$)/i;
-  var MAX_BYTES = 60 * 1024 * 1024;
+  var MAX_BYTES = 1024 * 1024 * 1024;     // GitHub Pages publishes sites up to 1 GB
+  var MAX_FILE = 100 * 1024 * 1024;       // GitHub refuses single files over 100 MB
   var card = document.getElementById('upload-card');
   var inner = document.getElementById('up-inner');
   var grid = document.getElementById('community');
@@ -22,11 +23,13 @@
   if (!card || !grid) return;
   var canLocal = 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && 'indexedDB' in window;
   var onPages = PAGES && location.href.indexOf(PAGES) === 0;
-  var swReady = null, pending = null, server = { state: API ? 'checking' : 'off' };
+  var swReady = null, pending = null, healthP = null, server = { state: API ? 'checking' : 'off' };
 
   var UPLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function fmtBytes(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function fmtBytes(n) { return n >= 1073741824 ? (n / 1073741824).toFixed(2) + ' GB' : n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function report(stage, message, extra) { if (window.chiTrack) window.chiTrack('client-error', Object.assign({ stage: stage, message: String(message).slice(0, 380) }, extra || {})); }
   function designName(student) { return 'Website design - ' + student; }
   function cleanStudent(s) { return String(s || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60); }
   function prettyFolder(f) {
@@ -109,7 +112,9 @@
     var idx = html.filter(function (f) { return /(^|\/)index\.html?$/i.test(f.path); }).sort(function (a, b) { return depth(a.path) - depth(b.path); });
     var entry = (idx[0] || html.sort(function (a, b) { return depth(a.path) - depth(b.path) || a.path.localeCompare(b.path); })[0]).path;
     var size = files.reduce(function (s, f) { return s + (f.blob.size || 0); }, 0);
-    if (size > MAX_BYTES) throw new Error('That design is ' + fmtBytes(size) + '. Keep it under 60 MB (big videos are usually the reason).');
+    var big = files.filter(function (f) { return (f.blob.size || 0) > MAX_FILE; });
+    if (big.length) throw new Error(big.slice(0, 3).map(function (f) { return '“' + f.path + '” is ' + fmtBytes(f.blob.size); }).join(', ') + (big.length > 3 ? ' and ' + (big.length - 3) + ' more' : '') + '. GitHub doesn’t accept single files over 100 MB, so ' + (big.length === 1 ? 'that file' : 'those files') + ' can’t be published. Compress ' + (big.length === 1 ? 'it' : 'them') + ' (videos shrink a lot with HandBrake) or leave ' + (big.length === 1 ? 'it' : 'them') + ' out, then upload again.');
+    if (size > MAX_BYTES) throw new Error('That design is ' + fmtBytes(size) + '. GitHub Pages can only publish sites up to 1 GB, so the gallery takes designs up to 1 GB. Compress large videos and images, then try again.');
     return { files: files, entry: entry, size: size };
   }
 
@@ -154,11 +159,11 @@
   function handle(p) {
     status('Reading the files…', 0.05);
     p.then(function (files) { confirmForm(analyse(files)); })
-     .catch(function (err) { idle({ error: true, html: esc(err && err.message ? err.message : 'That upload couldn’t be read.') }); });
+     .catch(function (err) { var m = err && err.message ? err.message : 'That upload couldn’t be read.'; idle({ error: true, html: esc(m) }); report('read', m); });
   }
   function handleZips(list) {
     var zips = [].slice.call(list).filter(function (f) { return /\.zip$/i.test(f.name) || /zip/.test(f.type); });
-    if (!zips.length) return idle({ error: true, html: 'That wasn’t a .zip file. Choose a .zip, or use Choose folder.' });
+    if (!zips.length) { report('read', 'Picked a file that isn’t a .zip: ' + (list[0] && list[0].name)); return idle({ error: true, html: 'That wasn’t a .zip file. Choose a .zip, or use Choose folder.' }); }
     handle(readZip(zips[0]));
   }
   function handleDrop(dt) {
@@ -175,63 +180,144 @@
     if (student.length < 2) { err.hidden = false; err.textContent = 'Enter your student name. It becomes the design name.'; document.getElementById('up-student').focus(); return; }
     try { localStorage.setItem('chiactive-student', student); } catch (e) {}
     var info = pending;
+    if (server.state === 'checking' && healthP) {
+      pending = null;
+      status('Waking up the upload server… this can take up to a minute the first time.', 0.02);
+      return healthP.then(function () { pending = info; if (server.state === 'ready') return uploadRemote(student, info); saveInBrowser(student, info); });
+    }
     if (server.state === 'ready') return uploadRemote(student, info);
+    saveInBrowser(student, info);
+  }
+  function saveInBrowser(student, info) {
     var meta = { id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: designName(student), by: student, entry: info.entry, size: info.size, count: info.files.length, createdAt: Date.now() };
     status('Saving ' + info.files.length + ' files…', 0.3);
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
-    saveLocal(meta, info.files).then(function () { idle({ html: '“' + esc(meta.name) + '” was saved in this browser.' }); render(meta.id); })
+    report('server-down', 'The upload server wasn’t reachable, so the design was saved in this browser only.', { student: student, files: info.files.length, size: info.size });
+    saveLocal(meta, info.files).then(function () { idle({ html: '“' + esc(meta.name) + '” was saved <b>in this browser only</b>, because the upload server didn’t answer. Try again later to share it with the class.' }); render(meta.id); })
       .catch(function (e) { idle({ error: true, html: 'Couldn’t save it: ' + esc(e && e.message ? e.message : 'the browser ran out of storage.') }); });
   }
+  /* ---------- uploading to the class gallery (in 8 MB pieces, each retried on its own) ---------- */
+  function httpError(status, res, what) {
+    if (res && res.error) return res.error;
+    if (status === 0) return navigator.onLine === false ? 'You went offline while ' + what + '. Reconnect to the internet and try again.' : 'Lost the connection to the upload server while ' + what + '. Check your Wi-Fi; if it keeps happening, the server may be restarting, so wait a minute and try again.';
+    if (status === 413) return 'The upload server refused a piece of the upload because it was too big. Refresh the page (Cmd+Shift+R or Ctrl+F5) and try again.';
+    if (status === 429) return 'Too many uploads from your network right now. Try again later.';
+    if (status === 502 || status === 503 || status === 504) return 'The upload server is restarting or overloaded (error ' + status + ') while ' + what + '. Wait a minute and try again.';
+    return 'The upload server answered with error ' + status + ' while ' + what + '. Try again.';
+  }
+  function request(method, url, body, onProgress) {
+    return new Promise(function (resolve) {
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, url);
+      if (body != null) xhr.setRequestHeader('Content-Type', 'text/plain');   // a "simple" request: no extra preflight per piece
+      if (onProgress && xhr.upload) xhr.upload.onprogress = function (e) { onProgress(e.loaded); };
+      xhr.timeout = 5 * 60 * 1000;
+      xhr.onload = function () { var j = null; try { j = JSON.parse(xhr.responseText); } catch (e) {} resolve({ status: xhr.status, json: j }); };
+      xhr.onerror = function () { resolve({ status: 0, json: null }); };
+      xhr.ontimeout = function () { resolve({ status: 0, json: null, timeout: true }); };
+      xhr.send(body == null ? null : body);
+    });
+  }
+  function failUpload(msg, ref, stage, info, student, serverLogged) {
+    idle({ error: true, html: esc(msg) + (ref ? '<br><span class="up-ref">Error code: ' + esc(ref) + '</span>' : '') });
+    if (!serverLogged) report(stage, msg, { ref: ref, student: student, files: info && info.files.length, size: info && info.size });
+  }
   function uploadRemote(student, info) {
-    var fd = new FormData();
-    fd.append('student', student);
-    fd.append('paths', JSON.stringify(info.files.map(function (f) { return f.path; })));
-    info.files.forEach(function (f) { fd.append('files', f.blob, f.path.split('/').pop()); });
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', API + '/api/upload');
-    xhr.upload.onprogress = function (e) { if (e.lengthComputable) status('Uploading ' + fmtBytes(e.loaded) + ' of ' + fmtBytes(e.total), 0.05 + 0.8 * e.loaded / e.total); };
-    xhr.upload.onload = function () { status('Saving it to the class gallery…', 0.9); };
-    xhr.onload = function () {
-      var res = null; try { res = JSON.parse(xhr.responseText); } catch (e) {}
-      if (xhr.status === 200 && res && res.ok) {
-        var link = viewUrl({ folder: res.folder, entry: res.entry, by: student }, 'shared');
-        try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]'); p.push({ folder: res.folder, name: res.name, by: student, entry: res.entry, uploadedAt: new Date().toISOString() }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
-        idle({ html: '“' + esc(res.name) + '” was uploaded' + (res.skipped && res.skipped.length ? ' (skipped ' + res.skipped.length + ' unsupported file' + (res.skipped.length === 1 ? '' : 's') + ')' : '') + '. It&rsquo;s live for everyone right now: <a href="' + esc(link) + '">open it</a>.' });
-        render(res.folder);
-      } else {
-        idle({ error: true, html: esc(res && res.error ? res.error : 'The upload didn’t go through (error ' + xhr.status + '). Try again.') });
+    var visitor = window.chiVisitor ? window.chiVisitor() : '';
+    status('Checking your design with the upload server…', 0.02);
+    request('POST', API + '/api/upload/start', JSON.stringify({ student: student, visitor: visitor, files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
+      if (r.status !== 200 || !r.json || !r.json.ok) return failUpload(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref, 'start', info, student, !!(r.json && r.json.ref));
+      var s = r.json, size = s.chunk || 8388608;
+      var queues = s.files.map(function (orig, k) {
+        var blob = info.files[orig].blob, q = [];
+        for (var o = 0; o < blob.size; o += size) q.push({ k: k, o: o, blob: blob.slice(o, Math.min(o + size, blob.size)), name: info.files[orig].path });
+        return q;
+      }).filter(function (q) { return q.length; });
+      var total = 0; queues.forEach(function (q) { q.forEach(function (p) { total += p.blob.size; }); });
+      var sent = 0, inflight = {}, failed = null, qi = 0;
+      function progress() { var now = sent; for (var key in inflight) now += inflight[key]; status('Uploading ' + fmtBytes(now) + ' of ' + fmtBytes(total || 1) + '…', 0.03 + 0.77 * (total ? now / total : 1)); }
+      function sendPart(p, attempt) {
+        var key = p.k + ':' + p.o;
+        return request('POST', API + '/api/upload/chunk?id=' + encodeURIComponent(s.id) + '&k=' + p.k + '&o=' + p.o, p.blob, function (n) { inflight[key] = n; progress(); }).then(function (r) {
+          delete inflight[key];
+          if (r.status === 200) { sent += p.blob.size; progress(); return; }
+          var retry = r.status === 0 || r.status >= 500 || r.status === 429 || (r.json && (r.json.code === 'aborted' || r.json.code === 'gap'));
+          if (retry && attempt < 6 && !(r.json && r.json.code === 'expired')) { status('Connection hiccup, retrying “' + p.name + '”…', 0.03 + 0.77 * (total ? sent / total : 1)); return sleep(Math.min(1000 * Math.pow(2, attempt), 20000)).then(function () { return sendPart(p, attempt + 1); }); }
+          throw { msg: httpError(r.status, r.json, 'sending “' + p.name + '” (' + Math.round(100 * sent / (total || 1)) + '% uploaded)'), ref: (r.json && r.json.ref) || s.id };
+        });
       }
-    };
-    xhr.onerror = function () { idle({ error: true, html: 'Couldn’t reach the upload server. Check your internet connection and try again.' }); };
-    xhr.send(fd);
+      function worker() {
+        if (failed || qi >= queues.length) return Promise.resolve();
+        var q = queues[qi++];
+        return q.reduce(function (pr, p) { return pr.then(function () { if (!failed) return sendPart(p, 0); }); }, Promise.resolve()).then(worker);
+      }
+      progress();
+      Promise.all([worker(), worker(), worker()]).then(finish, function (e) { if (failed) return; failed = e; failUpload(e.msg, e.ref, 'send', info, student); });
+      function finish() {
+        if (failed) return;
+        status('Everything arrived. Saving it to the class gallery…', 0.82);
+        request('POST', API + '/api/upload/finish', JSON.stringify({ id: s.id })).then(function (r) {
+          if ((r.status !== 202 && r.status !== 200) || !r.json || !r.json.ok) return failUpload(httpError(r.status, r.json, 'finishing the upload'), s.id, 'finish', info, student);
+          follow(r.json, 0);
+        });
+      }
+      function follow(st, misses) {
+        var link = viewUrl({ folder: st.folder, entry: st.entry, by: student }, 'shared');
+        if (st.status === 'done') {
+          try { var p = JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]'); p.push({ folder: st.folder, name: st.name, by: student, entry: st.entry, uploadedAt: new Date().toISOString() }); sessionStorage.setItem('chiactive-publishing', JSON.stringify(p)); } catch (e) {}
+          idle({ html: '“' + esc(st.name) + '” was saved' + (s.skipped && s.skipped.length ? ' (skipped ' + s.skipped.length + ' file' + (s.skipped.length === 1 ? '' : 's') + ' a website can’t use, like ' + esc(s.skipped[0]) + ')' : '') + '. It&rsquo;s live for everyone: <a href="' + esc(link) + '">open it</a>.' });
+          return render(st.folder);
+        }
+        if (st.status === 'failed') return failUpload(st.error || 'Saving to GitHub failed.', st.ref, 'save', info, student, true);
+        var pct = st.steps ? st.done / st.steps : 0;
+        inner.innerHTML = '<span class="up-icon">' + UPLOAD_ICON + '</span><h3>Saving to the gallery</h3>' +
+          '<p role="status">' + (st.stage === 'commit' || st.steps <= 1 ? 'Publishing it…' : 'Saving images and media to GitHub: ' + st.done + ' of ' + (st.steps - 1)) + '</p>' +
+          (st.note ? '<p class="up-note">' + esc(st.note) + '</p>' : '') +
+          '<div class="up-progress"><span style="width:' + Math.round((0.82 + 0.18 * pct) * 100) + '%"></span></div>' +
+          '<p class="up-note">You can already open it: <a href="' + esc(link) + '">' + esc(st.name) + '</a></p>';
+        setTimeout(function () {
+          request('GET', API + '/api/upload/status?id=' + encodeURIComponent(s.id)).then(function (r) {
+            if (r.status === 200 && r.json && r.json.ok) return follow(r.json, 0);
+            if (r.status === 404) return failUpload(httpError(r.status, r.json, 'saving'), s.id, 'save', info, student);
+            if (misses < 20) return follow(st, misses + 1);
+            failUpload('Lost contact with the upload server while it was saving your design. Refresh the gallery in a minute; if your design isn’t there, upload it again.', s.id, 'save', info, student);
+          });
+        }, misses ? 3000 : 1500);
+      }
+    });
   }
 
   /* ---------- finding shared designs ---------- */
   function b64utf8(b64) { var bin = atob(String(b64).replace(/\s/g, '')); var bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
   function sharedDesigns() {
     var found = {};
-    function add(list) {
+    function add(list, over) {
       (list || []).forEach(function (d) {
         if (!d || !d.folder) return;
-        var cur = found[d.folder] || { folder: d.folder };
-        found[d.folder] = { folder: d.folder, name: d.name || cur.name || prettyFolder(d.folder), by: d.by || cur.by || '', entry: d.entry || cur.entry || 'index.html', uploadedAt: d.uploadedAt || cur.uploadedAt || '' };
+        var cur = found[d.folder];
+        if (cur && !over) return;
+        found[d.folder] = { folder: d.folder, name: d.name || (cur && cur.name) || prettyFolder(d.folder), by: d.by || (cur && cur.by) || '', entry: d.entry || (cur && cur.entry) || 'index.html', uploadedAt: d.uploadedAt || (cur && cur.uploadedAt) || '' };
       });
     }
-    var jobs = [];
-    if (REPO) {
-      var api = 'https://api.github.com/repos/' + REPO + '/contents/designs';
-      jobs.push(fetch(api + '?ref=' + BRANCH).then(function (r) { return r.ok ? r.json() : []; }).then(function (items) { add((items || []).filter(function (i) { return i.type === 'dir'; }).map(function (i) { return { folder: i.name }; })); }).catch(function () {}));
-      jobs.push(fetch(api + '/manifest.json?ref=' + BRANCH).then(function (r) { return r.ok ? r.json() : null; }).then(function (f) { if (f && f.content) add(JSON.parse(b64utf8(f.content))); }).catch(function () {}));
+    function fallback() {   // upload server asleep: read the list from GitHub and the published site
+      var jobs = [];
+      if (REPO) {
+        var api = 'https://api.github.com/repos/' + REPO + '/contents/designs';
+        jobs.push(fetch(api + '/manifest.json?ref=' + BRANCH).then(function (r) { return r.ok ? r.json() : null; }).then(function (f) { if (f && f.content) add(JSON.parse(b64utf8(f.content)), true); }).catch(function () {}));
+      }
+      jobs.push(fetch('designs/manifest.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (l) { add(l); }).catch(function () {}));
+      if (!onPages) jobs.push(fetch('designs/', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+        var re = /href="([^"?#\/]+)\/"/g, m, names = []; while ((m = re.exec(t))) names.push(decodeURIComponent(m[1])); add(names.map(function (n) { return { folder: n }; }));
+      }).catch(function () {}));
+      try { add(JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]')); } catch (e) {}
+      return Promise.all(jobs);
     }
-    if (API) {  // freshest list, straight from the upload server (skipped if it's asleep)
+    var first = API ? new Promise(function (resolve) {
       var ctl2 = 'AbortController' in window ? new AbortController() : null; setTimeout(function () { if (ctl2) ctl2.abort(); }, 4000);
-      jobs.push(fetch(API + '/api/designs', { cache: 'no-store', signal: ctl2 ? ctl2.signal : undefined }).then(function (r) { return r.json(); }).then(function (j) { if (j && j.designs) add(j.designs); }).catch(function () {}));
-    }
-    jobs.push(fetch('designs/manifest.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(add).catch(function () {}));
-    if (!onPages) jobs.push(fetch('designs/', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
-      var re = /href="([^"?#\/]+)\/"/g, m, names = []; while ((m = re.exec(t))) names.push(decodeURIComponent(m[1])); add(names.map(function (n) { return { folder: n }; }));
-    }).catch(function () {}));
-    try { add(JSON.parse(sessionStorage.getItem('chiactive-publishing') || '[]')); } catch (e) {}
+      fetch(API + '/api/designs', { cache: 'no-store', signal: ctl2 ? ctl2.signal : undefined }).then(function (r) { return r.json(); })
+        .then(function (j) { if (j && j.ok && j.designs) { add(j.designs, true); resolve(true); } else resolve(false); }).catch(function () { resolve(false); });
+    }) : Promise.resolve(false);
+    var jobs = [first.then(function (ok) { if (!ok) return fallback(); })];
     return Promise.all(jobs).then(function () {
       var list = Object.keys(found).map(function (k) { return found[k]; });
       return Promise.all(list.map(function (d) {
@@ -279,7 +365,7 @@
       if (list) list.insertAdjacentHTML('afterbegin', cardsHtml);  // newest uploads right under the upload box
       else card.insertAdjacentHTML('afterend', cardsHtml);
       var n = res[0].length + local.length;
-      if (countChip) countChip.textContent = n ? n + ' design' + (n === 1 ? '' : 's') + ' uploaded' : 'No uploads yet. Be the first!';
+      if (countChip) countChip.textContent = n ? n + ' design' + (n === 1 ? '' : 's') : 'No designs yet. Be the first!';
       (list || grid).querySelectorAll('.frame').forEach(function (fr) { if (ro) ro.observe(fr); }); scaleFrames();
       if (highlight) { var el = (list || grid).querySelector('[data-id="' + highlight + '"]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     });
@@ -311,7 +397,7 @@
   if (API) {
     var ctl = 'AbortController' in window ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 70000);  // free servers can take ~50s to wake up
-    fetch(API + '/api/health', { signal: ctl ? ctl.signal : undefined }).then(function (r) { return r.json(); })
+    healthP = fetch(API + '/api/health', { signal: ctl ? ctl.signal : undefined }).then(function (r) { return r.json(); })
       .then(function (h) { server.state = h && h.ok && h.ready ? 'ready' : 'down'; })
       .catch(function () { server.state = 'down'; })
       .then(function () { clearTimeout(timer); if (!pending) idle(); });

@@ -151,3 +151,5 @@ footer { border-top: 1px solid var(--line); padding-block: 26px 40px; color: var
 .community { padding-top: 6px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 600px) { .hero-brand { grid-template-columns: 1fr; gap: 12px; } .hero-brand > img { width: 64px; height: 64px; } }
+.up-ref { display: inline-block; margin-top: 6px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.privacy { font-size: .82rem; color: var(--muted); }

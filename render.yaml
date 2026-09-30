@@ -1,5 +1,5 @@
 # Render Blueprint for the ChiActive upload server.
-# In Render: New > Blueprint > pick the azzexxy/ChiActive repo. It will ask for GITHUB_TOKEN.
+# In Render: New > Blueprint > pick the azzexxy/ChiActive repo. It will ask for GITHUB_TOKEN and ADMIN_PASSWORD.
 services:
   - type: web
     name: chiactive-uploads
@@ -11,6 +11,8 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: GITHUB_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
       - key: GITHUB_REPO
         value: azzexxy/ChiActive

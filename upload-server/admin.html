@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ChiActive admin</title>
+<style>
+:root { --bg: #16202C; --card: #1F2B3A; --card-2: #263446; --line: rgba(245,231,190,.14); --text: #E6ECF2; --muted: #9DAABB; --sky: #41B6E6; --sand: #F5E7BE; --red: #E4022B; --green: #3DBE73; --amber: #F2B33D; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.stripes { height: 10px; background: linear-gradient(to bottom, var(--sky) 0 33%, var(--bg) 33% 66%, var(--sky) 66%); }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+h1 { font-size: 1.9rem; letter-spacing: -.02em; margin: 0; color: var(--sand); text-transform: uppercase; font-weight: 800; }
+h1 span { color: var(--sky); }
+h2 { font-size: 1.15rem; margin: 0 0 12px; color: var(--sand); }
+a { color: var(--sky); }
+button, input, select { font: inherit; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 10px; padding: 10px 16px; background: var(--red); color: #fff; font-weight: 700; cursor: pointer; text-decoration: none; }
+.btn:hover { background: #c10224; }
+.btn.ghost { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.28); color: var(--text); }
+.btn.ghost:hover { background: rgba(255,255,255,.07); }
+.btn.small { padding: 6px 12px; font-size: .88rem; border-radius: 8px; }
+.btn.danger { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(228,2,43,.6); color: #ff8095; }
+.btn.danger:hover, .btn.danger.confirm { background: var(--red); color: #fff; }
+.btn[disabled] { opacity: .5; cursor: default; }
+input[type=text], input[type=password], input[type=search], select { background: var(--bg); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+input:focus, select:focus, .btn:focus-visible { outline: 2px solid var(--sky); outline-offset: 1px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* login */
+.login { min-height: calc(100vh - 10px); display: grid; place-items: center; padding: 24px; }
+.login form { width: min(380px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 30px; display: grid; gap: 14px; }
+.login p { margin: 0; color: var(--muted); }
+.err { color: #ff8095; font-weight: 700; min-height: 1.4em; margin: 0; }
+
+/* app */
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 26px 0 18px; }
+.top-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
+.tab { background: none; border: 0; color: var(--muted); padding: 10px 16px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tab[aria-selected=true] { color: #fff; border-bottom-color: var(--sky); }
+.notice { background: rgba(242,179,61,.12); border: 1px solid rgba(242,179,61,.4); color: #ffd98a; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.notice.bad { background: rgba(228,2,43,.12); border-color: rgba(228,2,43,.45); color: #ff9fb0; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.stat b { display: block; font-size: 1.7rem; line-height: 1.1; color: #fff; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.stat.good b { color: var(--green); } .stat.bad b { color: #ff6b83; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .88rem; }
+.chip[aria-pressed=true] { background: var(--sky); color: var(--bg); border-color: var(--sky); font-weight: 700; }
+.filters input[type=search] { flex: 1; min-width: 200px; }
+.meta { color: var(--muted); font-size: .85rem; margin: 0 0 10px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.meta label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.table th, .table td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.table th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); background: var(--card-2); }
+.table tr:last-child td { border-bottom: 0; }
+.when b { display: block; white-space: nowrap; }
+.when span, .dev { color: var(--muted); font-size: .82rem; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; background: var(--card-2); color: var(--text); }
+.badge.ok { background: rgba(61,190,115,.18); color: #7ee2a5; }
+.badge.bad { background: rgba(228,2,43,.2); color: #ff8fa3; }
+.badge.warn { background: rgba(242,179,61,.18); color: #ffd27a; }
+.badge.view { background: rgba(65,182,230,.16); color: #8fd6f5; }
+.badge.admin { background: rgba(245,231,190,.16); color: var(--sand); }
+.who button { background: none; border: 0; padding: 0; color: #fff; font-weight: 700; cursor: pointer; text-align: left; }
+.who button:hover { color: var(--sky); text-decoration: underline; }
+.detail { max-width: 560px; }
+.detail .msg { color: #ffb3c0; }
+.detail code { background: var(--bg); padding: 1px 6px; border-radius: 4px; font-size: .82rem; color: var(--sand); }
+.empty { padding: 40px; text-align: center; color: var(--muted); }
+.more { display: flex; justify-content: center; margin-top: 14px; }
+
+/* designs */
+.designs { display: grid; gap: 12px; }
+.design { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; align-items: center; }
+.design h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+.design p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
+.design .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.design form { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; align-items: end; }
+.design form label { display: grid; gap: 4px; font-size: .8rem; font-weight: 700; color: var(--sand); }
+.design .warn-line { grid-column: 1 / -1; color: #ffd27a; font-size: .88rem; margin: 0; }
+.design .row-err { grid-column: 1 / -1; color: #ff8095; font-weight: 700; margin: 0; }
+.tag { display: inline-block; margin-left: 8px; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: rgba(242,179,61,.18); color: #ffd27a; vertical-align: 2px; }
+.toast { position: fixed; right: 20px; bottom: 20px; background: var(--card-2); border: 1px solid var(--line); color: #fff; padding: 12px 16px; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); opacity: 0; transform: translateY(10px); transition: all .2s; pointer-events: none; max-width: 420px; }
+.toast.show { opacity: 1; transform: none; }
+.toast.bad { border-color: rgba(228,2,43,.6); }
+
+@media (max-width: 900px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+  .table tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .table td { border: 0; padding: 4px 14px; }
+  .design { grid-template-columns: 1fr; }
+  .design .acts { justify-content: flex-start; }
+  .design form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="stripes" aria-hidden="true"></div>
+
+<section class="login" id="login-view" hidden>
+  <form id="login-form">
+    <h1>ChiActive <span>admin</span></h1>
+    <p>Activity log and design management for the class gallery.</p>
+    <label class="sr" for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Admin password" required>
+    <button class="btn" type="submit">Log in</button>
+    <p class="err" id="login-err" role="alert"></p>
+  </form>
+</section>
+
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <h1>ChiActive <span>admin</span></h1>
+    <div class="top-right">
+      <a class="btn ghost small" id="gallery-link" href="#" target="_blank" rel="noopener">Open gallery ↗</a>
+      <button class="btn ghost small" id="logout" type="button">Log out</button>
+    </div>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-activity" aria-selected="true" aria-controls="activity">Activity</button>
+    <button class="tab" role="tab" id="tab-designs" aria-selected="false" aria-controls="designs">Designs</button>
+  </div>
+
+  <section id="activity" role="tabpanel" aria-labelledby="tab-activity">
+    <div id="notices"></div>
+    <div class="stats" id="stats"></div>
+    <div class="filters">
+      <label class="sr" for="range">Time range</label>
+      <select id="range">
+        <option value="1">Today</option>
+        <option value="7" selected>Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="365">Last year</option>
+      </select>
+      <div class="chips" id="chips"></div>
+      <label class="sr" for="q">Search</label>
+      <input id="q" type="search" placeholder="Search names, designs, errors, visitor ids…">
+    </div>
+    <p class="meta"><span id="count"></span><span id="updated"></span><label><input type="checkbox" id="auto" checked> Auto-refresh</label><button class="btn ghost small" id="refresh" type="button">Refresh</button><button class="btn ghost small" id="csv" type="button">Download CSV</button></p>
+    <div id="table-wrap"></div>
+    <div class="more"><button class="btn ghost" id="more" type="button" hidden>Show more</button></div>
+  </section>
+
+  <section id="designs" role="tabpanel" aria-labelledby="tab-designs" hidden>
+    <p class="meta">Renaming changes the name on the gallery card and in the “You are viewing a demo website of …” bar. Deleting removes the design from the website (it stays in the repository’s history). Changes show on the website within about a minute.</p>
+    <div class="designs" id="design-list"><p class="empty">Loading designs…</p></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function mb(n) { return n == null ? '' : n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+  function toast(msg, bad) { var t = $('toast'); t.textContent = msg; t.className = 'toast show' + (bad ? ' bad' : ''); clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 4000); }
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, { method: opts.body ? 'POST' : 'GET', headers: opts.body ? { 'Content-Type': 'application/json' } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'The server answered with error ' + r.status + '.' }; }).then(function (j) { j.status = r.status; return j; }); })
+      .catch(function () { return { ok: false, status: 0, error: 'Couldn’t reach the upload server. It may be waking up; try again in a minute.' }; });
+  }
+
+  var TYPES = {
+    'visit': ['Opened the gallery', 'view'], 'view': ['Viewed a design', 'view'], 'page': ['Clicked a page in a design', 'view'],
+    'upload-start': ['Started an upload', ''], 'upload-received': ['Upload arrived', ''], 'upload-saved': ['Upload saved', 'ok'],
+    'upload-failed': ['Upload failed', 'bad'], 'upload-rejected': ['Upload refused', 'bad'], 'upload-abandoned': ['Upload abandoned', 'warn'],
+    'client-error': ['Upload problem in browser', 'bad'],
+    'admin-login': ['Admin logged in', 'admin'], 'admin-login-failed': ['Wrong admin password', 'warn'], 'admin-rename': ['Admin renamed a design', 'admin'],
+    'admin-delete': ['Admin deleted a design', 'admin'], 'admin-error': ['Admin action failed', 'bad'], 'server-start': ['Server started', '']
+  };
+  var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['errors', 'Errors'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
+  function inFilter(e, f) {
+    if (f === 'all') return true;
+    if (f === 'uploads') return /^upload/.test(e.type) || e.type === 'client-error';
+    if (f === 'errors') return /failed|rejected|abandoned|error/.test(e.type);
+    if (f === 'views') return e.type === 'view' || e.type === 'page';
+    if (f === 'visits') return e.type === 'visit';
+    if (f === 'admin') return /^admin|server/.test(e.type);
+  }
+  var state = { events: [], filter: 'all', q: '', shown: 150, data: null, timer: null };
+
+  /* ---------- login ---------- */
+  function showLogin(msg) { $('app').hidden = true; $('login-view').hidden = false; $('login-err').textContent = msg || ''; $('pw').focus(); }
+  $('login-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var b = ev.target.querySelector('button'); b.disabled = true; $('login-err').textContent = '';
+    api('/api/admin/login', { body: { password: $('pw').value } }).then(function (j) {
+      b.disabled = false;
+      if (!j.ok) { $('login-err').textContent = j.error || 'Login failed.'; return; }
+      $('pw').value = ''; start();
+    });
+  });
+  $('logout').addEventListener('click', function () { api('/api/admin/logout', { body: {} }).then(function () { clearInterval(state.timer); showLogin('You’re logged out.'); }); });
+
+  /* ---------- tabs ---------- */
+  function tab(which) {
+    ['activity', 'designs'].forEach(function (t) { $('tab-' + t).setAttribute('aria-selected', String(t === which)); $(t).hidden = t !== which; });
+    if (which === 'designs') loadDesigns();
+    try { sessionStorage.setItem('ca-tab', which); } catch (e) {}
+  }
+  $('tab-activity').addEventListener('click', function () { tab('activity'); });
+  $('tab-designs').addEventListener('click', function () { tab('designs'); });
+
+  /* ---------- activity ---------- */
+  $('chips').innerHTML = FILTERS.map(function (f) { return '<button class="chip" type="button" data-f="' + f[0] + '" aria-pressed="' + (f[0] === 'all') + '">' + f[1] + '</button>'; }).join('');
+  $('chips').addEventListener('click', function (e) { var b = e.target.closest('[data-f]'); if (!b) return; state.filter = b.getAttribute('data-f'); state.shown = 150; [].forEach.call($('chips').children, function (c) { c.setAttribute('aria-pressed', String(c === b)); }); draw(); });
+  $('q').addEventListener('input', function () { state.q = this.value.trim().toLowerCase(); state.shown = 150; draw(); });
+  $('range').addEventListener('change', loadLogs);
+  $('refresh').addEventListener('click', loadLogs);
+  $('more').addEventListener('click', function () { state.shown += 200; draw(); });
+  $('auto').addEventListener('change', setAuto);
+  function setAuto() { clearInterval(state.timer); if ($('auto').checked) state.timer = setInterval(function () { if (!$('activity').hidden && !document.hidden) loadLogs(true); }, 30000); }
+
+  function who(e) { return /^admin/.test(e.type) ? 'Admin' : e.student ? e.student : e.visitor ? 'Visitor ' + e.visitor : e.type.indexOf('admin') === 0 ? 'Admin' : e.ip ? 'Network ' + e.ip : '—'; }
+  function details(e) {
+    var bits = [];
+    var design = e.name || e.by || e.folder;
+    if (e.type === 'view' || e.type === 'page') bits.push((e.by ? 'Design by <b>' + esc(e.by) + '</b>' : '') + (e.folder ? ' <code>' + esc(e.folder) + '</code>' : ''));
+    else if (design && e.type !== 'visit') bits.push(esc(e.name || '') + (e.folder ? ' <code>' + esc(e.folder) + '</code>' : ''));
+    if (e.page) bits.push('Page: <code>' + esc(e.page) + '</code>');
+    if (e.files != null || e.size != null) bits.push([e.files != null ? e.files + ' files' : '', e.size != null ? mb(e.size) : ''].filter(Boolean).join(', ') + (e.received != null ? ' (' + mb(e.received) + ' arrived)' : '') + (e.saved != null ? ' (' + e.saved + ' saved before it failed)' : ''));
+    if (e.seconds != null) bits.push('took ' + (e.seconds >= 90 ? Math.round(e.seconds / 60) + ' min' : e.seconds + ' s'));
+    if (e.stage) bits.push('stage: ' + esc(e.stage));
+    if (e.error) bits.push('<span class="msg">' + esc(e.error) + '</span>');
+    if (e.message) bits.push(/error|fail|problem|drop/i.test(e.type + e.message) ? '<span class="msg">' + esc(e.message) + '</span>' : esc(e.message));
+    if (e.detail) bits.push('<span class="dev">Technical: ' + esc(e.detail) + '</span>');
+    if (e.ref) bits.push((/failed|rejected|abandoned|error/.test(e.type) ? 'Error code' : 'Upload id') + ': <code>' + esc(e.ref) + '</code>');
+    if (e.commit) bits.push('commit <code>' + esc(e.commit) + '</code>');
+    return bits.filter(Boolean).join('<br>');
+  }
+  function when(t) {
+    var d = new Date(t), s = (Date.now() - d) / 1000;
+    var rel = s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : Math.floor(s / 86400) + ' d ago';
+    return '<b>' + esc(d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })) + '</b><span>' + rel + '</span>';
+  }
+  function filtered() {
+    return state.events.filter(function (e) {
+      if (!inFilter(e, state.filter)) return false;
+      if (!state.q) return true;
+      return JSON.stringify(e).toLowerCase().indexOf(state.q) > -1 || (TYPES[e.type] || [e.type])[0].toLowerCase().indexOf(state.q) > -1;
+    });
+  }
+  function draw() {
+    var list = filtered(), rows = list.slice(0, state.shown);
+    $('count').textContent = list.length + ' event' + (list.length === 1 ? '' : 's');
+    $('more').hidden = list.length <= state.shown;
+    if (!rows.length) { $('table-wrap').innerHTML = '<div class="table"><p class="empty">Nothing here yet for this filter.</p></div>'; return; }
+    $('table-wrap').innerHTML = '<table class="table"><thead><tr><th>When</th><th>What happened</th><th>Who</th><th>Details</th></tr></thead><tbody>' + rows.map(function (e) {
+      var t = TYPES[e.type] || [e.type, ''];
+      var w = who(e);
+      return '<tr><td class="when">' + when(e.t) + '</td><td><span class="badge ' + t[1] + '">' + esc(t[0]) + '</span></td>' +
+        '<td class="who"><button type="button" data-q="' + esc(/^admin/.test(e.type) ? 'admin' : (e.student || e.visitor || e.ip || '')) + '" title="Show only this person">' + esc(w) + '</button>' +
+        (e.student && e.visitor ? '<div class="dev">visitor ' + esc(e.visitor) + '</div>' : '') + (e.device ? '<div class="dev">' + esc(e.device) + (e.ip ? ' · network ' + esc(e.ip) : '') + '</div>' : '') + '</td>' +
+        '<td class="detail">' + details(e) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  $('table-wrap').addEventListener('click', function (e) { var b = e.target.closest('[data-q]'); if (!b || !b.getAttribute('data-q')) return; $('q').value = b.getAttribute('data-q'); state.q = $('q').value.toLowerCase(); state.shown = 150; draw(); });
+  function stats() {
+    var ev = state.events, c = function (f) { return ev.filter(f).length; };
+    var visitors = {}; ev.forEach(function (e) { if (e.visitor) visitors[e.visitor] = 1; });
+    $('stats').innerHTML = [
+      ['good', c(function (e) { return e.type === 'upload-saved'; }), 'Uploads saved'],
+      ['bad', c(function (e) { return /upload-failed|upload-rejected|upload-abandoned|client-error/.test(e.type); }), 'Upload problems'],
+      ['', c(function (e) { return e.type === 'view'; }), 'Design views'],
+      ['', c(function (e) { return e.type === 'visit'; }), 'Gallery visits'],
+      ['', Object.keys(visitors).length, 'Different visitors']
+    ].map(function (s) { return '<div class="stat ' + s[0] + '"><b>' + s[1] + '</b><span>' + s[2] + '</span></div>'; }).join('');
+  }
+  function notices(d) {
+    var n = [];
+    if (!d.persisted) n.push(['bad', 'The activity log is only kept in memory (it’s lost when the server restarts). Set ADMIN_PASSWORD (or LOG_KEY) and GITHUB_TOKEN in Render to save it.']);
+    if (d.error) n.push(['bad', 'Couldn’t read the saved log: ' + d.error]);
+    if (d.saveError) n.push(['bad', 'The latest events couldn’t be saved yet (' + d.saveError + '). They’re kept in memory and saving is retried automatically.']);
+    if (d.unreadable) n.push(['', d.unreadable + ' older log batch' + (d.unreadable === 1 ? '' : 'es') + ' couldn’t be decrypted (probably saved before the admin password or LOG_KEY changed).']);
+    (d.server && d.server.activeUploads || []).forEach(function (u) { n.push(['', 'Upload in progress: ' + esc(u.student) + ', ' + u.files + ' files (' + mb(u.size) + '), ' + esc(u.status) + (u.steps ? ' ' + u.done + '/' + u.steps : '') + (u.note ? '. ' + esc(u.note) : '')]); });
+    $('notices').innerHTML = n.map(function (x) { return '<div class="notice ' + x[0] + '">' + x[1] + '</div>'; }).join('');
+  }
+  function loadLogs(quiet) {
+    if (quiet !== true) $('updated').textContent = 'Loading…';
+    return api('/api/admin/logs?days=' + $('range').value).then(function (j) {
+      if (j.status === 401) return showLogin(j.needsPassword ? 'No admin password is set yet. Add ADMIN_PASSWORD in Render.' : '');
+      if (!j.ok) { $('updated').textContent = ''; toast(j.error || 'Couldn’t load the log.', true); return; }
+      state.events = j.events || []; state.data = j;
+      $('gallery-link').href = (j.server && j.server.pages) || '#';
+      $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      stats(); notices(j); draw();
+    });
+  }
+  $('csv').addEventListener('click', function () {
+    var cols = ['t', 'type', 'student', 'visitor', 'device', 'ip', 'folder', 'name', 'by', 'page', 'files', 'size', 'stage', 'error', 'message', 'detail', 'ref', 'commit'];
+    var q = function (v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var csv = cols.join(',') + '\n' + filtered().map(function (e) { return cols.map(function (c) { return q(e[c]); }).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'chiactive-activity-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  /* ---------- designs ---------- */
+  var designs = [], pages = '';
+  function drawDesigns() {
+    if (!designs.length) { $('design-list').innerHTML = '<p class="empty">No designs yet.</p>'; return; }
+    $('design-list').innerHTML = designs.map(function (d, i) {
+      var link = pages + 'view.html?d=' + encodeURIComponent(d.folder) + '&e=' + encodeURIComponent(d.entry || 'index.html') + (d.by ? '&by=' + encodeURIComponent(d.by) : '');
+      return '<article class="design" data-i="' + i + '">' +
+        '<div><h3>' + esc(d.name || d.folder) + (d.unlisted ? '<span class="tag">not listed</span>' : '') + (d.missing ? '<span class="tag">files missing</span>' : '') + '</h3>' +
+        '<p>By ' + esc(d.by || '—') + ' · <code>' + esc(d.folder) + '</code>' + (d.uploadedAt ? ' · added ' + esc(new Date(d.uploadedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) : '') + '</p></div>' +
+        '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' +
+        '<button class="btn ghost small" type="button" data-edit>Rename</button><button class="btn danger small" type="button" data-del>Delete</button></div>' +
+        (d.unlisted ? '<p class="warn-line">This folder is in the repository but not in the gallery list. Rename it to add it to the gallery, or delete it.</p>' : '') +
+        '</article>';
+    }).join('');
+  }
+  function loadDesigns() {
+    $('design-list').innerHTML = '<p class="empty">Loading designs…</p>';
+    api('/api/admin/designs').then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { $('design-list').innerHTML = '<p class="empty">' + esc(j.error || 'Couldn’t load the designs.') + '</p>'; return; }
+      designs = j.designs || []; pages = j.pages || ''; drawDesigns();
+    });
+  }
+  function rowError(card, msg) { var p = card.querySelector('.row-err'); if (!p) { p = document.createElement('p'); p.className = 'row-err'; p.setAttribute('role', 'alert'); card.appendChild(p); } p.textContent = msg; }
+  $('design-list').addEventListener('click', function (e) {
+    var card = e.target.closest('.design'); if (!card) return;
+    var d = designs[+card.getAttribute('data-i')];
+    if (e.target.closest('[data-edit]')) {
+      if (card.querySelector('form')) return card.querySelector('form').remove();
+      card.insertAdjacentHTML('beforeend', '<form><label>Design name<input type="text" name="name" maxlength="90" required value="' + esc(d.name || '') + '"></label>' +
+        '<label>Student name (shown in the demo bar)<input type="text" name="by" maxlength="60" required value="' + esc(d.by || '') + '"></label>' +
+        '<button class="btn small" type="submit">Save</button><button class="btn ghost small" type="button" data-cancel>Cancel</button></form>');
+      var f = card.querySelector('form');
+      f.by.addEventListener('input', function () { if (/^Website design - /.test(f.name.value) || !f.name.value) f.name.value = 'Website design - ' + f.by.value.trim(); });
+      f.name.focus();
+      return;
+    }
+    if (e.target.closest('[data-cancel]')) return card.querySelector('form').remove();
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      if (!del.classList.contains('confirm')) { del.classList.add('confirm'); del.textContent = 'Click again to delete'; setTimeout(function () { if (del.isConnected) { del.classList.remove('confirm'); del.textContent = 'Delete'; } }, 5000); return; }
+      del.disabled = true; del.textContent = 'Deleting…';
+      api('/api/admin/delete', { body: { folder: d.folder } }).then(function (j) {
+        if (j.status === 401) return showLogin();
+        if (!j.ok) { del.disabled = false; del.classList.remove('confirm'); del.textContent = 'Delete'; return rowError(card, j.error || 'Deleting failed.'); }
+        designs = j.designs || []; drawDesigns(); toast('“' + (d.name || d.folder) + '” was deleted. It disappears from the website within about a minute.');
+      });
+    }
+  });
+  $('design-list').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target, card = f.closest('.design'), d = designs[+card.getAttribute('data-i')], b = f.querySelector('[type=submit]');
+    b.disabled = true; b.textContent = 'Saving…';
+    api('/api/admin/rename', { body: { folder: d.folder, entry: d.entry, name: f.name.value, by: f.by.value } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { b.disabled = false; b.textContent = 'Save'; return rowError(card, j.error || 'Renaming failed.'); }
+      designs = j.designs || []; drawDesigns(); toast('Renamed. The website shows the new name within about a minute.');
+    });
+  });
+
+  /* ---------- start ---------- */
+  function start() {
+    $('login-view').hidden = true; $('app').hidden = false;
+    var t = 'activity'; try { t = sessionStorage.getItem('ca-tab') || 'activity'; } catch (e) {}
+    loadLogs().then(function () { if (!$('app').hidden) { tab(t); setAuto(); } });
+  }
+  api('/api/admin/logs?days=1').then(function (j) {
+    if (j.ok) return start();
+    showLogin(j.needsPassword ? 'No admin password is set yet. Add ADMIN_PASSWORD under Environment in Render, then reload this page.' : '');
+  });
+})();
+</script>
+</body>
+</html>
