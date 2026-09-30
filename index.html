@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChiActive | Pick a design</title>
+<meta name="description" content="Four complete ChiActive storefront designs. Preview them and pick the one you want to browse.">
+<meta name="theme-color" content="#16202C">
+<link rel="icon" type="image/png" href="images/favicon.png">
+<style>
+@font-face { font-family: 'Finlandica Headline'; src: url('fonts/Finlandica-Bold.woff2') format('woff2'); font-weight: 600 900; font-display: swap; }
+@font-face { font-family: 'Google Sans'; src: url('fonts/GoogleSansFlex-Variable.woff2') format('woff2'); font-weight: 100 1000; font-display: swap; }
+:root {
+  --sky: #41B6E6; --navy: #2F3F53; --red: #E4022B; --sand: #F5E7BE;
+  --bg: #16202C; --card: #1F2B3A; --card-2: #263446; --text: #E6ECF2; --muted: #9DAABB; --line: rgba(245,231,190,.14);
+  --head: "Finlandica Headline", "Arial Narrow", Arial, sans-serif; --body: "Google Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L60.5 31.8L93.3 25L71 50L93.3 75L60.5 68.2L50 100L39.5 68.2L6.7 75L29 50L6.7 25L39.5 31.8Z'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 4px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 24px; }
+
+.stripes { height: 14px; background: linear-gradient(to bottom, var(--sky) 0 33%, var(--bg) 33% 66%, var(--sky) 66%); }
+header.top { padding-block: 56px 40px; display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; }
+header.top img { width: 96px; height: 96px; }
+.kicker { display: inline-flex; align-items: center; gap: 10px; font-size: .78rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--sky); margin: 0 0 10px; }
+.kicker::before { content: ""; width: 12px; height: 12px; background: var(--red); -webkit-mask: var(--star) center/contain no-repeat; mask: var(--star) center/contain no-repeat; }
+h1 { font-family: var(--head); font-weight: 800; font-size: clamp(2.6rem, 6vw, 4.8rem); line-height: .92; text-transform: uppercase; color: var(--sand); margin: 0 0 12px; letter-spacing: -.01em; }
+h1 span { color: var(--sky); }
+.intro { color: var(--muted); font-size: 1.1rem; max-width: 62ch; margin: 0; }
+.status { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: .88rem; }
+.chip b { color: var(--sand); }
+.chip a { color: var(--sky); font-weight: 700; text-decoration: none; }
+.chip[hidden] { display: none; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-bottom: 72px; }
+.option { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; transition: transform .35s var(--ease), border-color .25s, box-shadow .35s var(--ease); }
+.option:hover { transform: translateY(-6px); border-color: rgba(65,182,230,.6); box-shadow: 0 30px 60px -30px rgba(0,0,0,.8); }
+.stage { position: relative; padding: 22px 22px 0; background: radial-gradient(120% 90% at 20% 0%, var(--card-2), var(--card)); }
+.browser { border-radius: 10px 10px 0 0; overflow: hidden; background: #0d141d; box-shadow: 0 -1px 0 rgba(255,255,255,.06); }
+.browser .bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #0d141d; }
+.browser .bar i { width: 9px; height: 9px; border-radius: 50%; background: #3a4757; }
+.browser .bar span { margin-left: 8px; flex: 1; background: #1a2533; border-radius: 6px; font-size: .72rem; color: var(--muted); padding: 3px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser img { width: 100%; aspect-ratio: 1200 / 750; object-fit: cover; object-position: top; transition: transform .6s var(--ease); }
+.option:hover .browser img { transform: scale(1.02); }
+.phone { position: absolute; right: 18px; bottom: -34px; width: 22%; min-width: 96px; border-radius: 18px; border: 5px solid #0d141d; overflow: hidden; box-shadow: 0 18px 40px -12px rgba(0,0,0,.7); background: #0d141d; transition: transform .45s var(--ease); }
+.phone img { width: 100%; aspect-ratio: 390 / 780; object-fit: cover; object-position: top; }
+.option:hover .phone { transform: translateY(-10px) rotate(-2deg); }
+.body { padding: 48px 26px 26px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.name-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.num { font-family: var(--head); font-weight: 800; font-size: 1rem; color: var(--bg); background: var(--sky); border-radius: 6px; padding: 2px 8px; }
+.name { font-family: var(--head); font-weight: 800; text-transform: uppercase; font-size: 2rem; line-height: 1; margin: 0; color: #fff; }
+.tag { font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+.tag.new { background: var(--red); color: #fff; }
+.tag.orig { background: rgba(245,231,190,.14); color: var(--sand); }
+.tag.last { background: var(--sand); color: var(--bg); }
+.tag.last[hidden] { display: none; }
+.style { margin: 0; color: var(--sky); font-weight: 700; font-size: .95rem; }
+.desc { margin: 0; color: var(--muted); }
+.swatches { display: flex; gap: 6px; margin-top: 4px; }
+.swatches i { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+.open { margin-top: auto; padding-top: 14px; }
+.btn { display: inline-flex; align-items: center; gap: 12px; background: var(--red); color: #fff; text-decoration: none; font-weight: 700; padding: 14px 22px; border-radius: 10px; transition: background .2s, transform .2s; }
+.btn span { transition: transform .25s var(--ease); }
+.option:hover .btn { background: #ff1f47; }
+.option:hover .btn span { transform: translateX(4px); }
+.option a.cover { position: absolute; inset: 0; z-index: 1; }
+.option .btn { position: relative; z-index: 2; }
+
+/* ---------- Community designs + upload ---------- */
+.community { padding-bottom: 80px; }
+.community-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 40px; margin-bottom: 26px; }
+.community-head h2 { font-family: var(--head); font-weight: 800; text-transform: uppercase; font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: .95; margin: 0 0 8px; color: var(--sand); }
+.community-head p { margin: 0; color: var(--muted); max-width: 64ch; }
+.count-chip { font-size: .85rem; color: var(--muted); }
+.upload-card { border: 2px dashed rgba(65,182,230,.55); background: rgba(65,182,230,.05); min-height: 420px; }
+.upload-card:hover { transform: none; box-shadow: none; }
+.upload-card.drag { border-color: var(--sky); background: rgba(65,182,230,.14); }
+.up-inner { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 36px 28px; }
+.up-icon { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--sky); color: var(--bg); }
+.up-icon svg { width: 36px; height: 36px; }
+.up-inner h3 { font-family: var(--head); font-weight: 800; text-transform: uppercase; font-size: 1.9rem; margin: 0; color: #fff; }
+.up-inner p { margin: 0; color: var(--muted); max-width: 42ch; }
+.up-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.btn-ghost { background: transparent; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+.btn-ghost:hover, .option:hover .btn-ghost { background: rgba(255,255,255,.08); }
+button.btn { border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+.up-note { font-size: .82rem; color: var(--muted); }
+.up-note code { background: var(--card-2); padding: 2px 6px; border-radius: 4px; color: var(--sand); }
+.up-progress { width: min(320px, 100%); height: 8px; border-radius: 8px; background: var(--card-2); overflow: hidden; }
+.up-progress span { display: block; height: 100%; width: 0; background: var(--sky); transition: width .2s; }
+.up-form { width: 100%; max-width: 420px; display: grid; gap: 12px; text-align: left; }
+.up-form label { display: grid; gap: 6px; font-size: .85rem; font-weight: 700; color: var(--sand); }
+.up-form input { font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: #fff; }
+.up-form input:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
+.up-found { background: var(--card-2); border-radius: 10px; padding: 12px 14px; font-size: .9rem; color: var(--text); }
+.up-found b { color: var(--sand); }
+.up-error { color: #ff8095; font-weight: 700; }
+.frame { position: relative; aspect-ratio: 1200 / 750; overflow: hidden; background: #fff; }
+.frame iframe { position: absolute; top: 0; left: 0; width: 1200px; height: 750px; border: 0; transform-origin: 0 0; transform: scale(var(--s, .4)); pointer-events: none; background: #fff; }
+.tag.up { background: var(--sand); color: var(--bg); }
+.tag.shared { background: var(--sky); color: var(--bg); }
+.meta-line { margin: 0; font-size: .88rem; color: var(--muted); }
+.card-actions { margin-top: auto; padding-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; position: relative; z-index: 2; }
+.btn-remove { background: none; border: 1px solid var(--line); color: var(--muted); padding: 12px 16px; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+.btn-remove:hover, .btn-remove.confirm { border-color: var(--red); color: #fff; background: var(--red); }
+.community .option .body { padding-top: 22px; }
+footer { border-top: 1px solid var(--line); padding-block: 26px 40px; color: var(--muted); font-size: .9rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } header.top { grid-template-columns: 1fr; gap: 16px; padding-top: 36px; } header.top img { width: 72px; height: 72px; } }
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } .stage { padding: 14px 14px 0; } .body { padding: 44px 18px 20px; } .name { font-size: 1.7rem; } }
+</style>
+</head>
+<body>
+<div class="stripes" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top">
+    <img src="images/chiactive-logo.png" alt="ChiActive logo" width="96" height="96">
+    <div>
+      <p class="kicker">ChiActive storefront &middot; 4 designs</p>
+      <h1>Pick your <span>ChiActive.</span></h1>
+      <p class="intro">Same products, same prices, four different looks. Every design is a complete working shop with product pages, a bag and checkout totals. Open one, and use <b>Switch design</b> in the corner to come back here.</p>
+      <div class="status">
+        <span class="chip" id="bag-chip" hidden>Your bag: <b id="bag-n">0</b> item(s), shared across every design</span>
+        <span class="chip" id="last-chip" hidden>Last opened: <a id="last-link" href="#">design</a></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <article class="option" data-design="forecast">
+      <a class="cover" href="forecast/index.html" aria-label="Open the Forecast design"></a>
+      <div class="stage">
+        <div class="browser"><div class="bar"><i></i><i></i><i></i><span>chiactive / forecast</span></div><img src="images/previews/forecast-desktop.webp" alt="Preview of the Forecast design homepage" loading="lazy"></div>
+        <div class="phone"><img src="images/previews/forecast-phone.webp" alt="" loading="lazy"></div>
+      </div>
+      <div class="body">
+        <div class="name-row"><span class="num">01</span><h2 class="name">Forecast</h2><span class="tag new">New</span><span class="tag last" hidden>Last opened</span></div>
+        <p class="style">Dark weather-station look</p>
+        <p class="desc">Pick a season and the whole homepage changes color and rebuilds your outfit. Prices and labels read like a forecast, with lake-contour lines behind the big moments.</p>
+        <div class="swatches" aria-hidden="true"><i style="background:#1E2937"></i><i style="background:#41B6E6"></i><i style="background:#F5E7BE"></i><i style="background:#E4022B"></i></div>
+        <div class="open"><a class="btn" href="forecast/index.html">Open Forecast <span>&rarr;</span></a></div>
+      </div>
+    </article>
+
+    <article class="option" data-design="journal">
+      <a class="cover" href="journal/index.html" aria-label="Open the Lakefront Journal design"></a>
+      <div class="stage">
+        <div class="browser"><div class="bar"><i></i><i></i><i></i><span>chiactive / journal</span></div><img src="images/previews/journal-desktop.webp" alt="Preview of the Lakefront Journal design homepage" loading="lazy"></div>
+        <div class="phone"><img src="images/previews/journal-phone.webp" alt="" loading="lazy"></div>
+      </div>
+      <div class="body">
+        <div class="name-row"><span class="num">02</span><h2 class="name">Lakefront Journal</h2><span class="tag new">New</span><span class="tag last" hidden>Last opened</span></div>
+        <p class="style">Editorial magazine</p>
+        <p class="desc">A student-run outdoor magazine: a giant masthead, a cover story, numbered chapters, a sale rack and a table of contents for every department.</p>
+        <div class="swatches" aria-hidden="true"><i style="background:#FAF5E8"></i><i style="background:#26313F"></i><i style="background:#E4022B"></i><i style="background:#F5E7BE"></i></div>
+        <div class="open"><a class="btn" href="journal/index.html">Open Lakefront Journal <span>&rarr;</span></a></div>
+      </div>
+    </article>
+
+    <article class="option" data-design="transit">
+      <a class="cover" href="transit/index.html" aria-label="Open The L design"></a>
+      <div class="stage">
+        <div class="browser"><div class="bar"><i></i><i></i><i></i><span>chiactive / the-l</span></div><img src="images/previews/transit-desktop.webp" alt="Preview of The L design homepage" loading="lazy"></div>
+        <div class="phone"><img src="images/previews/transit-phone.webp" alt="" loading="lazy"></div>
+      </div>
+      <div class="body">
+        <div class="name-row"><span class="num">03</span><h2 class="name">The L</h2><span class="tag new">New</span><span class="tag last" hidden>Last opened</span></div>
+        <p class="style">Chicago transit poster</p>
+        <p class="desc">Every homepage section is a stop on the line. Categories are train lines, the sale is a departures board and your student discount is a fare card.</p>
+        <div class="swatches" aria-hidden="true"><i style="background:#16202C"></i><i style="background:#C60C30"></i><i style="background:#00A1DE"></i><i style="background:#009B3A"></i></div>
+        <div class="open"><a class="btn" href="transit/index.html">Open The L <span>&rarr;</span></a></div>
+      </div>
+    </article>
+
+    <article class="option" data-design="classic">
+      <a class="cover" href="classic/index.html" aria-label="Open the Classic design"></a>
+      <div class="stage">
+        <div class="browser"><div class="bar"><i></i><i></i><i></i><span>chiactive / classic</span></div><img src="images/previews/classic-desktop.webp" alt="Preview of the Classic design homepage" loading="lazy"></div>
+        <div class="phone"><img src="images/previews/classic-phone.webp" alt="" loading="lazy"></div>
+      </div>
+      <div class="body">
+        <div class="name-row"><span class="num">04</span><h2 class="name">Classic</h2><span class="tag orig">Current design</span><span class="tag last" hidden>Last opened</span></div>
+        <p class="style">Bright and friendly</p>
+        <p class="desc">The redesign you&rsquo;ve been working with: sky-blue flag stripes, rounded cards, the Layer Finder and the Shop menu.</p>
+        <div class="swatches" aria-hidden="true"><i style="background:#F8FAFC"></i><i style="background:#2F3F53"></i><i style="background:#41B6E6"></i><i style="background:#E4022B"></i></div>
+        <div class="open"><a class="btn" href="classic/index.html">Open Classic <span>&rarr;</span></a></div>
+      </div>
+    </article>
+  </main>
+
+  <section class="community" aria-labelledby="community-title">
+    <div class="community-head">
+      <div>
+        <h2 id="community-title">Community designs</h2>
+        <p>Upload other people&rsquo;s ChiActive website ideas as a <b>.zip</b> or a <b>folder</b>. They show up here with a live preview and open like any other design. Uploads are saved in this browser.</p>
+      </div>
+      <span class="count-chip" id="community-count"></span>
+    </div>
+    <div class="grid community-grid" id="community">
+      <article class="option upload-card" id="upload-card">
+        <div class="up-inner" id="up-inner"></div>
+      </article>
+    </div>
+    <input type="file" id="zip-input" accept=".zip,application/zip,application/x-zip-compressed" multiple hidden>
+    <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
+  </section>
+
+  <footer><span>&copy; 2026 ChiActive &middot; Practice storefront for a class project. No real orders are placed.</span><span>Built for the four-season city.</span></footer>
+</div>
+<script>
+(function () {
+  var names = { forecast: 'Forecast', journal: 'Lakefront Journal', transit: 'The L', classic: 'Classic' };
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  try {
+    var bag = JSON.parse(get('chiactive-bag') || '[]');
+    var n = Array.isArray(bag) ? bag.reduce(function (s, i) { return s + (i.qty || 0); }, 0) : 0;
+    if (n) { document.getElementById('bag-n').textContent = n; document.getElementById('bag-chip').hidden = false; }
+  } catch (e) {}
+  var last = get('chiactive-design');
+  if (last && names[last]) {
+    var chip = document.getElementById('last-chip'), link = document.getElementById('last-link');
+    link.textContent = names[last]; link.href = last + '/index.html'; chip.hidden = false;
+    var card = document.querySelector('[data-design="' + last + '"] .tag.last'); if (card) card.hidden = false;
+  }
+  document.querySelectorAll('.option').forEach(function (o) {
+    o.addEventListener('click', function () { try { localStorage.setItem('chiactive-design', o.getAttribute('data-design')); } catch (e) {} });
+  });
+})();
+</script>
+<script src="vendor/jszip.min.js"></script>
+<script src="designs.js"></script>
+</body>
+</html>
