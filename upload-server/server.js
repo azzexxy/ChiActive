@@ -198,7 +198,7 @@ function remember(folder, info, commit, meta) {
 }
 let manifestCache = { at: 0, list: [] };
 async function designInfo(folder) {
-  if (live.has(folder)) return live.get(folder);
+  if (live.has(folder) && Date.now() - Date.parse(live.get(folder).meta.uploadedAt) < 30 * 60e3) return live.get(folder);
   if (Date.now() - manifestCache.at > 30e3) {
     try { manifestCache = { at: Date.now(), list: await readManifest() }; } catch (e) { /* keep old */ }
   }
@@ -252,7 +252,8 @@ const server = http.createServer(async (req, res) => {
     try {
       if (Date.now() - manifestCache.at > 5e3) manifestCache = { at: Date.now(), list: await readManifest() };
       const list = manifestCache.list.slice();
-      for (const v of live.values()) if (v.meta && !list.some(d => d && d.folder === v.meta.folder)) list.push(v.meta);
+      // brand-new uploads GitHub hasn't listed yet (only for a few minutes, so deleted designs disappear)
+      for (const v of live.values()) if (v.meta && Date.now() - Date.parse(v.meta.uploadedAt) < 5 * 60e3 && !list.some(d => d && d.folder === v.meta.folder)) list.push(v.meta);
       return send(res, 200, { ok: true, designs: list }, origin || '*');
     } catch (e) { console.error(e); return send(res, 502, { ok: false, designs: manifestCache.list }, origin || '*'); }
   }
