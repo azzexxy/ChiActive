@@ -105,6 +105,11 @@ body.editing { overflow: hidden; }
 .cmp div { background: var(--bg); border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--muted); word-break: break-word; max-height: 160px; overflow: auto; }
 .cmp .before { border-left-color: #ff8fa3; } .cmp .after { border-left-color: #86e0a8; }
 .cmp small { display: block; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.help-err { background: rgba(228,2,43,.1); border: 1px solid rgba(228,2,43,.35); color: #ffb3c0; border-radius: 10px; padding: 10px 12px; font-size: .92rem; margin: 0 0 14px; overflow-wrap: anywhere; }
+.help-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.help-steps li { line-height: 1.45; }
+.help-steps b { color: #fff; }
+.help-ref { color: var(--muted); font-size: .85rem; margin: 14px 0 0; }
 .modal-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 16px); background: var(--card-2); border: 1px solid var(--line); color: #fff; padding: 12px 18px; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); opacity: 0; transition: all .2s; pointer-events: none; z-index: 60; max-width: min(560px, calc(100% - 32px)); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -232,6 +237,44 @@ body.editing { overflow: hidden; }
     });
   }
 
+  /* ---------- "How to fix this" pop-up for every error ---------- */
+  var HELP = [
+    [/file-too-big|over 100 MB|single files over/i, 'A file is too big', ['Look at the error above: it names the file that is too big.', 'Make it smaller: videos shrink a lot with the free app <b>HandBrake</b>, pictures with <b>squoosh.app</b> (save as .webp or .jpg).', 'Or delete that file if your website doesn’t really use it.', 'Upload your design again.']],
+    [/design-too-big|up to 1 GB/i, 'Your design is too big', ['Find the biggest files in your folder (usually videos and large photos).', 'Make them smaller with <b>HandBrake</b> (videos) or <b>squoosh.app</b> (pictures), or remove the ones you don’t use.', 'Upload again. The whole design must be under 1 GB.']],
+    [/too-many-files|files per design/i, 'Too many files', ['Only upload the folder with your website in it, not your whole computer folder.', 'Remove things your site doesn’t use, like <b>node_modules</b>, backups or old versions.', 'Upload again.']],
+    [/no-html|no-usable-files|No web page found|None of the files can be published/i, 'No web page found', ['Open your website folder and check it has a file called <b>index.html</b> (or another .html page).', 'Choose <b>that</b> folder with “Choose folder”, or right-click it and pick “Compress” to make a .zip of it.', 'Upload the folder or .zip again.']],
+    [/^empty$|No files were sent/i, 'No files arrived', ['Click “Choose .zip” or “Choose folder” again.', 'Pick the folder (or .zip) that has your web pages in it.', 'If it still says this, try another browser such as Chrome.']],
+    [/secret key|Secret detected/i, 'Your files contain a secret key', ['A file in your design has a secret key or password in it (for example an API key). GitHub never allows those on a public website.', 'Open the file named in the message, delete the line with the key, and save.', 'If it was a real key, create a new one on the website where you got it, because the old one is no longer secret.', 'Upload your design again.']],
+    [/rate-limited|limiting how fast|slow down|Too many/i, 'Too many tries at once', ['Wait about <b>15 minutes</b>.', 'Then try again. Nothing you did is broken.']],
+    [/stale|changed since you opened it/i, 'The page changed', ['The page was reloaded with the newest version (maybe you have it open in another tab).', 'Close any other Studio tabs.', 'Make your change again and save.']],
+    [/^login$|login expired|Log in again|Log in first/i, 'You need to log in again', ['Log in with your username and password.', 'Then do what you were doing again.']],
+    [/^taken$|already taken|already in use/i, 'That username is taken', ['Pick another username, for example add your last name or a number.', 'Use only small letters, numbers, dots, dashes or underscores.']],
+    [/^weak$|password (is too short|needs|must)|at least 8/i, 'Choose a stronger password', ['Use at least <b>8 characters</b>.', 'Don’t use your username or name in it.', 'Easy trick: three random words and a number, like <b>lake-parka-77</b>.']],
+    [/bad-username|username can only|Usernames/i, 'That username won’t work', ['Use 3 to 24 characters.', 'Only small letters (a–z), numbers, dots, dashes and underscores. No spaces.']],
+    [/bad-login|password isn’t right|isn’t right|wrong password|No account/i, 'Couldn’t log you in', ['Check the username is spelled right (small letters).', 'Check Caps Lock is off and type the password again.', 'Forgot it? Ask your teacher (the gallery admin) to set a new password for you on the admin page.']],
+    [/not-yours|Only the student who uploaded|isn’t yours/i, 'This isn’t your design', ['You can only edit designs you uploaded yourself.', 'Log in with the account you used to upload it.', 'If it is yours but was uploaded another way, ask your teacher to set you as the owner on the admin page.']],
+    [/offline|Couldn’t reach the server|Lost contact|Lost the connection|waking up|restarting or busy|network|status 0/i, 'Can’t reach the server', ['Check your Wi-Fi or internet connection.', 'The upload server sleeps when nobody uses it. Wait <b>1 minute</b> while it wakes up.', 'Refresh this page (<b>Cmd+R</b> on Mac, <b>Ctrl+R</b> on Windows) and try again.']],
+    [/old-page|page was updated|Refresh the page/i, 'This page is out of date', ['Refresh the page: <b>Cmd+Shift+R</b> on Mac or <b>Ctrl+F5</b> on Windows.', 'Try again.']],
+    [/GITHUB_TOKEN|isn’t allowed to save|key has expired|isn’t connected to GitHub|no-token|no-key|locked|admin needs|Tell the gallery admin/i, 'This needs the teacher', ['This isn’t something you did wrong: a setting on the server needs fixing.', 'Tell your teacher (the gallery admin) and give them the error code below.', 'Try again later.']],
+    [/repository changed|GitHub is having problems|couldn’t reach GitHub/i, 'GitHub was busy', ['Wait a minute.', 'Try again. Your files are fine.']],
+    [/disk space/i, 'The server is full right now', ['Wait a few minutes.', 'Try again, or upload a smaller version of your design.']],
+    [/The text is empty/i, 'The text is empty', ['Type some text in the box, or press Cancel.', 'To remove the text completely, use the trash icon instead.']],
+  ];
+  var helpOpen = false;
+  function showHelp(message, code, ref) {
+    message = String(message || 'Something went wrong.');
+    if (helpOpen || !$('modal').hidden) return;
+    var hit = null;
+    for (var i = 0; i < HELP.length && !hit; i++) if (HELP[i][0].test(code || '') || HELP[i][0].test(message)) hit = HELP[i];
+    var title = hit ? hit[1] : 'Something went wrong';
+    var steps = hit ? hit[2] : ['Try again.', 'Refresh the page (<b>Cmd+R</b> on Mac, <b>Ctrl+R</b> on Windows) and try once more.', 'Still not working? Send your teacher a screenshot of this message with the error code.'];
+    helpOpen = true;
+    if (!ref) report('error shown', title + ': ' + message);   // errors the server already logged have an error code
+    modal('How to fix this: ' + title, '<p class="help-err">' + esc(message) + '</p><ol class="help-steps">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+      (ref ? '<p class="help-ref">Error code: <b>' + esc(ref) + '</b> (your teacher can look this up in the admin log)</p>' : ''), [{ label: 'OK, got it', value: true }])
+      .then(function () { helpOpen = false; });
+  }
+
   /* ---------- routing ---------- */
   function go(path, replace) { if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path); route(); }
   document.addEventListener('click', function (e) {
@@ -267,7 +310,7 @@ body.editing { overflow: hidden; }
     b.disabled = true; b.textContent = 'Creating your account…'; err.textContent = '';
     api('/api/account/signup', { name: f.name.value, username: f.username.value, password: f.password.value }).then(function (j) {
       b.disabled = false; b.textContent = 'Create my account';
-      if (!j.ok) { err.textContent = j.error; return; }
+      if (!j.ok) { err.textContent = j.error; showHelp(j.error, j.code); return; }
       f.reset(); toast('Welcome, ' + j.user.name + '! Your account is ready.'); go('/studio', true);
     });
   });
@@ -276,7 +319,7 @@ body.editing { overflow: hidden; }
     b.disabled = true; b.textContent = 'Logging in…'; err.textContent = '';
     api('/api/account/login', { username: f.username.value, password: f.password.value }).then(function (j) {
       b.disabled = false; b.textContent = 'Log in';
-      if (!j.ok) { err.textContent = j.error; return; }
+      if (!j.ok) { err.textContent = j.error; showHelp(j.error, j.code || (j.status === 401 ? 'bad-login' : '')); return; }
       f.reset(); route();
     });
   });
@@ -342,6 +385,7 @@ body.editing { overflow: hidden; }
       '<div class="acts"><button class="btn" type="button" data-pick="zip">Choose .zip</button><button class="btn ghost" type="button" data-pick="folder">Choose folder</button></div>' +
       (message ? '<p class="' + (message.error ? 'err' : 'ok') + '" role="status">' + message.html + '</p>' : '') +
       '<p class="fine">' + (ME && ME.admin ? 'As admin you choose the name and, if you like, the student who owns it.' : 'It appears in the class gallery as “Website design - ' + esc(ME && ME.user ? ME.user.name : 'your name') + '”.') + '</p>';
+    if (message && message.error) { var tmp = document.createElement('div'); tmp.innerHTML = message.html; var sm = tmp.querySelector('small'); if (sm) sm.remove(); showHelp(tmp.textContent.trim(), message.code, message.ref); }
   }
   function status(text, fraction, extra) { drop.innerHTML = ICON + '<h3>Working on it</h3><p role="status">' + esc(text) + '</p><div class="progress"><span style="width:' + Math.round((fraction || 0) * 100) + '%"></span></div>' + (extra || ''); }
   function readZip(file) {
@@ -429,14 +473,14 @@ body.editing { overflow: hidden; }
       xhr.send(body == null ? null : body);
     });
   }
-  function fail(msg, ref) { idle({ error: true, html: esc(msg) + (ref ? '<br><small class="muted">Error code: ' + esc(ref) + '</small>' : '') }); }
+  function fail(msg, ref, code) { idle({ error: true, code: code, ref: ref, html: esc(msg) + (ref ? '<br><small class="muted">Error code: ' + esc(ref) + '</small>' : '') }); }
   function upload(info) {
     pending = null;
     status('Checking your design…', 0.02);
     var extra = info.admin || {};
     request('POST', '/api/upload/start', JSON.stringify({ name: extra.name, owner: extra.owner, files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
       if (r.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
-      if (r.status !== 200 || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref);
+      if (r.status !== 200 || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref, r.json && r.json.code);
       var s = r.json, size = s.chunk || 8388608;
       var queues = s.files.map(function (orig, k) { var blob = info.files[orig].blob, q = []; for (var o = 0; o < blob.size; o += size) q.push({ k: k, o: o, blob: blob.slice(o, Math.min(o + size, blob.size)), name: info.files[orig].path }); return q; }).filter(function (q) { return q.length; });
       var total = 0; queues.forEach(function (q) { q.forEach(function (p) { total += p.blob.size; }); });
@@ -449,16 +493,16 @@ body.editing { overflow: hidden; }
           if (r.status === 200) { sent += p.blob.size; progress(); return; }
           var retry = r.status === 0 || r.status >= 500 || r.status === 429 || (r.json && (r.json.code === 'aborted' || r.json.code === 'gap'));
           if (retry && attempt < 6 && !(r.json && r.json.code === 'expired')) return sleep(Math.min(1000 * Math.pow(2, attempt), 20000)).then(function () { return sendPart(p, attempt + 1); });
-          throw { msg: httpError(r.status, r.json, 'sending “' + p.name + '” (' + Math.round(100 * sent / (total || 1)) + '% uploaded)'), ref: (r.json && r.json.ref) || s.id };
+          throw { msg: httpError(r.status, r.json, 'sending “' + p.name + '” (' + Math.round(100 * sent / (total || 1)) + '% uploaded)'), ref: (r.json && r.json.ref) || s.id, code: (r.json && r.json.code) || (r.status === 0 ? 'network' : '') };
         });
       }
       function worker() { if (failed || qi >= queues.length) return Promise.resolve(); var q = queues[qi++]; return q.reduce(function (pr, p) { return pr.then(function () { if (!failed) return sendPart(p, 0); }); }, Promise.resolve()).then(worker); }
       progress();
-      Promise.all([worker(), worker(), worker()]).then(finish, function (e) { if (failed) return; failed = e; fail(e.msg, e.ref); });
+      Promise.all([worker(), worker(), worker()]).then(finish, function (e) { if (failed) return; failed = e; fail(e.msg, e.ref, e.code); });
       function finish() {
         if (failed) return;
         status('Everything arrived. Saving it to the class gallery…', 0.82);
-        request('POST', '/api/upload/finish', JSON.stringify({ id: s.id })).then(function (r) { if ((r.status !== 202 && r.status !== 200) || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'finishing the upload'), s.id); follow(r.json, 0); });
+        request('POST', '/api/upload/finish', JSON.stringify({ id: s.id })).then(function (r) { if ((r.status !== 202 && r.status !== 200) || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'finishing the upload'), s.id, r.json && r.json.code); follow(r.json, 0); });
       }
       function follow(st, misses) {
         if (st.status === 'done') {
@@ -572,6 +616,7 @@ body.editing { overflow: hidden; }
         setStatus('Not saved', 'bad');
         reply(d.id, { ok: false, message: j.error });
         toast(j.error || 'Saving didn’t work.', true);
+        if (j.status !== 401) showHelp(j.error || 'Saving didn’t work.', j.code || (j.status === 0 ? 'network' : ''));
         if (j.status === 401) return route();
         if (j.status === 409) loadPage(p, true);
       });
