@@ -30,7 +30,7 @@ const { spawn } = require('child_process');
 const KEY = process.env.ANTHROPIC_API_KEY || '';
 delete process.env.ANTHROPIC_API_KEY;
 const API_URL = (process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com').replace(/\/+$/, '');
-const MODELS = [...new Set([process.env.AI_MODEL, 'claude-sonnet-4-5', 'claude-sonnet-4-0', 'claude-3-7-sonnet-latest'].filter(Boolean))];
+const FALLBACK_MODELS = ['claude-sonnet-4-5', 'claude-sonnet-4-0', 'claude-opus-4-1'];
 const MAX_PER_DAY = +process.env.AI_MAX_PER_DAY || 10;
 const MAX_DEPLOYS = +process.env.AI_MAX_DEPLOYS_PER_DAY || 3;
 const STATE_PATH = 'ai/fixes.enc';
@@ -320,9 +320,25 @@ Reply with ONLY one JSON object, no markdown fences:
   }
 
   /* ---------- Claude API ---------- */
+  // which models this key can use: asks the API (newest first) and prefers Sonnet; AI_MODEL wins if set
+  const models = { list: null, at: 0, using: process.env.AI_MODEL || '' };
+  async function modelList() {
+    if (models.list && Date.now() - models.at < 6 * 3600e3) return models.list;
+    let ids = [];
+    try {
+      const r = await fetch(API_URL + '/v1/models?limit=100', { headers: { 'x-api-key': KEY, 'anthropic-version': '2023-06-01' }, signal: AbortSignal.timeout(30e3) });
+      if (r.status === 401 || r.status === 403) throw new Error('The Claude API key was refused. Check ANTHROPIC_API_KEY in Render (no spaces or quotes around it).');
+      const j = await r.json().catch(() => null);
+      ids = j && Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+    } catch (e) { if (/refused/.test(e.message)) throw e; }
+    const pick = re => ids.filter(id => re.test(id));
+    models.list = [...new Set([process.env.AI_MODEL, ...pick(/sonnet/i).slice(0, 2), ...pick(/opus/i).slice(0, 1), ...ids.slice(0, 2), ...FALLBACK_MODELS].filter(Boolean))];
+    models.at = Date.now();
+    return models.list;
+  }
   async function claude(system, user) {
-    let lastErr = '';
-    for (const model of MODELS) {
+    const tried = [];
+    for (const model of await modelList()) {
       for (let attempt = 0; attempt < 4; attempt++) {
         let r, j = null;
         try {
@@ -330,17 +346,18 @@ Reply with ONLY one JSON object, no markdown fences:
             headers: { 'x-api-key': KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({ model, max_tokens: 8000, system, messages: [{ role: 'user', content: user }] }) });
           j = await r.json().catch(() => null);
-        } catch (e) { lastErr = 'Could not reach the Claude API (' + (e.cause && e.cause.code || e.name) + ')'; await sleep(3000 * 2 ** attempt); continue; }
-        if (r.ok && j) return { model, text: (j.content || []).filter(c => c.type === 'text').map(c => c.text).join(''), usage: j.usage || {} };
-        const msg = j && j.error ? j.error.message : `HTTP ${r.status}`;
-        if (r.status === 401 || r.status === 403) throw new Error('The Claude API key was refused. Check ANTHROPIC_API_KEY in Render.');
-        if (r.status === 404 || (r.status === 400 && /model/i.test(msg))) { lastErr = `Model ${model} isn’t available.`; break; }
-        if (r.status === 400 && /credit|billing/i.test(msg)) throw new Error('The Claude API account is out of credit: ' + clip(msg, 200));
-        if (r.status === 429 || r.status >= 500) { lastErr = `Claude API busy (${r.status}).`; await sleep(Math.min(5000 * 2 ** attempt, 60e3)); continue; }
-        throw new Error('Claude API error: ' + clip(msg, 300));
+        } catch (e) { if (attempt === 3) tried.push(`${model}: couldn’t reach the Claude API (${e.cause && e.cause.code || e.name})`); await sleep(3000 * 2 ** attempt); continue; }
+        if (r.ok && j) { models.using = model; return { model, text: (j.content || []).filter(c => c.type === 'text').map(c => c.text).join(''), usage: j.usage || {} }; }
+        const msg = clip(j && j.error ? j.error.message : `HTTP ${r.status}`, 200);
+        if (r.status === 401 || r.status === 403) throw new Error('The Claude API key was refused (' + msg + '). Check ANTHROPIC_API_KEY in Render.');
+        if (/credit|billing|balance/i.test(msg)) throw new Error('The Claude API account has no credit left: ' + msg + ' Add credit at console.anthropic.com → Billing.');
+        if (r.status === 404 || (r.status === 400 && /model/i.test(msg))) { tried.push(`${model}: ${msg}`); break; }
+        if ((r.status === 429 || r.status >= 500) && attempt < 3) { await sleep(Math.min(5000 * 2 ** attempt, 60e3)); continue; }
+        throw new Error(`Claude API error with ${model} (${r.status}): ${msg}`);
       }
     }
-    throw new Error(lastErr || 'The Claude API didn’t answer.');
+    models.list = null;   // look the models up again next time
+    throw new Error('No Claude model answered. ' + tried.join(' | '));
   }
   function parseJson(text) {
     const t = String(text || '').replace(/^```(json)?|```$/gm, '').trim();
@@ -418,7 +435,7 @@ Reply with ONLY one JSON object, no markdown fences:
   async function adminView() {
     let data, error = '';
     try { data = await load(); } catch (e) { data = fresh(); error = d.explain ? d.explain(e) : e.message; }
-    return { ok: true, keySet: !!KEY, enabled: enabled(), model: MODELS[0], mode: data.mode, limits: { perDay: MAX_PER_DAY, deploysPerDay: MAX_DEPLOYS },
+    return { ok: true, keySet: !!KEY, enabled: enabled(), model: models.using || process.env.AI_MODEL || 'newest Sonnet (picked automatically)', mode: data.mode, limits: { perDay: MAX_PER_DAY, deploysPerDay: MAX_DEPLOYS },
       today: data.day === today() ? { analyses: data.analyses, deploys: data.deploys } : { analyses: 0, deploys: 0 }, usage: data.usage,
       queue: state.queue.length + (state.current ? 1 : 0), fixes: data.fixes.slice().reverse(), repo: d.REPO, error };
   }

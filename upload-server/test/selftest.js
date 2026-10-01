@@ -76,6 +76,7 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
     ['site/index.html', '<!doctype html><html><head><title>T</title><link rel="stylesheet" href="s.css"></head><body><h1>Hello world</h1><p>First paragraph.</p><a href="two.html">Two</a><label>Name <input></label></body></html>'],
     ['site/two.html', '<!doctype html><title>2</title><h2>Second page</h2>'],
     ['site/s.css', 'h1{color:red}'],
+    ['site/config.js', 'var mapKey = "' + 'AKIA' + 'QWERTYUIOPASDFGH' + '";\nvar ai = "' + 'sk-' + 'ant-' + 'api03-' + 'Zx9'.repeat(12) + '";\n'],
     ['site/pic.png', Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex')],
   ];
   r = await call('/api/upload/start', { files: files.map(f => ({ path: f[0], size: Buffer.byteLength(f[1]) })) });
@@ -92,8 +93,10 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   let st = r.json || {};
   for (let i = 0; i < 40 && st.status === 'saving'; i++) { await new Promise(z => setTimeout(z, 250)); st = (await call('/api/upload/status?id=' + up1.id)).json || {}; }
   check('upload is saved to GitHub', st.status === 'done', JSON.stringify(st).slice(0, 200));
+  check('secret keys are removed before saving', st.secrets && st.secrets.length === 2, JSON.stringify(st.secrets));
   const folder = up1.folder;
   r = await call('/api/designs'); check('design is listed', r.json && r.json.designs.some(d => d.folder === folder), r.text);
+  r = await call(`/d/${folder}/config.js`); check('no secret key reaches the website', r.status === 200 && r.text.includes('REMOVED_SECRET_KEY') && !/AKIA[0-9A-Z]{16}/.test(r.text), r.text.slice(0, 200));
   r = await call(`/d/${folder}/index.html`); check('instant preview works', r.status === 200 && r.text.includes('Hello world'), r.status);
 
   // editor

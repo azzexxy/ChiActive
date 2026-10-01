@@ -110,6 +110,7 @@ body.editing { overflow: hidden; }
 
 @media (max-width: 860px) { .auth { grid-template-columns: 1fr; gap: 28px; padding-top: 16px; } .ebar .name { max-width: 16ch; } }
 @media (max-width: 560px) { .help { display: none; } .ebar select { max-width: 150px; } }
+.warn-note { display: inline-block; margin-top: 8px; color: #ffd27a; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -459,7 +460,8 @@ body.editing { overflow: hidden; }
       }
       function follow(st, misses) {
         if (st.status === 'done') {
-          idle({ html: '“' + esc(st.name) + '” is saved and live in the gallery' + (s.skipped && s.skipped.length ? ' (skipped ' + s.skipped.length + ' file' + (s.skipped.length === 1 ? '' : 's') + ' a website can’t use)' : '') + '. <a href="/studio/edit/' + esc(st.folder) + '" data-route>Edit its text now →</a>' });
+          idle({ html: '“' + esc(st.name) + '” is saved and live in the gallery' + (s.skipped && s.skipped.length ? ' (skipped ' + s.skipped.length + ' file' + (s.skipped.length === 1 ? '' : 's') + ' a website can’t use)' : '') + '. <a href="/studio/edit/' + esc(st.folder) + '" data-route>Edit its text now →</a>' +
+            (st.secrets && st.secrets.length ? '<br><span class="warn-note">🔒 Your files contained ' + (st.secrets.length === 1 ? 'a secret key' : st.secrets.length + ' secret keys') + ' (' + st.secrets.slice(0, 4).map(function (x) { return esc(x.kind) + ' in ' + esc(x.path) + ' line ' + x.line; }).join(', ') + '). GitHub doesn’t allow those on a public website, so they were replaced with REMOVED_SECRET_KEY. Anything that used them won’t work in the gallery copy, and you should create a new key, because the old one was in your files.</span>' : '') });
           loadMe().then(function () { renderHome(); });
           return;
         }

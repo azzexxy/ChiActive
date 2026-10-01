@@ -30,6 +30,10 @@ function handler(req, res) {
     if (req.method === 'POST' && /\/git\/refs$/.test(p)) { refs[j.ref.replace('refs/heads/', '')] = j.sha; return ok({ ref: j.ref }, 201); }
     if (req.method === 'GET' && (m = p.match(/\/git\/commits\/(\w+)$/))) return ok({ tree: { sha: commits[m[1]].tree } });
     if (req.method === 'POST' && /\/git\/blobs$/.test(p)) { stats.blobPosts++; if (!j) return ok({ message: 'Problems parsing JSON' }, 400); return ok({ sha: blobOf(j.encoding === 'base64' ? j.content : Buffer.from(j.content).toString('base64')) }, 201); }
+    // like GitHub push protection: refuse content that contains a secret key
+    const SECRET = /AKIA[0-9A-Z]{16}|sk-ant-[A-Za-z0-9_-]{20,}/;
+    if (req.method === 'POST' && (/\/git\/trees$/.test(p) && j && j.tree.some(e => e.content && SECRET.test(e.content)) || /\/git\/blobs$/.test(p) && j && SECRET.test(j.encoding === 'base64' ? Buffer.from(j.content, 'base64').toString() : j.content)))
+      return ok({ message: 'Repository rule violations found\n\nSecret detected in content' }, 409);
     if (req.method === 'POST' && /\/git\/trees$/.test(p)) {
       const t = Object.assign({}, j.base_tree ? trees[j.base_tree] : {});
       for (const e of j.tree) {

@@ -54,6 +54,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { Readable } = require('stream');
 const blocksLib = require('./blocks');
+const secretsLib = require('./secrets');
 
 const PORT = process.env.PORT || 10000;
 const TOKEN = process.env.GITHUB_TOKEN || '';
@@ -208,6 +209,7 @@ function explain(e) {
   if (e.code === 'ENOSPC') return 'The upload server ran out of disk space. Try again in a few minutes or with a smaller upload.';
   if (e instanceof GitHubError) {
     const said = e.ghMessage ? ` GitHub said: “${cleanText(e.ghMessage, 160)}”` : '';
+    if (/secret detected|push protection|rule violation/i.test(e.ghMessage || '')) return 'GitHub blocked the save because a file contains something that looks like a secret key or password (for example an API key). Remove it from your files (a public website should never contain one), then upload again. If you think this is a mistake, tell the gallery admin.' + said;
     if (e.kind === 'network') return `The upload server couldn’t reach GitHub to save your design (${e.ghMessage}). Try again in a few minutes.`;
     if (e.status === 401) return 'The upload server’s GitHub key has expired or is wrong, so nothing can be saved right now. Tell the gallery admin: GITHUB_TOKEN needs renewing in Render.';
     if (e.kind === 'rate') return 'GitHub is limiting how fast files can be saved right now. Try again in 15 minutes.' + said;
@@ -314,6 +316,19 @@ function plan(files) {
 async function saveToGitHub(s) {
   const note = n => { s.note = n; };
   s.stage = 'files'; s.done = 0;
+  // GitHub refuses any save that contains a secret key (API key, token, private key), so blank those out first
+  s.secrets = [];
+  for (const f of s.files) {
+    if (!TEXT_EXT.has(extOf(f.path)) || f.size > 5 * MB) continue;
+    const buf = await fsp.readFile(f.file);
+    if (!isUtf8(buf)) continue;
+    const r = secretsLib.scrub(buf.toString('utf8'));
+    if (!r.found.length) continue;
+    await fsp.writeFile(f.file, r.text); f.size = Buffer.byteLength(r.text);
+    r.found.forEach(x => s.secrets.push({ path: f.path, kind: x.kind, line: x.line }));
+  }
+  if (s.secrets.length) logEvent('upload-secrets', { ref: s.id, student: s.student, folder: s.folder,
+    message: `Removed ${s.secrets.length} secret key${s.secrets.length === 1 ? '' : 's'} before saving: ` + s.secrets.slice(0, 8).map(x => `${x.kind} in ${x.path} line ${x.line}`).join('; ') }, null, s.who);
   const inline = [], blobs = []; let inlineBytes = 0;
   for (const f of s.files) {
     if (TEXT_EXT.has(extOf(f.path)) && f.size <= MB && inlineBytes + f.size <= 8 * MB) {
@@ -342,7 +357,7 @@ async function saveToGitHub(s) {
 
 function publicStatus(s) {
   return { ok: true, id: s.id, ref: s.id, status: s.status, stage: s.stage, done: s.done || 0, steps: s.steps || 0, note: s.note || '',
-    error: s.error || '', folder: s.folder, name: s.name, entry: s.entry, commit: s.commit || '',
+    error: s.error || '', secrets: (s.secrets || []).slice(0, 20), folder: s.folder, name: s.name, entry: s.entry, commit: s.commit || '',
     url: `${PAGES_URL}${DIR}/${s.folder}/${s.entry.split('/').map(encodeURIComponent).join('/')}` };
 }
 function dropUpload(s, keepPreviewMs) {

@@ -37,7 +37,9 @@ if (!process.env.KEEP) setTimeout(() => { console.log('TIMEOUT'); console.log(lo
   let reply = () => ({ diagnosis: 'The design list calls .slise() instead of .slice(), a typo that throws a TypeError.', user_impact: 'The gallery list failed to load.', fixable: true, title: 'Fix typo in design list', edits: [{ file: 'upload-server/server.js', find: BUG, replace: GOOD }] });
   const claude = http.createServer((req, res) => {
     let b = ''; req.on('data', x => b += x); req.on('end', () => {
-      const j = JSON.parse(b); calls.push({ key: req.headers['x-api-key'], version: req.headers['anthropic-version'], model: j.model, text: j.messages[0].content, system: j.system });
+      if (req.method === 'GET' && req.url.startsWith('/v1/models')) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ data: [{ id: 'claude-made-up-9' }, { id: 'claude-sonnet-test-1' }] })); }
+      const j = JSON.parse(b);
+      if (j.model !== 'claude-sonnet-test-1') { res.writeHead(404, { 'Content-Type': 'application/json' }); return res.end('{"error":{"message":"model: ' + j.model + '"}}'); } calls.push({ key: req.headers['x-api-key'], version: req.headers['anthropic-version'], model: j.model, text: j.messages[0].content, system: j.system });
       if (req.headers['x-api-key'] !== KEY) { res.writeHead(401); return res.end('{"error":{"message":"bad key"}}'); }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(reply(j.messages[0].content)) }], usage: { input_tokens: 1000, output_tokens: 100 } }));
@@ -72,6 +74,7 @@ if (!process.env.KEEP) setTimeout(() => { console.log('TIMEOUT'); console.log(lo
   v = await waitFor(x => x.fixes[0] && ['deployed', 'failed-tests', 'blocked', 'error', 'no-fix'].includes(x.fixes[0].status));
   const f1 = v && v.fixes[0];
   ok('fix deployed automatically', f1 && f1.status === 'deployed' && f1.commit, JSON.stringify(f1 && { status: f1.status, steps: f1.steps, test: f1.test }));
+  ok('newest Sonnet from the model list is used', f1 && f1.model === 'claude-sonnet-test-1', f1 && f1.model);
   ok('fix was tested', f1 && f1.test && f1.test.ok && f1.test.total >= 20, JSON.stringify(f1 && f1.test));
   ok('fix is on main', (await mainFile()).includes(GOOD));
   ok('Claude got the key, the error and the code', calls[0] && calls[0].key === KEY && calls[0].version === '2023-06-01' && calls[0].text.includes('slise') && calls[0].text.includes('<error_event>'), JSON.stringify(calls[0] && { key: calls[0].key === KEY }));
