@@ -23,10 +23,21 @@
     var d = e.data;
     if (d.type === 'result' && waiting[d.id]) { waiting[d.id](d); delete waiting[d.id]; }
     if (d.type === 'scrollTo') window.scrollTo(0, d.y || 0);
+    if (d.type === 'image') {   // a saved picture shows right away, no reload
+      var im = document.querySelector('img[data-ca-i="' + d.index + '"]');
+      if (im) { if (d.src) { im.removeAttribute('srcset'); im.removeAttribute('sizes'); if (im.parentNode && im.parentNode.tagName === 'PICTURE') [].slice.call(im.parentNode.querySelectorAll('source')).forEach(function (x) { x.remove(); }); im.src = d.src; } if (d.alt != null) im.setAttribute('alt', d.alt); flash(im); }
+    }
+    if (d.type === 'bg') {   // a replaced background picture, everywhere on this page
+      var want = DESIGN + d.path.split('/').map(encodeURIComponent).join('/');
+      [].slice.call(document.querySelectorAll('body *')).forEach(function (x) {
+        var v = getComputedStyle(x).backgroundImage;
+        if (v && v.indexOf('url(') > -1 && (v.indexOf(want) > -1 || v.indexOf(DESIGN + d.path) > -1)) { x.style.backgroundImage = v.replace(/url\(["']?([^"')]+)["']?\)/g, function (m, u) { return u.split(/[?#]/)[0] === want || u.split(/[?#]/)[0] === DESIGN + d.path ? 'url("' + d.src + '")' : m; }); flash(x); }
+      });
+    }
     if (d.type === 'flash') { var el = byIndex(d.block); if (el) { el.scrollIntoView({ block: 'center' }); flash(el); } }
   });
 
-  /* ---------- blocks and their icons ---------- */
+  /* ---------- one toolbar that follows the element under the pointer ---------- */
   var blocks = [].slice.call(document.querySelectorAll('[data-ca-b]'));
   function byIndex(i) { return document.querySelector('[data-ca-b="' + i + '"]'); }
   function kind(el) { return NAMES[el.tagName] || 'text'; }
@@ -34,53 +45,97 @@
   var layer = document.createElement('div');
   layer.id = 'ca-layer';
   document.body.appendChild(layer);
-  var tools = [];
-  blocks.forEach(function (el) {
-    var t = document.createElement('div');
-    t.className = 'ca-tools';
-    t.setAttribute('data-block', el.getAttribute('data-ca-b'));
-    var what = kind(el) + ': ' + clip(el.textContent, 40);
-    t.innerHTML = '<button type="button" class="ca-btn ca-edit" data-act="edit" title="Edit this ' + kind(el) + '">' + PENCIL + '</button>' +
-      '<button type="button" class="ca-btn ca-del" data-act="delete" title="Delete this ' + kind(el) + '">' + TRASH + '</button>' +
-      (el.tagName === 'CA-TEXT' ? '' : '<button type="button" class="ca-btn ca-more" data-act="more" title="Move or duplicate" aria-haspopup="menu">' + MORE + '</button>');
-    t.children[0].setAttribute('aria-label', 'Edit ' + what);
-    t.children[1].setAttribute('aria-label', 'Delete ' + what);
-    layer.appendChild(t);
-    tools.push({ el: el, t: t });
-    if (t.children[2]) t.children[2].setAttribute('aria-label', 'More for ' + what);
-    function on() { el.classList.add('ca-hover'); t.classList.add('on'); }
-    function off() { el.classList.remove('ca-hover'); t.classList.remove('on'); }
-    el.addEventListener('mouseenter', on); el.addEventListener('mouseleave', off);
-    t.addEventListener('mouseenter', on); t.addEventListener('mouseleave', off);
-    t.addEventListener('focusin', on); t.addEventListener('focusout', off);
-  });
-  // pictures: change (new file / description) or delete
-  [].slice.call(document.querySelectorAll('img[data-ca-i]')).forEach(function (img) {
-    var t = document.createElement('div');
-    t.className = 'ca-tools ca-img-tools';
-    t.setAttribute('data-image', img.getAttribute('data-ca-i'));
-    t.innerHTML = '<button type="button" class="ca-btn ca-edit" data-act="image" title="Change this picture">' + PHOTO + '</button>' +
-      '<button type="button" class="ca-btn ca-del" data-act="image-delete" title="Delete this picture">' + TRASH + '</button>';
-    t.children[0].setAttribute('aria-label', 'Change picture ' + (img.getAttribute('alt') || ''));
-    t.children[1].setAttribute('aria-label', 'Delete picture ' + (img.getAttribute('alt') || ''));
-    layer.appendChild(t);
-    tools.push({ el: img, t: t, img: true });
-    function on() { img.classList.add('ca-hover'); t.classList.add('on'); }
-    function off() { img.classList.remove('ca-hover'); t.classList.remove('on'); }
-    img.addEventListener('mouseenter', on); img.addEventListener('mouseleave', off);
-    t.addEventListener('mouseenter', on); t.addEventListener('mouseleave', off);
-    t.addEventListener('focusin', on); t.addEventListener('focusout', off);
-  });
+  var bar = document.createElement('div');
+  bar.id = 'ca-bar'; bar.setAttribute('role', 'toolbar'); bar.hidden = true;
+  layer.appendChild(bar);
+  var CA = window.__CA || {};
+  var DESIGN = (function () { try { return new URL('/d/' + CA.folder + '/', document.baseURI).href; } catch (e) { return ''; } })();
+  // a background picture from this design (set in CSS or a style attribute)
+  function bgOf(el) {
+    var v = getComputedStyle(el).backgroundImage, m = v && v !== 'none' && v.match(/url\(["']?([^"')]+)["']?\)/);
+    if (!m || !DESIGN || m[1].indexOf(DESIGN) !== 0) return null;
+    var path = decodeURIComponent(m[1].slice(DESIGN.length).split(/[?#]/)[0]);
+    return /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(path) ? { abs: m[1], path: path } : null;
+  }
+  function targetFrom(t) {
+    if (!t || !t.closest || t.closest('#ca-layer') || t.closest('#ca-pop')) return null;
+    var b = t.closest('[data-ca-b]'); if (b) return { el: b, type: 'block' };
+    var im = t.closest('img[data-ca-i]'); if (im) return { el: im, type: 'img' };
+    var pic = t.closest('picture'); if (pic && pic.querySelector('img[data-ca-i]')) return { el: pic.querySelector('img[data-ca-i]'), type: 'img' };
+    for (var n = t, i = 0; n && n.nodeType === 1 && n !== document.documentElement && i < 10; n = n.parentElement, i++) { var bg = bgOf(n); if (bg) return { el: n, type: 'bg', bg: bg }; }
+    return null;
+  }
+  var cur = null, pending = null, hideTimer = null, rafOn = false;
+  function buttons(tg) {
+    var b = function (act, icon, title, cls) { return '<button type="button" class="ca-btn ' + (cls || '') + '" data-act="' + act + '" title="' + title + '" aria-label="' + title + '">' + icon + '</button>'; };
+    if (tg.type === 'img') return '<span class="ca-lbl">picture</span>' + b('image', PENCIL, 'Change this picture', 'ca-edit') + b('image-delete', TRASH, 'Delete this picture', 'ca-del');
+    if (tg.type === 'bg') return '<span class="ca-lbl">background picture</span>' + b('bg', PENCIL, 'Change this background picture', 'ca-edit');
+    var k = kind(tg.el);
+    return '<span class="ca-lbl">' + k + '</span>' + b('edit', PENCIL, 'Edit this ' + k, 'ca-edit') + b('delete', TRASH, 'Delete this ' + k, 'ca-del') + (tg.el.tagName === 'CA-TEXT' ? '' : b('more', MORE, 'Move or duplicate', 'ca-more'));
+  }
+  function show(tg) {
+    clearTimeout(pending); clearTimeout(hideTimer);
+    if (active || menu) return;   // keep the toolbar on what's being edited
+    if (cur && tg && cur.el === tg.el) return;
+    if (cur) cur.el.classList.remove('ca-hover');
+    cur = tg;
+    if (!cur) { bar.hidden = true; return; }
+    cur.el.classList.add('ca-hover');
+    bar.innerHTML = buttons(cur); bar.hidden = false;
+    place();
+    if (!rafOn) { rafOn = true; requestAnimationFrame(loop); }
+  }
+  function soon(tg, ms) { clearTimeout(pending); pending = setTimeout(function () { show(tg); }, ms); }
+  // follows the element every frame, so it stays put while scrolling, in sticky headers and during animations
+  function loop() {
+    if (!cur && !active) { rafOn = false; return; }
+    place(); if (active) placePop();
+    requestAnimationFrame(loop);
+  }
+  function place() {
+    if (!cur) return;
+    if (!cur.el.isConnected) { show(null); return; }
+    var r = cur.el.getBoundingClientRect(), W = document.documentElement.clientWidth, H = window.innerHeight;
+    if (r.bottom < 0 || r.top > H || (!r.width && !r.height)) { bar.style.visibility = 'hidden'; return; }
+    bar.style.visibility = '';
+    var bw = bar.offsetWidth, bh = bar.offsetHeight, top, left;
+    if (cur.type === 'block') { top = r.top - bh - 3; if (top < 2) top = Math.min(r.bottom + 3, H - bh - 2); left = r.right - bw; }
+    else { top = Math.max(2, r.top + 8); left = Math.min(r.right, W) - bw - 8; }
+    left = Math.max(2, Math.min(left, W - bw - 2));
+    bar.style.transform = 'translate(' + Math.round(left) + 'px,' + Math.round(top) + 'px)';
+  }
+  var touchMode = false;   // phones send imitation mouse events after a tap; those must not move or hide the toolbar
+  document.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') touchMode = false; }, true);
+  document.addEventListener('mouseover', function (e) {
+    if (touchMode) return;
+    if (bar.contains(e.target) || (menu && menu.contains(e.target))) { clearTimeout(pending); clearTimeout(hideTimer); return; }
+    var tg = targetFrom(e.target);
+    if (!tg) { clearTimeout(pending); clearTimeout(hideTimer); hideTimer = setTimeout(function () { show(null); }, 350); return; }
+    soon(tg, cur && cur.el !== tg.el ? 140 : 0);   // a short pause lets you move onto the toolbar
+  }, true);
+  document.addEventListener('mouseleave', function () { if (!touchMode) hideTimer = setTimeout(function () { show(null); }, 350); });
+  document.addEventListener('focusin', function (e) { var tg = targetFrom(e.target); if (tg) show(tg); }, true);
+  // touch screens: the first tap picks an element (shows its toolbar), the next tap acts on it
+  var swallowClick = false;
+  document.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+    touchMode = true;
+    if (bar.contains(e.target) || (menu && menu.contains(e.target))) return;
+    var tg = targetFrom(e.target);
+    if (tg && (!cur || cur.el !== tg.el) && !active) { show(tg); swallowClick = true; }
+    else if (!tg && !active && !(e.target.closest && e.target.closest('#ca-pop'))) show(null);
+  }, true);
+  window.addEventListener('resize', function () { place(); if (active) placePop(); });
   var menu = null;
   function closeMenu() { if (menu) { menu.remove(); menu = null; } }
   function openMenu(btn, el) {
     closeMenu();
     menu = document.createElement('div'); menu.id = 'ca-menu'; menu.setAttribute('role', 'menu');
     menu.innerHTML = '<button type="button" role="menuitem" data-m="move-up">↑ Move up</button><button type="button" role="menuitem" data-m="move-down">↓ Move down</button><button type="button" role="menuitem" data-m="duplicate">⧉ Duplicate</button>';
-    var r = btn.getBoundingClientRect();
-    menu.style.left = Math.max(4, Math.min(r.left + window.pageXOffset - 120, window.pageXOffset + document.documentElement.clientWidth - 170)) + 'px';
-    menu.style.top = (r.bottom + window.pageYOffset + 6) + 'px';
     layer.appendChild(menu);
+    var r = btn.getBoundingClientRect();
+    menu.style.left = Math.max(4, Math.min(r.right - 170, document.documentElement.clientWidth - 174)) + 'px';
+    menu.style.top = Math.min(r.bottom + 6, window.innerHeight - 150) + 'px';
     menu.addEventListener('click', function (e) {
       var b = e.target.closest('[data-m]'); if (!b) return;
       e.preventDefault(); e.stopPropagation(); closeMenu();
@@ -88,48 +143,40 @@
     });
     menu.querySelector('button').focus();
   }
-  var queued = false;
-  function place() {
-    queued = false;
-    var sx = window.pageXOffset, sy = window.pageYOffset, W = document.documentElement.clientWidth;
-    tools.forEach(function (x) {
-      if (!x.el.isConnected) { x.t.style.display = 'none'; return; }
-      var r = x.el.getBoundingClientRect();
-      if (!r.width && !r.height) { x.t.style.display = 'none'; return; }
-      x.t.style.display = 'flex';
-      var wide = x.t.children.length * 30 + 2;
-      var left = x.img ? Math.max(sx + 2, Math.min(sx + r.right - wide - 6, sx + W - wide - 2)) : Math.max(sx + 2, Math.min(sx + r.right - 8, sx + W - wide - 2));
-      var top = x.img ? Math.max(0, sy + r.top + 6) : Math.max(0, sy + r.top - 14);
-      x.t.style.transform = 'translate(' + Math.round(left) + 'px,' + Math.round(top) + 'px)';
-    });
-    if (active) placePop();
-  }
-  function schedule() { if (!queued) { queued = true; requestAnimationFrame(place); } }
-  window.addEventListener('scroll', schedule, true);
-  window.addEventListener('resize', schedule);
-  window.addEventListener('load', schedule);
-  setInterval(schedule, 700);
-  schedule();
+  function schedule() { place(); }
   var scrollTimer = null;
   window.addEventListener('scroll', function () { clearTimeout(scrollTimer); scrollTimer = setTimeout(function () { send({ type: 'scroll', y: window.pageYOffset }); }, 150); });
   function flash(el) { el.classList.add('ca-flash'); setTimeout(function () { el.classList.remove('ca-flash'); }, 1400); }
 
+  var lastTouchAct = 0;
+  function barAction(btn) {
+    if (!cur) return;
+    var act = btn.getAttribute('data-act'), el = cur.el;
+    if (act === 'image' || act === 'image-delete') { closeMenu(); if (active) closeEditor(true); ask({ type: 'ask', action: act, block: +el.getAttribute('data-ca-i'), kind: 'picture', src: el.getAttribute('src') || '', alt: el.getAttribute('alt') || '', before: el.getAttribute('alt') || el.getAttribute('src') || 'picture' }); return; }
+    if (act === 'bg') { closeMenu(); if (active) closeEditor(true); ask({ type: 'ask', action: 'bg', kind: 'background picture', path: cur.bg.path, src: cur.bg.abs, before: cur.bg.path }); return; }
+    if (act === 'edit') { closeMenu(); openEditor(el); } else if (act === 'more') { if (menu) closeMenu(); else openMenu(btn, el); } else { closeMenu(); askDelete(el); }
+  }
+  // on touch screens act when the finger lifts: some sites cancel the click that would follow a tap
+  document.addEventListener('pointerup', function (e) {
+    if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+    var t = e.target, btn = t.closest && t.closest('#ca-bar .ca-btn'), mi = t.closest && t.closest('#ca-menu [data-m]');
+    if (btn && cur) { lastTouchAct = Date.now(); e.preventDefault(); barAction(btn); }
+    else if (mi) { e.preventDefault(); mi.click(); lastTouchAct = Date.now(); }
+  }, true);
+
   /* ---------- clicks: our icons first, links stay inside the editor ---------- */
   window.addEventListener('click', function (e) {
     var t = e.target;
-    var btn = t.closest && t.closest('#ca-layer .ca-btn');
-    if (btn) {
+    var btn = t.closest && t.closest('#ca-bar .ca-btn');
+    if (btn && cur) {
       e.preventDefault(); e.stopPropagation();
-      var act = btn.getAttribute('data-act');
-      if (act === 'image' || act === 'image-delete') {
-        var img = document.querySelector('img[data-ca-i="' + btn.parentNode.getAttribute('data-image') + '"]');
-        if (img) { closeMenu(); if (active) closeEditor(true); ask({ type: 'ask', action: act, block: +img.getAttribute('data-ca-i'), kind: 'picture', src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '', before: img.getAttribute('alt') || img.getAttribute('src') || 'picture' }); }
-        return;
-      }
-      var el = byIndex(btn.parentNode.getAttribute('data-block'));
-      if (el) { if (act === 'edit') { closeMenu(); openEditor(el); } else if (act === 'more') { if (menu) closeMenu(); else openMenu(btn, el); } else { closeMenu(); askDelete(el); } }
+      if (Date.now() - lastTouchAct < 800) return;   // already handled when the finger lifted
+      barAction(btn);
       return;
     }
+    var mi = t.closest && t.closest('#ca-menu [data-m]');
+    if (mi && Date.now() - lastTouchAct < 800) { e.preventDefault(); e.stopPropagation(); return; }
+    if (swallowClick) { swallowClick = false; if (!(t.closest && (t.closest('#ca-pop') || t.closest('#ca-menu')))) { e.preventDefault(); e.stopPropagation(); return; } }
     if (menu && !(t.closest && t.closest('#ca-menu'))) closeMenu();
     if (t.closest && t.closest('#ca-pop')) return;   // the edit box handles its own buttons
     if (active && active.el.contains(t)) { e.preventDefault(); return; }
@@ -182,6 +229,7 @@
     active = { el: el, pop: pop, input: input, hrefInput: hrefInput, link: link, before: before, isText: isText, multi: multi, lead: lead, trail: trail, plain: plain };
     el.classList.add('ca-editing');
     document.body.classList.add('ca-busy');
+    if (!rafOn) { rafOn = true; requestAnimationFrame(loop); }
     function sync() {
       if (isText) el.textContent = lead + valueText(active).replace(/\s+/g, ' ').trim() + trail;
       else el.innerHTML = valueHtml(active);

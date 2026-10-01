@@ -48,3 +48,12 @@ img[data-ca-i].ca-hover { outline: 3px dashed #41B6E6 !important; outline-offset
 #ca-menu { all: initial; position: absolute; z-index: 2147483646; display: grid; min-width: 160px; background: #16202C; border-radius: 12px; padding: 6px; box-shadow: 0 16px 40px -8px rgba(0,0,0,.6); }
 #ca-menu button { all: initial; cursor: pointer; padding: 9px 12px; border-radius: 8px; color: #fff; font: 600 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 #ca-menu button:hover, #ca-menu button:focus-visible { background: #263446; }
+
+/* the one toolbar that follows the element under the pointer */
+#ca-layer #ca-bar { all: initial; position: fixed; left: 0; top: 0; z-index: 2147483600; display: flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; background: #16202C; border-radius: 999px; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); will-change: transform; }
+#ca-layer #ca-bar[hidden] { display: none; }
+#ca-layer #ca-bar .ca-lbl { all: initial; font: 700 11px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #9DD8F3; margin-right: 4px; white-space: nowrap; }
+#ca-layer #ca-bar .ca-btn { border-color: #16202C; box-shadow: none; }
+#ca-layer #ca-bar .ca-btn:hover, #ca-layer #ca-bar .ca-btn:focus-visible { border-color: #fff; }
+#ca-menu { position: fixed !important; }
+body.ca-busy #ca-layer #ca-bar { opacity: .35; pointer-events: none; }

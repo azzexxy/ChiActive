@@ -204,6 +204,10 @@ function applyImage(input, index, change) {
     const v = String(change.src).trim();
     if (!v || /^\s*(javascript|vbscript):/i.test(v)) throw Object.assign(new Error('That picture address isn’t allowed.'), { user: true, status: 400 });
     if (v !== attr(img, 'src')) { set('src', v.slice(0, 2000)); if (attrsLoc.srcset) set('srcset', null); if (attrsLoc.sizes) set('sizes', null); if (attrsLoc['data-src']) set('data-src', null); }
+    // inside <picture>, the <source> alternatives would keep showing the old image
+    if (v !== attr(img, 'src') && img.parentNode && img.parentNode.tagName === 'picture') (img.parentNode.childNodes || []).forEach(n => {
+      if (isEl(n) && n.tagName === 'source' && n.sourceCodeLocation) { const l = n.sourceCodeLocation; let st = l.startOffset; while (st > 0 && /[ \t]/.test(src[st - 1])) st--; if (src[st - 1] === '\n') st--; edits.push({ at: st, del: l.endOffset - st, text: '' }); }
+    });
   }
   if (change.alt != null) set('alt', String(change.alt).slice(0, 300));
   return bom + splice(src, edits);

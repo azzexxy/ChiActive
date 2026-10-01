@@ -724,6 +724,7 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
   var TITLES = { edit: 'Save this change?', 'move-up': 'Move this up?', 'move-down': 'Move this down?', duplicate: 'Duplicate this?', 'image-delete': 'Delete this picture?' };
   function confirmChange(d) {
     if (d.action === 'image') return changeImage(d);
+    if (d.action === 'bg') return changeBackground(d);
     var A = d.action, body;
     if (A === 'edit') body = '<div class="cmp"><div class="before"><small>Before</small>' + esc(d.before) + '</div><div class="after"><small>After</small>' + esc(d.after) + '</div>' +
         (d.afterHref != null && d.afterHref !== d.beforeHref ? '<div class="after"><small>Link goes to</small>' + esc(d.afterHref || '(no link)') + '</div>' : '') + '</div>' +
@@ -746,6 +747,7 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
         ED.sha = j.sha; ED.filesStale = true;
         setStatus('Saved to GitHub ✓', 'saved');
         reply(d.id, { ok: true });
+        if (d.action === 'image' && ED.frame) ED.frame.contentWindow.postMessage({ caStudio: true, type: 'image', index: d.block, src: extra.src ? absSrc(extra.src) : null, alt: extra.alt }, '*');   // shows right away
         toast(DONE_MSG[d.action] + ' Your live site updates within about a minute.');
         if (j.reload) { if (d.action === 'duplicate') ED.flash = d.block + 1; else if (d.action === 'move-up') ED.flash = null; loadPage(p, true); }
         return;
@@ -779,6 +781,25 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
       .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'The server answered with error ' + r.status + '.' }; }).then(function (j) { j.status = r.status; return j; }); })
       .catch(function () { return { ok: false, status: 0, error: 'Couldn’t reach the server. Check your connection and try again.' }; });
   }
+  // a background picture (set in the site's CSS): replace the image file itself, so it changes everywhere it's used
+  function changeBackground(d) {
+    modal('Change this background picture', '<div class="imgcmp"><img alt="" src="' + esc(d.src) + '"><span class="muted">' + esc(d.path) + '</span></div>' +
+      '<label class="fld">New picture <small>.jpg, .png, .webp, .gif or .svg, up to 25 MB</small><input type="file" id="bg-file" accept="image/*"></label>' +
+      '<p class="muted">This replaces the file <b>' + esc(d.path) + '</b>, so every place on your site that uses it shows the new picture. The old one stays in History.</p>',
+      [{ label: 'Cancel', ghost: true, value: false }, { label: 'Replace picture', value: true }]).then(function (yes) {
+      var file = $('bg-file') && $('bg-file').files[0];
+      if (!yes || !file) { if (yes) toast('Choose a picture first.', true); return reply(d.id, { ok: false, cancelled: true }); }
+      if (file.size > 25 * 1024 * 1024) { reply(d.id, { ok: false, cancelled: true }); return showHelp('That picture is over 25 MB.', 'file-too-big'); }
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(file.name)) { reply(d.id, { ok: false, cancelled: true }); return showHelp('That file isn’t a picture. Choose a .jpg, .png, .webp, .gif or .svg file.', 'bad-type'); }
+      setStatus('Uploading picture…', 'saving');
+      uploadFile(d.path, file, true).then(function (u) {
+        if (!u.ok) { setStatus('Not saved', 'bad'); reply(d.id, { ok: false, message: u.error }); return showHelp(u.error || 'Uploading the picture didn’t work.', u.code || (u.status === 0 ? 'network' : '')); }
+        setStatus('Saved to GitHub ✓', 'saved'); ED.filesStale = true; reply(d.id, { ok: true });
+        if (ED.frame) ED.frame.contentWindow.postMessage({ caStudio: true, type: 'bg', path: d.path, src: designBase('') + encPath(d.path) + '?v=' + Date.now() }, '*');
+        toast('Picture replaced everywhere it’s used. Your live site updates within about a minute.');
+      });
+    });
+  }
   function changeImage(d) {
     modal('Change this picture', '<div class="imgcmp"><img alt="" src="' + esc(absSrc(d.src)) + '"><span class="muted">' + esc(d.src) + '</span></div>' +
       '<label class="fld">New picture <small>optional: .jpg, .png, .webp, .gif or .svg, up to 25 MB</small><input type="file" id="img-file" accept="image/*"></label>' +
@@ -804,7 +825,7 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
   /* ---------- modes: visual / code & files / colours ---------- */
   var MODE = 'visual';
   var HELP_TEXT = {
-    visual: 'Click <b>✎</b> to change text, <b>🗑</b> to delete it and <b>⋯</b> to move or duplicate it. Pictures have their own buttons to swap or delete them. You confirm every change before it’s saved.',
+    visual: 'Point at any text or picture: a toolbar appears with <b>✎</b> to change it, <b>🗑</b> to delete it and <b>⋯</b> to move or duplicate it (on a phone, tap it first). You confirm every change before it’s saved.',
     code: 'Change any file of your site: pages (<b>.html</b>), styles (<b>.css</b>) and scripts (<b>.js</b>). <b>Ctrl/⌘+S</b> saves. Every save is kept in <b>History</b>, so you can always go back.',
     colours: 'Pick new colours for your whole site. The preview changes right away; nothing is saved until you click <b>Save colours</b>.'
   };

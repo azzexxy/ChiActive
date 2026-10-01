@@ -1060,7 +1060,7 @@ async function handleEdit(req, res, route, url) {
           duplicate: () => `Duplicated “${cleanText(before.text, 100)}”`, image: () => `Image ${before.src} → ${after.src}${after.alt !== before.alt ? ` (description: “${cleanText(after.alt, 80)}”)` : ''}`,
           'image-delete': () => `Deleted image ${before.src}`, edit: () => `“${cleanText(before.text, 100)}” → “${cleanText(after.text, 100)}”${after.href && after.href !== before.href ? ` (link: ${after.href})` : ''}` };
         logEvent(action === 'edit' ? 'edit-save' : action === 'delete' ? 'edit-delete' : 'edit-' + action, { folder: f, name: d.name, page: p, student: actor.name, username: actor.username, message: MSG[action]() }, req);
-        return send(res, 200, { ok: true, sha: sha1(next), count, reload: action !== 'edit' || count !== blocksLib.countBlocks(src), changed: next !== src });
+        return send(res, 200, { ok: true, sha: sha1(next), count, reload: !['edit', 'image'].includes(action) || count !== blocksLib.countBlocks(src), changed: next !== src });
       });
     }
     return send(res, 404, { ok: false, error: 'Not found' });
