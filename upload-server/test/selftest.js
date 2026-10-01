@@ -142,5 +142,20 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   r = await call(`/api/edit/page?folder=${folder}&path=index.html`, undefined, 'helper');
   check('a removed editor cannot edit anymore', r.status === 403, r.status);
 
+  // download the design as a .zip
+  const dl = async who => { const res = await fetch(A + `/api/download?folder=${folder}`, { headers: jar[who] ? { cookie: jar[who] } : {} }); return { status: res.status, type: res.headers.get('content-type'), disp: res.headers.get('content-disposition') || '', buf: Buffer.from(await res.arrayBuffer()) }; };
+  let z = await dl('student');
+  check('owner can download a .zip named after the design', z.status === 200 && /zip/.test(z.type) && /Website design - Self Test\.zip/.test(decodeURIComponent(z.disp)), z.status + ' ' + z.disp);
+  let names = [];
+  try {
+    const JSZip = require(path.join(dir, 'vendor', 'jszip.min.js'));
+    const zz = await JSZip.loadAsync(z.buf); names = Object.keys(zz.files);
+    const idx = await zz.file('Website design - Self Test/index.html').async('string');
+    check('the .zip holds every file, with the latest edits', names.includes('Website design - Self Test/s.css') && names.includes('Website design - Self Test/pic.png') && idx.includes('Edited by the helper'), names.join(', '));
+  } catch (e) { check('the .zip can be opened', false, e.message); }
+  z = await dl('helper'); check('a non-editor cannot download it', z.status === 403, z.status);
+  z = await dl('admin'); check('admin can download any design', z.status === 200 && z.buf.length > 100, z.status);
+  z = await dl('nobody'); check('logged-out visitors cannot download', z.status === 401, z.status);
+
   finish();
 })();

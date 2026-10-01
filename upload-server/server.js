@@ -55,6 +55,7 @@ const crypto = require('crypto');
 const { Readable } = require('stream');
 const blocksLib = require('./blocks');
 const secretsLib = require('./secrets');
+const { ZipWriter } = require('./zipstream');
 
 const PORT = process.env.PORT || 10000;
 const TOKEN = process.env.GITHUB_TOKEN || '';
@@ -508,17 +509,17 @@ async function servePreview(req, res, url) {
 
 // A design file at the newest commit: the public raw address first (fast, no rate limit),
 // then the GitHub API (works even if the raw address is slow to update or refuses the request).
-async function repoFile(folder, p) {
+async function repoFile(folder, p, timeout = 20e3) {
   const sha = await headSha();
   const enc = `${DIR}/${folder}/${p}`.split('/').map(encodeURIComponent).join('/');
   try {
-    const r = await fetch(`${RAW}/${REPO}/${sha}/${enc}`, { signal: AbortSignal.timeout(20e3) });
+    const r = await fetch(`${RAW}/${REPO}/${sha}/${enc}`, { signal: AbortSignal.timeout(timeout) });
     if (r.ok) return Buffer.from(await r.arrayBuffer());
     if (r.status !== 404) console.error(`raw ${r.status} for ${folder}/${p}`);
   } catch (e) { console.error('raw fetch failed:', e.message); }
   if (!TOKEN) return null;
   try {
-    const r = await fetch(`${API}/repos/${REPO}/contents/${enc}?ref=${sha}`, { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github.raw', 'User-Agent': 'chiactive-upload-server', 'X-GitHub-Api-Version': '2022-11-28' }, signal: AbortSignal.timeout(30e3) });
+    const r = await fetch(`${API}/repos/${REPO}/contents/${enc}?ref=${sha}`, { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github.raw', 'User-Agent': 'chiactive-upload-server', 'X-GitHub-Api-Version': '2022-11-28' }, signal: AbortSignal.timeout(timeout + 10e3) });
     if (r.ok) return Buffer.from(await r.arrayBuffer());
   } catch (e) { console.error('API raw fetch failed:', e.message); }
   return null;
@@ -972,6 +973,51 @@ async function adminDeleteAccount(req, body) {
   }
   logEvent('admin-account-delete', { username: acc.username, student: acc.name, message: 'Account deleted (their designs stay in the gallery without an owner)' }, req);
 }
+/* ---------- download a whole design as a .zip (owner, editors and admins) ---------- */
+async function designTree(folder) {
+  const dir = (await gh('GET', `/repos/${REPO}/contents/${DIR}?ref=${await headSha()}`, null, { retries: 2 })).find(i => i.type === 'dir' && i.name === folder);
+  if (!dir) return null;
+  const t = await gh('GET', `/repos/${REPO}/git/trees/${dir.sha}?recursive=1`, null, { retries: 2 });
+  return (t.tree || []).filter(x => x.type === 'blob').map(x => ({ path: x.path, size: x.size || 0 })).sort((a, b) => a.path.localeCompare(b.path));
+}
+async function handleDownload(req, res, url) {
+  const folder = String(url.searchParams.get('folder') || '');
+  const page = (status, msg) => {
+    const safe = String(msg).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download | ChiActive</title><link rel="icon" href="/favicon.png"><body style="margin:0;font:16px/1.5 system-ui,sans-serif;background:#16202C;color:#E6ECF2;padding:48px 20px"><div style="max-width:560px;margin:auto"><h1 style="color:#F5E7BE;margin:0 0 12px">Download didn’t work</h1><p>${safe}</p><p><a style="color:#41B6E6;font-weight:700" href="/studio">← Back to ChiActive Studio</a></p></div>`);
+  };
+  if (!/^[a-z0-9-]+$/.test(folder)) return page(400, 'That design isn’t valid.');
+  const admin = isAdmin(req);   // admins can download every design, also while viewing as a student
+  let user = null;
+  if (!admin) { user = await currentUser(req).catch(() => null); if (!user) return page(401, 'Log in to ChiActive Studio first, then click Download again.'); }
+  const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
+  if (!d) return page(404, 'That design isn’t in the gallery (anymore).');
+  if (!admin && !mayEdit(d, user.id)) return page(403, 'You can only download your own designs, or designs your teacher made you an editor of.');
+  let files;
+  try { files = await designTree(folder); } catch (e) { return page(502, explain(e)); }
+  if (!files || !files.length) return page(404, 'The files of this design aren’t on GitHub yet. If it was just uploaded, wait a minute and try again.');
+  const name = cleanName(d.name || folder, 90).replace(/[\\/:*?"<>|]+/g, '-').trim() || folder;
+  const ascii = name.normalize('NFKD').replace(/[^\x20-\x7e]/g, '').replace(/"/g, '') || folder;
+  res.writeHead(200, { 'Content-Type': 'application/zip', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    'Content-Disposition': `attachment; filename="${ascii}.zip"; filename*=UTF-8''${encodeURIComponent(name + '.zip')}` });
+  const zip = new ZipWriter(res), missing = [];
+  try {
+    for (const f of files) {
+      const buf = await repoFile(folder, f.path, 120e3);
+      if (buf) await zip.add(`${name}/${f.path}`, buf); else missing.push(f.path);
+    }
+    if (missing.length) await zip.add(`${name}/MISSING FILES.txt`, Buffer.from(`These files couldn't be downloaded from GitHub just now. Download the design again in a few minutes:\n\n${missing.join('\n')}\n`));
+    await zip.finish();
+    res.end();
+    logEvent('design-download', { folder, name: d.name, student: admin ? undefined : user.name, username: admin ? undefined : user.username, files: files.length - missing.length,
+      size: files.reduce((n, f) => n + f.size, 0), message: (admin ? 'Admin downloaded' : 'Downloaded') + ` “${d.name || folder}” as a .zip` + (missing.length ? ` (${missing.length} files missing)` : '') }, req);
+  } catch (e) {
+    console.error('Download failed:', e.message);
+    logEvent('download-failed', { folder, error: explain(e), detail: cleanText(e.message, 200) }, req);
+    res.destroy();
+  }
+}
 let studioHtml = null;
 function studioPage(res) {
   if (!studioHtml) studioHtml = fs.readFileSync(path.join(__dirname, 'studio.html'));
@@ -1051,6 +1097,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && route === '/vendor/jszip.min.js') return staticFile(res, 'vendor/jszip.min.js', 'text/javascript; charset=utf-8');
     if (route.startsWith('/api/account/')) return await handleAccount(req, res, route);
     if (route.startsWith('/api/edit/')) return await handleEdit(req, res, route, url);
+    if (req.method === 'GET' && route === '/api/download') return await handleDownload(req, res, url);
 
     // admin
     if (req.method === 'GET' && (route === '/admin' || route === '/admin/')) return adminPage(res);
