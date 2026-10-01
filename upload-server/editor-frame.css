@@ -19,7 +19,10 @@ body.ca-busy #ca-layer .ca-tools { opacity: .15; }
 #ca-pop * { box-sizing: border-box; }
 #ca-pop .ca-title { all: initial; display: block; margin-bottom: 8px; font: 700 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #41B6E6; }
 #ca-pop .ca-input { all: initial; display: block; min-height: 44px; max-height: 240px; overflow: auto; background: #fff; color: #16202C; border-radius: 10px; padding: 10px 12px;
-  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: pre-wrap; word-break: break-word; outline: 2px solid transparent; cursor: text; }
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: pre-wrap; word-break: break-word; outline: 2px solid transparent; cursor: text;
+  /* "all: initial" also switches off typing in Safari, so turn editing back on explicitly */
+  -webkit-user-modify: read-write; user-modify: read-write; -webkit-user-select: text; user-select: text; caret-color: #16202C; }
+#ca-pop textarea.ca-input { width: 100%; min-height: 90px; resize: vertical; border: 0; -webkit-appearance: none; appearance: none; }
 #ca-pop .ca-input:focus { outline-color: #41B6E6; }
 #ca-pop .ca-input * { all: revert; font-family: inherit; color: inherit; }
 #ca-pop .ca-input a { color: #1a6fb0; text-decoration: underline; }

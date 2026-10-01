@@ -122,13 +122,23 @@
     document.body.appendChild(pop);
     var input = pop.querySelector('.ca-input'), hrefInput = pop.querySelector('.ca-href');
     if (isText) input.textContent = before.text; else input.innerHTML = el.innerHTML;
+    // some browsers (or the design's own styles) won't let you type in a rich text box: use a plain text box instead
+    var plain = /[?&]caPlain=1/.test(location.search) || window.__CA_PLAIN || !input.isContentEditable || /read-only/.test(getComputedStyle(input).webkitUserModify || '');
+    if (plain) {
+      var ta = document.createElement('textarea');
+      ta.className = 'ca-input'; ta.setAttribute('spellcheck', 'true'); ta.setAttribute('aria-label', 'Text');
+      ta.value = isText ? before.text : (input.innerText || el.innerText || before.text).replace(/[ \t]+\n/g, '\n').trim();
+      if (!multi) ta.rows = 2;
+      input.parentNode.replaceChild(ta, input); input = ta;
+      if (!isText) pop.querySelector('.ca-tip').textContent = 'Enter saves' + (multi ? ', Shift+Enter starts a new line' : '') + '. Bold/italic in this text is simplified to plain text. You’ll be asked to confirm.';
+    }
     if (hrefInput) hrefInput.value = before.href || '';
-    active = { el: el, pop: pop, input: input, hrefInput: hrefInput, link: link, before: before, isText: isText, multi: multi, lead: lead, trail: trail };
+    active = { el: el, pop: pop, input: input, hrefInput: hrefInput, link: link, before: before, isText: isText, multi: multi, lead: lead, trail: trail, plain: plain };
     el.classList.add('ca-editing');
     document.body.classList.add('ca-busy');
     function sync() {
-      if (isText) el.textContent = lead + input.innerText.replace(/\s+/g, ' ').trim() + trail;
-      else el.innerHTML = input.innerHTML;
+      if (isText) el.textContent = lead + valueText(active).replace(/\s+/g, ' ').trim() + trail;
+      else el.innerHTML = valueHtml(active);
       if (link && hrefInput) {
         var v = hrefInput.value.trim();
         if (el.tagName === 'A') el.setAttribute('href', v);
@@ -139,13 +149,14 @@
     input.addEventListener('input', sync);
     if (hrefInput) hrefInput.addEventListener('input', sync);
     input.addEventListener('paste', function (e) {
+      if (plain) return;
       e.preventDefault();
       var text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
       document.execCommand('insertText', false, isText ? text.replace(/\s+/g, ' ') : text);
     });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
-      else if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); if (multi) document.execCommand('insertLineBreak'); }
+      else if (e.key === 'Enter' && e.shiftKey) { if (plain) { if (!multi) e.preventDefault(); return; } e.preventDefault(); if (multi) document.execCommand('insertLineBreak'); }
       if ((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key) && isText) e.preventDefault();   // loose text can't hold formatting
     });
     if (hrefInput) hrefInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save(); } });
@@ -153,8 +164,18 @@
     pop.querySelector('.ca-save').addEventListener('click', save);
     placePop();
     input.focus();
-    var range = document.createRange(); range.selectNodeContents(input); range.collapse(false);
-    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    if (plain) { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {} }
+    else { var range = document.createRange(); range.selectNodeContents(input); range.collapse(false); var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+  }
+  function escHtml(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function valueText(a) { return a.plain ? a.input.value : a.input.innerText; }
+  // what goes into the element: the rich box's HTML, or the plain box's text (keeping a single link when the whole text was that link)
+  function valueHtml(a) {
+    if (!a.plain) return a.input.innerHTML;
+    var t = a.input.value.replace(/\r/g, '').trim(), html = escHtml(t).replace(/\n/g, a.multi ? '<br>' : ' ');
+    var only = a.el.children.length === 1 && a.el.children[0].tagName === 'A' && textOf(a.el.children[0]) === a.before.text ? a.el.children[0] : null;
+    if (only && a.el.tagName !== 'A') return '<a href="' + escHtml(a.hrefInput ? a.hrefInput.value.trim() : only.getAttribute('href') || '') + '">' + html + '</a>';
+    return html;
   }
   function placePop() {
     if (!active) return;
@@ -166,7 +187,7 @@
     active.pop.style.top = Math.round(top) + 'px';
   }
   function msg(text) { if (active) active.pop.querySelector('.ca-msg').textContent = text || ''; }
-  function busy(on) { if (!active) return; [].forEach.call(active.pop.querySelectorAll('button, .ca-href'), function (b) { b.disabled = on; }); active.input.contentEditable = on ? 'false' : 'true'; active.pop.querySelector('.ca-save').textContent = on ? 'Waiting…' : 'Save…'; }
+  function busy(on) { if (!active) return; [].forEach.call(active.pop.querySelectorAll('button, .ca-href'), function (b) { b.disabled = on; }); if (active.plain) active.input.readOnly = on; else active.input.contentEditable = on ? 'false' : 'true'; active.pop.querySelector('.ca-save').textContent = on ? 'Waiting…' : 'Save…'; }
   function closeEditor(revert) {
     if (!active) return;
     var a = active;
@@ -179,14 +200,14 @@
   }
   function save() {
     var a = active; if (!a) return;
-    var after = a.isText ? a.input.innerText.replace(/\s+/g, ' ').trim() : textOf(a.input);
+    var after = a.isText || a.plain ? valueText(a).replace(/\s+/g, ' ').trim() : textOf(a.input);
     var afterHref = a.hrefInput ? a.hrefInput.value.trim() : null;
     if (!after) { msg('The text is empty. To remove it, press Cancel and use the trash icon.'); return; }
-    if ((a.isText ? after === a.before.text : a.input.innerHTML === a.before.html) && afterHref === (a.before.href == null ? null : a.before.href)) { closeEditor(false); return; }
+    if ((a.isText || a.plain ? after === a.before.text : a.input.innerHTML === a.before.html) && afterHref === (a.before.href == null ? null : a.before.href)) { closeEditor(false); return; }
     msg(''); busy(true);
     ask({ type: 'ask', action: 'edit', block: +a.el.getAttribute('data-ca-b'), kind: kind(a.el),
       before: a.before.text, after: after, beforeHref: a.before.href, afterHref: afterHref,
-      html: a.isText ? null : a.input.innerHTML, text: a.isText ? after : null, href: a.el.tagName === 'A' ? afterHref : null
+      html: a.isText ? null : valueHtml(a), text: a.isText ? after : null, href: a.el.tagName === 'A' ? afterHref : null
     }).then(function (r) {
       if (active !== a) return;
       busy(false);
