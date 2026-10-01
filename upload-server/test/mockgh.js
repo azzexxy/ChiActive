@@ -28,6 +28,12 @@ function handler(req, res) {
     if (process.env.MOCK_FAIL === 'blobs' && /\/git\/blobs$/.test(p)) return ok({ message: 'Resource not accessible by personal access token' }, 403);
     if (req.method === 'GET' && (m = p.match(/\/git\/ref\/heads\/(.+)$/))) return refs[m[1]] ? ok({ object: { sha: refs[m[1]] } }) : ok({ message: 'Not Found' }, 404);
     if (req.method === 'POST' && /\/git\/refs$/.test(p)) { refs[j.ref.replace('refs/heads/', '')] = j.sha; return ok({ ref: j.ref }, 201); }
+    if (req.method === 'GET' && /\/commits$/.test(p) && !/\/git\//.test(p)) {   // history of one file
+      const path = u.searchParams.get('path'), out = []; let c = refs[u.searchParams.get('sha') || 'main'];
+      const at = cs => cs && trees[commits[cs].tree][path];
+      while (c && out.length < (+u.searchParams.get('per_page') || 30)) { const par = (commits[c].parents || [])[0]; if (at(c) !== at(par)) out.push({ sha: c, commit: { message: commits[c].message || '', committer: { date: commits[c].date || '' } } }); c = par; }
+      return ok(out);
+    }
     if (req.method === 'GET' && (m = p.match(/\/git\/commits\/(\w+)$/))) return ok({ tree: { sha: commits[m[1]].tree } });
     if (req.method === 'POST' && /\/git\/blobs$/.test(p)) { stats.blobPosts++; if (!j) return ok({ message: 'Problems parsing JSON' }, 400); return ok({ sha: blobOf(j.encoding === 'base64' ? j.content : Buffer.from(j.content).toString('base64')) }, 201); }
     // like GitHub push protection: refuse content that contains a secret key
@@ -44,7 +50,7 @@ function handler(req, res) {
       }
       const s = id('t'); trees[s] = t; return ok({ sha: s }, 201);
     }
-    if (req.method === 'POST' && /\/git\/commits$/.test(p)) { const s = id('c'); commits[s] = { tree: j.tree, message: j.message, parents: j.parents }; return ok({ sha: s }, 201); }
+    if (req.method === 'POST' && /\/git\/commits$/.test(p)) { const s = id('c'); commits[s] = { tree: j.tree, message: j.message, parents: j.parents, date: new Date(Date.now() + n).toISOString() }; return ok({ sha: s }, 201); }
     if (req.method === 'PATCH' && (m = p.match(/\/git\/refs\/heads\/(.+)$/))) { refs[m[1]] = j.sha; return ok({ object: { sha: j.sha } }); }
     if ((m = p.match(/\/contents\/(.+)$/)) || /\/contents$/.test(p)) {
       const path = m ? decodeURI(m[1]) : '';
@@ -60,7 +66,7 @@ function handler(req, res) {
       if (req.method === 'PUT') {
         if (t[path] && j.sha !== t[path]) return ok({ message: 'sha does not match' }, 409);
         const nt = Object.assign({}, t); nt[path] = blobOf(j.content); const ts = id('t'); trees[ts] = nt;
-        const c = id('c'); commits[c] = { tree: ts, message: j.message, parents: [refs[branch]] }; refs[branch] = c;
+        const c = id('c'); commits[c] = { tree: ts, message: j.message, parents: [refs[branch]], date: new Date().toISOString() }; refs[branch] = c;
         return ok({ content: { sha: nt[path] } }, 201);
       }
     }

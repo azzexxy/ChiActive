@@ -348,9 +348,10 @@ async function saveToGitHub(s) {
   const tree = inline.map(x => ({ path: x.path, mode: '100644', type: 'blob', content: x.content }))
     .concat(blobs.map(f => ({ path: f.path, mode: '100644', type: 'blob', sha: shas.get(f.path) })));
   const designTree = await gh('POST', `/repos/${REPO}/git/trees`, { tree }, { note });
-  s.commit = await commitToMain(`Add ${s.name}`, [{ path: `${DIR}/${s.folder}`, mode: '040000', type: 'tree', sha: designTree.sha }], list => {
+  s.commit = await commitToMain(`${s.replace ? 'New version of' : 'Add'} ${s.name}`, [{ path: `${DIR}/${s.folder}`, mode: '040000', type: 'tree', sha: designTree.sha }], list => {
+    const old = s.replace ? list.find(d => d.folder === s.folder) : null;
     list = list.filter(d => d.folder !== s.folder);
-    list.push({ folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date().toISOString() });
+    list.push(old ? { ...old, entry: s.entry, editedAt: new Date().toISOString() } : { folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date().toISOString() });
     return list;
   }, note);
   s.done++;
@@ -394,10 +395,18 @@ async function handleStart(req, res, origin, user) {
     if (student.length < 2) throw userError(400, 'no-name', 'Enter your student name. It becomes the design name.');
     if (uploadLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many uploads from your network in the last hour (the limit is 30). Try again later.');
     const p = plan(body.files);
-    const { folder, name } = await chooseFolder(student);   // also checks the GitHub connection before anything is sent
+    let folder, name, replace = null;
+    if (body.replace) {   // a new version of an existing design: same folder, name, owner and editors
+      const rf = String(body.replace);
+      replace = (await freshManifest(0)).find(x => x && x.folder === rf);
+      if (!/^[a-z0-9-]+$/.test(rf) || !replace) throw userError(404, 'not-found', 'That design isn’t in the gallery (anymore).');
+      if (!user.isAdmin && !mayEdit(replace, user.id)) throw userError(403, 'not-yours', 'You can only upload a new version of your own designs, or designs your teacher made you an editor of.');
+      if (reserved.has(rf) || [...uploads.values()].some(u => u.folder === rf && u.status !== 'done' && u.status !== 'failed')) throw userError(409, 'busy', 'A new version of this design is already being uploaded. Wait until it’s finished.');
+      reserved.add(rf); folder = rf; name = replace.name; owner = replace.owner;
+    } else ({ folder, name } = await chooseFolder(student));   // also checks the GitHub connection before anything is sent
     const id = newId(), dir = path.join(TMP, id);
     await fsp.mkdir(dir, { recursive: true });
-    const s = { id, dir, student, owner, actor: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
+    const s = { id, dir, student: replace ? (replace.by || student) : student, owner, replace: !!replace, actor: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
       files: p.files.map((f, k) => ({ i: f.i, path: f.path, size: f.size, got: 0, file: path.join(dir, String(k)) })),
       status: 'receiving', created: Date.now(), lastActive: Date.now(), who };
     await Promise.all(s.files.map(f => fsp.writeFile(f.file, '')));
@@ -405,6 +414,7 @@ async function handleStart(req, res, origin, user) {
     logEvent('upload-start', { ref: id, student, username: user.username, visitor: s.visitor, folder, files: s.files.length, size: s.total, skipped: p.skipped.length || undefined }, req);
     return send(res, 200, { ok: true, id, ref: id, folder, name, entry: p.entry, chunk: CHUNK, files: s.files.map(f => f.i), skipped: p.skipped.slice(0, 50) }, origin);
   } catch (e) {
+    if (body && body.replace && !(e.code === 'busy') && ![...uploads.values()].some(u => u.folder === String(body.replace))) reserved.delete(String(body.replace));
     const msg = explain(e), ref = newId();
     logEvent(e.user ? 'upload-rejected' : 'upload-failed', { ref, stage: 'check', student: cleanName(body.student), visitor: cleanText(body.visitor, 20),
       files: Array.isArray(body.files) ? body.files.length : undefined, size: Array.isArray(body.files) ? body.files.reduce((n, f) => n + (+(f && f.size) || 0), 0) : undefined,
@@ -874,12 +884,139 @@ function editorPage(req, folder, p, src, name) {
   const cfg = `<script>window.__CA=${JSON.stringify({ path: p, folder, name }).replace(/</g, '\\u003c')};</script>`;
   return blocksLib.annotate(src, { headStart: `<base href="${base}">${shim}`, bodyEnd: `<style>${editorAssets.css}</style>${cfg}<script>${editorAssets.js}</script>` });
 }
+/* ---------- the code editor: every file of a design ---------- */
+const FILE_ROUTES = new Set(['/api/edit/files', '/api/edit/file', '/api/edit/upload', '/api/edit/rename', '/api/edit/remove', '/api/edit/history', '/api/edit/version', '/api/edit/restore']);
+const TEXT_MAX = 2 * MB, UPLOAD_MAX = 25 * MB;
+const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif', 'ico', 'bmp']);
+const kindOf = p => TEXT_EXT.has(extOf(p)) ? 'text' : IMAGE_EXT.has(extOf(p)) ? 'image' : 'other';
+function filePath(p, what = 'file') {
+  p = String(p || '').replace(/\\/g, '/').replace(/^\/+/, '').trim();
+  if (!safePath(p)) throw userError(400, 'bad-path', `That ${what} name isn’t allowed. Use letters, numbers, dashes and dots, like “about.html” or “images/logo.png”.`);
+  if (!ALLOWED_EXT.has(extOf(p))) throw userError(400, 'bad-type', `“.${extOf(p)}” files can’t be part of a website here. Allowed are web files like .html, .css, .js, images, fonts, audio and video.`);
+  return p;
+}
+async function handleFiles(req, res, route, url, f, d, who, body) {
+  const actor = who.user || { id: 'admin', username: 'admin', name: 'Admin' };
+  const q = k => url.searchParams.get(k) || body[k];
+  const touch = list => { const m = list.find(x => x.folder === f); if (m) m.editedAt = new Date().toISOString(); return list; };
+  const done = () => { const s = live.get(f); if (s && s.status === 'done') live.delete(f); };
+  const log = (type, message, extra) => logEvent(type, { folder: f, name: d.name, student: actor.name, username: actor.username, message, ...extra }, req);
+  if (req.method === 'POST' && editLimited(actor.id)) throw userError(429, 'rate-limited', 'That’s a lot of changes in a short time. Wait a few minutes and try again.');
+
+  if (req.method === 'GET' && route === '/api/edit/files') {
+    const files = await designTree(f);
+    if (!files) throw userError(404, 'not-found', 'That design isn’t on GitHub yet. If you just uploaded it, wait until saving finishes.');
+    return send(res, 200, { ok: true, folder: f, name: d.name, entry: d.entry || 'index.html', by: d.by || '', files: files.map(x => ({ path: x.path, size: x.size, kind: kindOf(x.path) })) });
+  }
+  if (req.method === 'GET' && route === '/api/edit/file') {
+    const p = filePath(q('path'));
+    const buf = await repoFile(f, p, 60e3);
+    if (!buf) throw userError(404, 'not-found', `“${p}” isn’t part of this design (anymore).`);
+    if (kindOf(p) !== 'text' || !isUtf8(buf)) return send(res, 200, { ok: true, path: p, binary: true, size: buf.length });
+    if (buf.length > TEXT_MAX) return send(res, 200, { ok: true, path: p, tooBig: true, size: buf.length });
+    const text = buf.toString('utf8');
+    return send(res, 200, { ok: true, path: p, text, sha: sha1(text), size: buf.length });
+  }
+  if (req.method === 'POST' && route === '/api/edit/file') {
+    // one or more text files saved together in one commit: { changes: [{ path, text, sha }] } (sha null = new file)
+    const changes = Array.isArray(body.changes) ? body.changes : [{ path: body.path, text: body.text, sha: body.sha }];
+    if (!changes.length || changes.length > 50) throw userError(400, 'bad-request', 'Nothing to save.');
+    return await folderLock(f)(async () => {
+      const entries = [], out = [], secrets = [];
+      for (const c of changes) {
+        const p = filePath(c.path);
+        if (kindOf(p) !== 'text') throw userError(400, 'bad-type', `“${p}” isn’t a text file, so it can’t be edited as code. Upload a new version of it instead.`);
+        let text = String(c.text == null ? '' : c.text);
+        if (Buffer.byteLength(text) > TEXT_MAX) throw userError(400, 'too-big', `“${p}” is over 2 MB. Make it smaller, or upload it as a file.`);
+        const cur = await repoFile(f, p, 60e3);
+        if (c.sha == null && cur) throw userError(409, 'exists', `There’s already a file called “${p}”. Pick another name.`);
+        if (c.sha != null && (!cur || sha1(cur.toString('utf8')) !== c.sha)) throw userError(409, 'stale', `“${p}” was changed somewhere else since you opened it (maybe in another tab). Copy your changes, reload the file and try again.`);
+        const r = secretsLib.scrub(text);
+        if (r.found.length) { text = r.text; r.found.forEach(x => secrets.push({ path: p, kind: x.kind, line: x.line })); }
+        entries.push({ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', content: text });
+        out.push({ path: p, sha: sha1(text), text: r.found.length ? text : undefined, created: c.sha == null });
+      }
+      await commitToMain(`Edit ${d.name}: ${out.map(x => x.path).join(', ').slice(0, 200)}`, entries, touch);
+      done();
+      log('file-save', `${out.some(x => x.created) ? 'Created' : 'Saved'} ${out.map(x => x.path).join(', ')} in the code editor` + (secrets.length ? ` (${secrets.length} secret key(s) removed)` : ''));
+      return send(res, 200, { ok: true, files: out, secrets });
+    });
+  }
+  if (req.method === 'POST' && route === '/api/edit/upload') {
+    if (!sameOrigin(req)) { req.resume(); throw userError(403, 'origin', 'Uploading only works from ChiActive Studio.'); }
+    const p = filePath(url.searchParams.get('path'));
+    const overwrite = url.searchParams.get('overwrite') === '1';
+    let buf;
+    try { buf = await readBody(req, UPLOAD_MAX); } catch (e) { throw userError(413, 'file-too-big', `That file is over 25 MB. Make it smaller first (pictures: squoosh.app, videos: HandBrake), or use “Upload new version” for big files.`); }
+    if (!buf.length) throw userError(400, 'empty', 'That file is empty.');
+    return await folderLock(f)(async () => {
+      const exists = (await designTree(f) || []).some(x => x.path === p);
+      if (exists && !overwrite) throw userError(409, 'exists', `There’s already a file called “${p}”.`);
+      let secrets = [];
+      if (kindOf(p) === 'text' && isUtf8(buf)) { const r = secretsLib.scrub(buf.toString('utf8')); if (r.found.length) { buf = Buffer.from(r.text); secrets = r.found.map(x => ({ path: p, kind: x.kind, line: x.line })); } }
+      const blob = (await gh('POST', `/repos/${REPO}/git/blobs`, { content: buf.toString('base64'), encoding: 'base64' })).sha;
+      await commitToMain(`${exists ? 'Replace' : 'Add'} ${p} in ${d.name}`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', sha: blob }], touch);
+      done();
+      log('file-upload', `${exists ? 'Replaced' : 'Added'} ${p} (${fmtMB(buf.length)})`);
+      return send(res, 200, { ok: true, path: p, size: buf.length, replaced: exists, secrets });
+    });
+  }
+  if (req.method === 'POST' && (route === '/api/edit/rename' || route === '/api/edit/remove')) {
+    const p = filePath(body.path);
+    return await folderLock(f)(async () => {
+      const files = await designTree(f) || [];
+      const cur = files.find(x => x.path === p);
+      if (!cur) throw userError(404, 'not-found', `“${p}” isn’t part of this design (anymore). Reload the file list.`);
+      const pages = files.filter(x => /\.html?$/i.test(x.path)).map(x => x.path);
+      const entry = d.entry || 'index.html';
+      if (route === '/api/edit/rename') {
+        const to = filePath(body.to, 'new');
+        if (to === p) return send(res, 200, { ok: true, path: p });
+        if (files.some(x => x.path === to)) throw userError(409, 'exists', `There’s already a file called “${to}”. Pick another name.`);
+        if (/\.html?$/i.test(p) && !/\.html?$/i.test(to)) throw userError(400, 'bad-type', 'A page has to keep ending in .html.');
+        await commitToMain(`Rename ${p} to ${to} in ${d.name}`, [{ path: `${DIR}/${f}/${to}`, mode: '100644', type: 'blob', sha: cur.sha }, { path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', sha: null }],
+          list => { touch(list); const m = list.find(x => x.folder === f); if (m && p === entry) m.entry = to; return list; });
+        done(); log('file-rename', `Renamed ${p} → ${to}`);
+        return send(res, 200, { ok: true, path: to, entry: p === entry ? to : entry });
+      }
+      if (/\.html?$/i.test(p) && pages.length <= 1) throw userError(400, 'last-page', 'This is the only page of the site, so it can’t be deleted. Change it instead, or add another page first.');
+      const nextEntry = p === entry ? (pages.find(x => x !== p && /(^|\/)index\.html?$/i.test(x)) || pages.find(x => x !== p)) : entry;
+      await commitToMain(`Delete ${p} from ${d.name}`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', sha: null }],
+        list => { touch(list); const m = list.find(x => x.folder === f); if (m && nextEntry !== entry) m.entry = nextEntry; return list; });
+      done(); log('file-delete', `Deleted ${p}`);
+      return send(res, 200, { ok: true, entry: nextEntry });
+    });
+  }
+  if (req.method === 'GET' && route === '/api/edit/history') {
+    const p = filePath(q('path'));
+    const list = await gh('GET', `/repos/${REPO}/commits?sha=${BRANCH}&per_page=30&path=${encodeURIComponent(`${DIR}/${f}/${p}`)}`, null, { retries: 2 });
+    return send(res, 200, { ok: true, path: p, versions: (Array.isArray(list) ? list : []).map(c => ({ commit: c.sha, message: String((c.commit && c.commit.message) || '').split('\n')[0].slice(0, 160), date: c.commit && (c.commit.committer || c.commit.author || {}).date })) });
+  }
+  if ((req.method === 'GET' && route === '/api/edit/version') || (req.method === 'POST' && route === '/api/edit/restore')) {
+    const p = filePath(q('path')), commit = String(q('commit') || '');
+    if (!/^[0-9a-zA-Z]{1,64}$/.test(commit)) throw userError(400, 'bad-version', 'That version isn’t valid.');
+    let old;
+    try { old = await gh('GET', `/repos/${REPO}/contents/${encodeURI(`${DIR}/${f}/${p}`)}?ref=${commit}`, null, { retries: 2 }); }
+    catch (e) { if (e.status === 404) throw userError(404, 'not-found', `“${p}” didn’t exist in that version.`); throw e; }
+    if (route === '/api/edit/version') {
+      if (kindOf(p) !== 'text' || !old.content) return send(res, 200, { ok: true, path: p, binary: true, size: old.size });
+      const buf = Buffer.from(old.content, 'base64');
+      return send(res, 200, isUtf8(buf) ? { ok: true, path: p, text: buf.toString('utf8') } : { ok: true, path: p, binary: true, size: buf.length });
+    }
+    return await folderLock(f)(async () => {
+      await commitToMain(`Restore ${p} in ${d.name} to an earlier version`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', sha: old.sha }], touch);
+      done(); log('file-restore', `Restored ${p} to the version from ${commit.slice(0, 7)}`);
+      return send(res, 200, { ok: true, path: p });
+    });
+  }
+  return send(res, 404, { ok: false, error: 'Not found' });
+}
 async function handleEdit(req, res, route, url) {
   if (req.method === 'POST' && !sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, error: 'Editing only works from ChiActive Studio.' }); }
   const folder = String(url.searchParams.get('folder') || '');
   let body = {}, who = null;
   try {
-    if (req.method === 'POST') body = await readJson(req, 512 * 1024);
+    if (req.method === 'POST' && route !== '/api/edit/upload') body = await readJson(req, 6 * MB);
     const f = folder || String(body.folder || '');
     if (!/^[a-z0-9-]+$/.test(f)) throw userError(400, 'bad-folder', 'That design doesn’t exist.');
     who = await canEdit(req, f);
@@ -887,6 +1024,7 @@ async function handleEdit(req, res, route, url) {
     if (req.method === 'GET' && route === '/api/edit/pages') {
       return send(res, 200, { ok: true, folder: f, name: d.name, by: d.by || '', entry: d.entry || 'index.html', pages: await listPages(f), pagesUrl: PAGES_URL, admin: !!who.admin });
     }
+    if (FILE_ROUTES.has(route)) return await handleFiles(req, res, route, url, f, d, who, body);
     const p = String(url.searchParams.get('path') || body.path || '').replace(/^\/+/, '');
     if (!safePath(p) || !/\.html?$/i.test(p)) throw userError(400, 'bad-path', 'That isn’t a page of this design.');
     if (req.method === 'GET' && route === '/api/edit/page') {
@@ -897,23 +1035,32 @@ async function handleEdit(req, res, route, url) {
     if (req.method === 'POST' && route === '/api/edit/block') {
       const actor = who.user || { id: 'admin', username: 'admin', name: 'Admin' };
       if (editLimited(actor.id)) throw userError(429, 'rate-limited', 'That’s a lot of changes in a short time. Wait a few minutes and try again.');
-      const action = body.action === 'delete' ? 'delete' : 'edit', index = +body.block;
+      const action = ['delete', 'move-up', 'move-down', 'duplicate', 'image', 'image-delete'].includes(body.action) ? body.action : 'edit', index = +body.block;
       return await folderLock(f)(async () => {
         const src = await readDesignFile(f, p);
         if (sha1(src) !== body.sha) throw userError(409, 'stale', 'This page changed since you opened it (maybe in another tab), so it was reloaded. Please make your change again.');
-        const before = blocksLib.blockInfo(src, index);
-        const next = action === 'delete' ? blocksLib.applyDelete(src, index) : blocksLib.applyEdit(src, index, { html: body.html, text: body.text, href: body.href });
-        const after = action === 'delete' ? null : blocksLib.blockInfo(next, index);
+        const isImg = action === 'image' || action === 'image-delete';
+        const before = isImg ? blocksLib.imageInfo(src, index) : blocksLib.blockInfo(src, index);
+        const next = action === 'delete' ? blocksLib.applyDelete(src, index)
+          : action === 'move-up' ? blocksLib.applyMove(src, index, -1) : action === 'move-down' ? blocksLib.applyMove(src, index, 1)
+          : action === 'duplicate' ? blocksLib.applyDuplicate(src, index)
+          : action === 'image' ? blocksLib.applyImage(src, index, { src: body.src, alt: body.alt })
+          : action === 'image-delete' ? blocksLib.applyImageDelete(src, index)
+          : blocksLib.applyEdit(src, index, { html: body.html, text: body.text, href: body.href });
+        const after = action === 'edit' ? blocksLib.blockInfo(next, index) : action === 'image' ? blocksLib.imageInfo(next, index) : null;
+        const VERB = { delete: 'Delete text in', 'move-up': 'Move text in', 'move-down': 'Move text in', duplicate: 'Duplicate text in', image: 'Change image in', 'image-delete': 'Delete image in', edit: 'Edit' };
         if (next !== src) {
-          await commitToMain(`${action === 'delete' ? 'Delete text in' : 'Edit'} ${d.name}: ${p}`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', content: next }], list => {
+          await commitToMain(`${VERB[action]} ${d.name}: ${p}`, [{ path: `${DIR}/${f}/${p}`, mode: '100644', type: 'blob', content: next }], list => {
             const m = list.find(x => x.folder === f); if (m) m.editedAt = new Date().toISOString(); return list;
           });
           const s = live.get(f); if (s && s.status === 'done') live.delete(f);
         }
         const count = blocksLib.countBlocks(next);
-        logEvent(action === 'delete' ? 'edit-delete' : 'edit-save', { folder: f, name: d.name, page: p, student: actor.name, username: actor.username,
-          message: action === 'delete' ? `Deleted “${cleanText(before.text, 120)}”` : `“${cleanText(before.text, 100)}” → “${cleanText(after.text, 100)}”${after.href && after.href !== before.href ? ` (link: ${after.href})` : ''}` }, req);
-        return send(res, 200, { ok: true, sha: sha1(next), count, reload: action === 'delete' || count !== blocksLib.countBlocks(src), changed: next !== src });
+        const MSG = { delete: () => `Deleted “${cleanText(before.text, 120)}”`, 'move-up': () => `Moved “${cleanText(before.text, 100)}” up`, 'move-down': () => `Moved “${cleanText(before.text, 100)}” down`,
+          duplicate: () => `Duplicated “${cleanText(before.text, 100)}”`, image: () => `Image ${before.src} → ${after.src}${after.alt !== before.alt ? ` (description: “${cleanText(after.alt, 80)}”)` : ''}`,
+          'image-delete': () => `Deleted image ${before.src}`, edit: () => `“${cleanText(before.text, 100)}” → “${cleanText(after.text, 100)}”${after.href && after.href !== before.href ? ` (link: ${after.href})` : ''}` };
+        logEvent(action === 'edit' ? 'edit-save' : action === 'delete' ? 'edit-delete' : 'edit-' + action, { folder: f, name: d.name, page: p, student: actor.name, username: actor.username, message: MSG[action]() }, req);
+        return send(res, 200, { ok: true, sha: sha1(next), count, reload: action !== 'edit' || count !== blocksLib.countBlocks(src), changed: next !== src });
       });
     }
     return send(res, 404, { ok: false, error: 'Not found' });
@@ -978,7 +1125,7 @@ async function designTree(folder) {
   const dir = (await gh('GET', `/repos/${REPO}/contents/${DIR}?ref=${await headSha()}`, null, { retries: 2 })).find(i => i.type === 'dir' && i.name === folder);
   if (!dir) return null;
   const t = await gh('GET', `/repos/${REPO}/git/trees/${dir.sha}?recursive=1`, null, { retries: 2 });
-  return (t.tree || []).filter(x => x.type === 'blob').map(x => ({ path: x.path, size: x.size || 0 })).sort((a, b) => a.path.localeCompare(b.path));
+  return (t.tree || []).filter(x => x.type === 'blob').map(x => ({ path: x.path, size: x.size || 0, sha: x.sha })).sort((a, b) => a.path.localeCompare(b.path));
 }
 async function handleDownload(req, res, url) {
   const folder = String(url.searchParams.get('folder') || '');
@@ -1094,6 +1241,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (route === '/studio' || route.startsWith('/studio/'))) return studioPage(res);
     if (req.method === 'GET' && (route === '/favicon.ico' || route === '/favicon.png')) return staticFile(res, 'favicon.png', 'image/png');
     if (req.method === 'GET' && (route === '/apple-touch-icon.png' || route === '/apple-touch-icon-precomposed.png')) return staticFile(res, 'apple-touch-icon.png', 'image/png');
+    if (req.method === 'GET' && route === '/vendor/codemirror.min.js') return staticFile(res, 'vendor/codemirror.min.js', 'text/javascript; charset=utf-8');
+    if (req.method === 'GET' && route === '/vendor/codemirror.css') return staticFile(res, 'vendor/codemirror.css', 'text/css; charset=utf-8');
     if (req.method === 'GET' && route === '/vendor/jszip.min.js') return staticFile(res, 'vendor/jszip.min.js', 'text/javascript; charset=utf-8');
     if (route.startsWith('/api/account/')) return await handleAccount(req, res, route);
     if (route.startsWith('/api/edit/')) return await handleEdit(req, res, route, url);

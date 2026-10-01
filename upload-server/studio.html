@@ -100,6 +100,66 @@ body.editing { overflow: hidden; }
 .pill.saving { color: #ffd27a; } .pill.saved { color: #86e0a8; } .pill.bad { color: #ff8fa3; }
 .help { font-size: .85rem; color: var(--muted); padding: 0 14px 10px; margin: 0; }
 .help b { color: var(--text); }
+.emodes { display: inline-flex; gap: 3px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.emodes button { border: 0; background: none; color: var(--text); font-family: inherit; font-weight: 700; font-size: .86rem; line-height: 1; padding: 8px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.emodes button[aria-selected=true] { background: var(--sky); color: var(--bg); }
+body.mode-code #ed-page, body.mode-colours #ed-page { display: none; }
+.cview { position: fixed; left: 0; right: 0; bottom: 0; top: var(--bar, 96px); display: grid; grid-template-columns: 250px minmax(0, 1fr) minmax(0, 40%); background: var(--bg); }
+.cview.no-prev { grid-template-columns: 250px minmax(0, 1fr) 0; }
+.cview.no-prev .cprev .cp-frame { display: none; }
+.cfiles { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.cf-head, .cc-bar, .cp-bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; min-height: 48px; }
+.cf-list { overflow: auto; padding: 6px; flex: 1; }
+.cf-dir { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 10px 8px 4px; }
+.cf-item { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: none; color: var(--text); font-family: inherit; font-size: .9rem; line-height: 1.3; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+.cf-item:hover { background: rgba(255,255,255,.06); }
+.cf-item[aria-current=true] { background: rgba(65,182,230,.18); color: #fff; }
+.cf-item .ic { width: 18px; text-align: center; flex: none; opacity: .85; }
+.cf-item .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cf-item .dot { color: var(--sky); font-weight: 800; }
+.ccode { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); }
+.cc-path { font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+.cc-body { flex: 1; min-height: 0; overflow: auto; position: relative; }
+.cc-body .CodeMirror { height: 100%; font-size: 14px; }
+.cc-body textarea.plain { width: 100%; height: 100%; border: 0; background: #212121; color: #eee; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 12px; resize: none; }
+.cc-empty, .cc-info { padding: 28px; color: var(--muted); max-width: 560px; }
+.cc-info img { max-width: 100%; max-height: 360px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0/18px 18px; border-radius: 8px; display: block; margin: 0 0 14px; }
+.cprev { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.cp-frame { flex: 1; background: #fff; position: relative; }
+.cp-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.kpanel { overflow: auto; padding: 16px; border-right: 1px solid var(--line); }
+.kview { grid-template-columns: minmax(300px, 420px) minmax(0, 1fr); }
+.krow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.krow input[type=color] { width: 44px; height: 34px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; cursor: pointer; flex: none; }
+.krow input[type=text] { width: 100px; flex: none; background: var(--bg); color: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; font: 13px ui-monospace, Menlo, monospace; }
+.krow .kl { flex: 1; min-width: 0; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; }
+.krow .kl small { display: block; color: var(--muted); }
+.krow.changed .kl { color: var(--sky); font-weight: 700; }
+.kpanel h3 { color: var(--sand); font-size: .95rem; margin: 16px 0 6px; }
+.kacts { position: sticky; bottom: -16px; background: var(--bg); padding: 12px 0; display: flex; gap: 8px; border-top: 1px solid var(--line); margin-top: 12px; }
+.vlist { display: grid; gap: 6px; max-height: 50vh; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.vlist li { display: flex; gap: 10px; align-items: center; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.vlist .vm { flex: 1; min-width: 0; font-size: .86rem; }
+.vlist .vm small { display: block; color: var(--muted); }
+pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: .8rem; white-space: pre-wrap; word-break: break-word; }
+.fld { display: grid; gap: 6px; margin: 10px 0; font-weight: 700; color: var(--sand); font-size: .9rem; }
+.fld input[type=text], .fld select { background: var(--bg); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 400; }
+.fld small { color: var(--muted); font-weight: 400; }
+.imgcmp { display: flex; gap: 12px; align-items: center; margin: 6px 0 12px; }
+.imgcmp img { max-width: 45%; max-height: 160px; border-radius: 8px; background: #fff; }
+@media (max-width: 900px) {
+  .cview { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) minmax(0, 40%); }
+  .cview.no-prev { grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: 1fr; }
+  .cfiles { max-height: 24vh !important; }
+  .cc-path { flex: 1 1 100%; max-width: none; }
+  .ccode, .cc-body, .cfiles, .cprev { max-width: 100vw; overflow-x: hidden; }
+  .cc-bar .btn, .cf-head .btn, .cp-bar .btn { padding: 6px 10px; font-size: .82rem; }
+  body.editing .ebar .pill { display: none; }
+  .kview { grid-template-rows: minmax(0, 55%) minmax(0, 1fr); }
+  .cfiles { border-right: 0; border-bottom: 1px solid var(--line); max-height: 30vh; }
+  .ccode { border-right: 0; }
+  .emodes button { padding: 7px 9px; font-size: .8rem; }
+}
 .eframe { position: fixed; left: 0; right: 0; bottom: 0; top: var(--bar, 96px); background: #fff; }
 .eframe iframe { width: 100%; height: 100%; border: 0; display: block; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); color: var(--muted); font-weight: 700; }
@@ -140,7 +200,7 @@ body.editing { overflow: hidden; }
       <ol class="steps">
         <li><span class="n">1</span><span>Sign up with a username and password.</span></li>
         <li><span class="n">2</span><span>Upload your site as a <b>.zip</b> or a <b>folder</b>. It shows up in the gallery as “Website design - your name”.</span></li>
-        <li><span class="n">3</span><span>Click <b>Edit text</b>, then the ✎ pencil next to any title, paragraph or button to change it, or the 🗑 trash to delete it. You confirm every change, and it’s saved to GitHub straight away.</span></li>
+        <li><span class="n">3</span><span>Click <b>Edit site</b>: change text and pictures right on the page, edit any file in <b>Code &amp; files</b>, or pick new <b>Colours</b>. You confirm every change, it’s saved to GitHub straight away, and older versions are kept.</span></li>
       </ol>
     </div>
     <div class="panel">
@@ -191,15 +251,43 @@ body.editing { overflow: hidden; }
     <div class="ebar-row">
       <a class="btn ghost small" href="/studio" data-route>← Your designs</a>
       <span class="name" id="ed-name"></span>
+      <div class="emodes" role="tablist" aria-label="Editing mode">
+        <button type="button" role="tab" data-mode="visual" aria-selected="true">✎ Visual</button><button type="button" role="tab" data-mode="code" aria-selected="false">&lt;/&gt; Code &amp; files</button><button type="button" role="tab" data-mode="colours" aria-selected="false">🎨 Colours</button>
+      </div>
       <label class="sr" for="ed-page">Page</label>
       <select id="ed-page"></select>
       <span class="grow"></span>
       <span class="pill" id="ed-status">Loading…</span>
+      <button class="btn ghost small" type="button" id="ed-newver" title="Replace all files of this design with a new upload">⬆ New version</button>
+      <a class="btn ghost small" id="ed-zip" href="#" download title="Download every file as a .zip">⬇ .zip</a>
       <a class="btn small" id="ed-live" href="#" target="_blank" rel="noopener">View live ↗</a>
     </div>
-    <p class="help">Click <b>✎</b> next to any text to change it, or <b>🗑</b> to delete it. You’ll confirm each change before it’s saved to GitHub. Links take you to other pages of your site.</p>
+    <p class="help" id="ed-help"></p>
   </div>
   <div class="eframe" id="eframe"><div class="loading" id="ed-loading">Loading your page…</div></div>
+  <div class="cview" id="code-view" hidden>
+    <aside class="cfiles" aria-label="Files">
+      <div class="cf-head"><b>Files</b><span class="grow"></span><button class="btn small" type="button" id="cf-new">＋ New</button><button class="btn ghost small" type="button" id="cf-up">⬆ Upload</button></div>
+      <input type="file" id="cf-input" multiple hidden>
+      <div class="cf-list" id="cf-list"><p class="muted">Loading…</p></div>
+    </aside>
+    <section class="ccode" aria-label="Code">
+      <div class="cc-bar"><span class="cc-path" id="cc-path">Pick a file</span><span class="grow"></span>
+        <button class="btn ghost small" type="button" id="cc-hist" disabled>History</button><button class="btn ghost small" type="button" id="cc-ren" disabled>Rename</button><button class="btn ghost small" type="button" id="cc-del" disabled>Delete</button><button class="btn small" type="button" id="cc-save" disabled>Save</button></div>
+      <div class="cc-body" id="cc-body"><div class="cc-empty">Pick a file on the left to change it. Pages are <b>.html</b>, the look of your site is in <b>.css</b> files, and <b>.js</b> files make things move or react.</div></div>
+    </section>
+    <section class="cprev" aria-label="Preview">
+      <div class="cp-bar"><b>Preview</b><span class="muted" id="cp-note"></span><span class="grow"></span><button class="btn ghost small" type="button" id="cp-reload" title="Reload the preview">↻</button><button class="btn ghost small" type="button" id="cp-toggle">Hide</button></div>
+      <div class="cp-frame" id="cp-frame"></div>
+    </section>
+  </div>
+  <div class="cview kview" id="colour-view" hidden>
+    <aside class="kpanel" id="k-panel" aria-label="Colours"><p class="muted">Loading colours…</p></aside>
+    <section class="cprev" aria-label="Preview">
+      <div class="cp-bar"><b>Preview</b><span class="muted">changes show here before you save</span></div>
+      <div class="cp-frame" id="k-frame"></div>
+    </section>
+  </div>
 </div>
 
 <div class="modal" id="modal" hidden><div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title"></h2><div id="modal-body"></div><div class="modal-acts" id="modal-acts"></div></div></div>
@@ -283,7 +371,13 @@ body.editing { overflow: hidden; }
   }
 
   /* ---------- routing ---------- */
-  function go(path, replace) { if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path); route(); }
+  function go(path, replace, force) {
+    var leaving = ED && path.indexOf('/studio/edit/' + ED.folder) !== 0;
+    if (!force && leaving && ((CODE && CODE.dirty) || (KOL && KOL.changed()))) {
+      return modal('Leave without saving?', '<p>You have changes that aren’t saved yet.</p>', [{ label: 'Stay', ghost: true, value: false }, { label: 'Leave', value: true }]).then(function (y) { if (y) { if (CODE) CODE.dirty = false; KOL = null; go(path, replace, true); } });
+    }
+    if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path); route();
+  }
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[data-route]'); if (a) { e.preventDefault(); go(a.getAttribute('href')); }
     var g = e.target.closest('a[data-gallery]'); if (g && PAGES) { g.href = galleryHref(); }
@@ -338,6 +432,7 @@ body.editing { overflow: hidden; }
   };
   // admins: bin icon on each design card
   $('designs').addEventListener('click', function (e) {
+    var nv = e.target.closest('[data-newver]'); if (nv) return startNewVersion(nv.getAttribute('data-newver'), nv.getAttribute('data-name'));
     var b = e.target.closest('[data-del-design]'); if (!b) return;
     var folder = b.getAttribute('data-del-design'), name = b.getAttribute('data-name');
     modal('Delete this design?', '<p><b>' + esc(name) + '</b> disappears from the class gallery for everyone within about a minute. Its files stay in the GitHub history, so it can be brought back if needed.</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Delete design', value: true }]).then(function (yes) {
@@ -392,7 +487,7 @@ body.editing { overflow: hidden; }
       var when = d.editedAt ? 'Edited ' + new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : d.uploadedAt ? 'Uploaded ' + new Date(d.uploadedAt).toLocaleDateString() : '';
       return '<article class="dcard"><div class="thumb">' + (ME.admin ? '<button type="button" class="dcard-del" data-del-design="' + esc(d.folder) + '" data-name="' + esc(d.name) + '" title="Delete this design" aria-label="Delete ' + esc(d.name) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' : '') + '<iframe src="' + esc('/d/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-scripts"></iframe></div>' +
         '<div class="body"><h3>' + esc(d.name) + (d.saving ? '<span class="tag">saving…</span>' : '') + (d.role === 'editor' ? '<span class="tag">editor</span>' : '') + '</h3><p class="meta">' + esc(when) + (ME.admin && d.by ? ' · by ' + esc(d.by) : '') + (d.role === 'editor' ? ' · you’re an editor' + (d.ownerName ? ' (owner: ' + esc(d.ownerName) + ')' : '') : '') + (d.role === 'owner' && d.editorNames && d.editorNames.length ? ' · editors: ' + d.editorNames.map(esc).join(', ') : '') + '</p>' +
-        '<div class="acts"><a class="btn small" href="/studio/edit/' + esc(d.folder) + '" data-route' + (d.saving ? ' aria-disabled="true"' : '') + '>✎ Edit text</a><a class="btn ghost small" href="' + esc(viewUrl(d)) + '" target="_blank" rel="noopener">View live ↗</a>' + (d.saving ? '' : '<a class="btn ghost small" href="/api/download?folder=' + encodeURIComponent(d.folder) + '" download title="Download every file of this design as a .zip">⬇ Download .zip</a>') + '</div></div></article>';
+        '<div class="acts"><a class="btn small" href="/studio/edit/' + esc(d.folder) + '" data-route' + (d.saving ? ' aria-disabled="true"' : '') + '>✎ Edit site</a><a class="btn ghost small" href="' + esc(viewUrl(d)) + '" target="_blank" rel="noopener">View live ↗</a>' + (d.saving ? '' : '<a class="btn ghost small" href="/api/download?folder=' + encodeURIComponent(d.folder) + '" download title="Download every file of this design as a .zip">⬇ .zip</a><button class="btn ghost small" type="button" data-newver="' + esc(d.folder) + '" data-name="' + esc(d.name) + '" title="Replace all files with a new upload">⬆ New version</button>') + '</div></div></article>';
     }).join('') : '<p class="empty">' + (u ? 'No designs yet. Upload your first one above.' : 'No designs in the gallery yet.') + '</p>';
     scaleThumbs();
     if ((u || ME.admin) && !pending && !drop.innerHTML.trim()) idle();
@@ -406,10 +501,13 @@ body.editing { overflow: hidden; }
   var ICON = '<span class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>';
   var JUNK = /(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db|desktop\.ini|\.git|node_modules)(\/|$)/i, MAX_FILE = 100 * 1048576, MAX_TOTAL = 1024 * 1048576;
   var drop = $('drop'), pending = null;
+  var REPLACE = null;   // { folder, name } while uploading a new version of an existing design
+  function startNewVersion(folder, name) { REPLACE = { folder: folder, name: name }; pending = null; idle(); $('upload-area').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function idle(message) {
     pending = null;
-    drop.innerHTML = ICON + '<h3>Add a design</h3><p>Drop a <b>.zip</b> or a <b>folder</b> here. It needs an <code>index.html</code> (or any .html page). Files up to 100 MB, designs up to 1 GB.</p>' +
-      '<div class="acts"><button class="btn" type="button" data-pick="zip">Choose .zip</button><button class="btn ghost" type="button" data-pick="folder">Choose folder</button></div>' +
+    drop.innerHTML = ICON + (REPLACE ? '<h3>New version of “' + esc(REPLACE.name) + '”</h3><p>Choose the updated <b>.zip</b> or <b>folder</b>. It replaces <b>every file</b> of this design, including text you changed here in Studio. The name, owner and editors stay the same, and the old version stays in History.</p>'
+        : '<h3>Add a design</h3><p>Drop a <b>.zip</b> or a <b>folder</b> here. It needs an <code>index.html</code> (or any .html page). Files up to 100 MB, designs up to 1 GB.</p>') +
+      '<div class="acts"><button class="btn" type="button" data-pick="zip">Choose .zip</button><button class="btn ghost" type="button" data-pick="folder">Choose folder</button>' + (REPLACE ? '<button class="btn ghost" type="button" data-noreplace>Cancel</button>' : '') + '</div>' +
       (message ? '<p class="' + (message.error ? 'err' : 'ok') + '" role="status">' + message.html + '</p>' : '') +
       '<p class="fine">' + (ME && ME.admin ? 'As admin you choose the name and, if you like, the student who owns it.' : 'It appears in the class gallery as “Website design - ' + esc(ME && ME.user ? ME.user.name : 'your name') + '”.') + '</p>';
     if (message && message.error) { var tmp = document.createElement('div'); tmp.innerHTML = message.html; var sm = tmp.querySelector('small'); if (sm) sm.remove(); showHelp(tmp.textContent.trim(), message.code, message.ref); }
@@ -453,11 +551,11 @@ body.editing { overflow: hidden; }
     p.then(function (files) {
       var info = analyse(files); pending = info;
       drop.innerHTML = ICON + '<h3>Ready to upload</h3><div class="found">Found <b>' + info.files.length + ' files</b> (' + fmtBytes(info.size) + '). Starts at <b>' + esc(info.entry) + '</b>.</div>' +
-        (ME.admin
+        (REPLACE ? '<p>This replaces every file of <b>“' + esc(REPLACE.name) + '”</b>.</p>' : ME.admin
           ? '<form class="stack" id="admin-up" onsubmit="return false" style="width:min(460px,100%);text-align:left"><label>Name on the design <small>saved as “Website design - …”</small><input type="text" name="name" maxlength="60" value="Admin"></label>' +
             '<label>Owner <small>who can edit it in Studio</small><select name="owner" style="background:var(--bg);color:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit"><option value="">No owner (only admins can edit)</option>' +
             (ME.accounts || []).map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + '</select></label></form>'
-          : '<p>It will be saved as <b>“Website design - ' + esc(ME.user.name) + '”</b>.</p>') + '<div class="acts"><button class="btn" type="button" data-go>Upload to the gallery</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>';
+          : '<p>It will be saved as <b>“Website design - ' + esc(ME.user.name) + '”</b>.</p>') + '<div class="acts"><button class="btn" type="button" data-go>' + (REPLACE ? 'Upload new version' : 'Upload to the gallery') + '</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>';
       drop.querySelector('[data-go]').focus();
     }).catch(function (err) { idle({ error: true, html: esc(err && err.message ? err.message : 'That upload couldn’t be read.') }); });
   }
@@ -471,6 +569,7 @@ body.editing { overflow: hidden; }
       upload(pending);
     }
     if (b.hasAttribute('data-cancel')) idle();
+    if (b.hasAttribute('data-noreplace')) { REPLACE = null; idle(); }
   });
   $('zip-input').addEventListener('change', function () { var f = this.files[0]; this.value = ''; if (!f) return; if (!/\.zip$/i.test(f.name) && !/zip/.test(f.type)) return idle({ error: true, html: 'That wasn’t a .zip file. Choose a .zip, or use Choose folder.' }); handle(readZip(f)); });
   $('folder-input').addEventListener('change', function () { var l = [].slice.call(this.files).map(function (f) { return { path: f.webkitRelativePath || f.name, blob: f }; }); this.value = ''; if (l.length) handle(Promise.resolve(l)); });
@@ -504,8 +603,8 @@ body.editing { overflow: hidden; }
   function upload(info) {
     pending = null;
     status('Checking your design…', 0.02);
-    var extra = info.admin || {};
-    request('POST', '/api/upload/start', JSON.stringify({ name: extra.name, owner: extra.owner, files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
+    var extra = info.admin || {}, rep = REPLACE; REPLACE = null;
+    request('POST', '/api/upload/start', JSON.stringify({ name: extra.name, owner: extra.owner, replace: rep ? rep.folder : undefined, files: info.files.map(function (f) { return { path: f.path, size: f.blob.size || 0 }; }) })).then(function (r) {
       if (r.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
       if (r.status !== 200 || !r.json || !r.json.ok) return fail(httpError(r.status, r.json, 'checking your design'), r.json && r.json.ref, r.json && r.json.code);
       var s = r.json, size = s.chunk || 8388608;
@@ -558,7 +657,7 @@ body.editing { overflow: hidden; }
   function setStatus(text, cls) { var p = $('ed-status'); p.textContent = text; p.className = 'pill' + (cls ? ' ' + cls : ''); }
   function sizeBar() { document.documentElement.style.setProperty('--bar', $('ebar').offsetHeight + 'px'); }
   window.addEventListener('resize', function () { if (ED) sizeBar(); });
-  function closeEditor() { if (!ED) return; if (ED.frame) ED.frame.remove(); ED = null; }
+  function closeEditor() { if (!ED) return; if (ED.frame) ED.frame.remove(); ED = null; CODE = null; KOL = null; MODE = 'visual'; document.body.classList.remove('mode-code', 'mode-colours'); $('code-view').hidden = $('colour-view').hidden = true; $('eframe').hidden = false; }
   function openEditor(folder, page) {
     show('editor-view'); sizeBar();
     if (ED && ED.folder === folder) { if (page && page !== ED.path) loadPage(page); return; }
@@ -573,8 +672,10 @@ body.editing { overflow: hidden; }
       $('ed-name').textContent = j.name; document.title = 'Editing ' + j.name + ' | ChiActive Studio';
       $('ed-page').innerHTML = j.pages.map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + '</option>'; }).join('');
       $('ed-live').href = viewUrl({ folder: folder, entry: j.entry, by: j.by });
-      sizeBar();
-      loadPage(page && j.pages.indexOf(page) > -1 ? page : (j.pages.indexOf(j.entry) > -1 ? j.entry : j.pages[0]));
+      $('ed-zip').href = '/api/download?folder=' + encodeURIComponent(folder);
+      ED.path = page && j.pages.indexOf(page) > -1 ? page : (j.pages.indexOf(j.entry) > -1 ? j.entry : j.pages[0]);
+      var m = new URLSearchParams(location.search).get('mode');
+      setMode(m === 'code' || m === 'colours' ? m : 'visual', true);
     });
   }
   $('ed-page').addEventListener('change', function () { loadPage(this.value); });
@@ -582,8 +683,7 @@ body.editing { overflow: hidden; }
     if (!ED) return;
     var folder = ED.folder, y = keepScroll && ED.path === p ? ED.y || 0 : 0;
     ED.path = p; $('ed-page').value = p;
-    history.replaceState(null, '', '/studio/edit/' + folder + (p !== ED.entry ? '?page=' + encodeURIComponent(p) : ''));
-    setStatus('Loading…'); if (!keepScroll) $('ed-loading').hidden = false;
+    if (MODE === 'visual') { history.replaceState(null, '', '/studio/edit/' + folder + (p !== ED.entry ? '?page=' + encodeURIComponent(p) : '')); setStatus('Loading…'); } if (!keepScroll) $('ed-loading').hidden = false;
     api('/api/edit/page?folder=' + encodeURIComponent(folder) + '&path=' + encodeURIComponent(p)).then(function (j) {
       if (!ED || ED.folder !== folder || ED.path !== p) return;
       if (j.status === 401) { toast('Your login expired. Log in again.', true); return route(); }
@@ -603,7 +703,8 @@ body.editing { overflow: hidden; }
     var d = e.data;
     if (d.type === 'ready') {
       $('ed-loading').hidden = true;
-      setStatus(d.count + ' editable text blocks');
+      ED.count = d.count;
+      if (MODE === 'visual') setStatus(d.count + ' text blocks' + (d.images ? ' · ' + d.images + ' picture' + (d.images === 1 ? '' : 's') : ''));
       if (ED.wantY) ED.frame.contentWindow.postMessage({ caStudio: true, type: 'scrollTo', y: ED.wantY }, '*');
       if (ED.flash != null) { ED.frame.contentWindow.postMessage({ caStudio: true, type: 'flash', block: ED.flash }, '*'); ED.flash = null; }
     }
@@ -619,37 +720,530 @@ body.editing { overflow: hidden; }
     if (ED.pages.indexOf(p) > -1) return loadPage(p);
     toast(/\.html?$/i.test(p) ? 'That page (' + p + ') isn’t part of your design.' : 'That link opens a file (' + p + '), not a page. Use “View live” to follow it.');
   }
+  /* ---------- visual mode: confirm a change, then save it ---------- */
+  var TITLES = { edit: 'Save this change?', 'move-up': 'Move this up?', 'move-down': 'Move this down?', duplicate: 'Duplicate this?', 'image-delete': 'Delete this picture?' };
   function confirmChange(d) {
-    var edit = d.action === 'edit';
-    var body = edit
-      ? '<div class="cmp"><div class="before"><small>Before</small>' + esc(d.before) + '</div><div class="after"><small>After</small>' + esc(d.after) + '</div>' +
+    if (d.action === 'image') return changeImage(d);
+    var A = d.action, body;
+    if (A === 'edit') body = '<div class="cmp"><div class="before"><small>Before</small>' + esc(d.before) + '</div><div class="after"><small>After</small>' + esc(d.after) + '</div>' +
         (d.afterHref != null && d.afterHref !== d.beforeHref ? '<div class="after"><small>Link goes to</small>' + esc(d.afterHref || '(no link)') + '</div>' : '') + '</div>' +
-        '<p class="muted">It’s saved to GitHub right away. The public site shows it within about a minute.</p>'
-      : '<div class="cmp"><div class="before"><small>This ' + esc(d.kind) + ' will be removed</small>' + esc(d.before) + '</div></div><p class="muted">It’s removed from your live site. The gallery admin can bring it back from GitHub’s history if needed.</p>';
-    modal(edit ? 'Save this change?' : 'Delete this ' + d.kind + '?', body, [{ label: edit ? 'Keep editing' : 'Cancel', ghost: true, value: false }, { label: edit ? 'Save change' : 'Delete', value: true }]).then(function (yes) {
+        '<p class="muted">It’s saved to GitHub right away. The public site shows it within about a minute.</p>';
+    else if (A === 'delete') body = '<div class="cmp"><div class="before"><small>This ' + esc(d.kind) + ' will be removed</small>' + esc(d.before) + '</div></div><p class="muted">It’s removed from your live site. You can bring it back with <b>History</b> in the Code &amp; files tab.</p>';
+    else if (A === 'image-delete') body = '<div class="imgcmp"><img alt="" src="' + esc(absSrc(d.src)) + '"></div><p class="muted">The picture is removed from this page (the image file itself stays in your files).</p>';
+    else body = '<div class="cmp"><div class="before"><small>' + esc(d.kind) + '</small>' + esc(d.before) + '</div></div><p class="muted">' + (A === 'duplicate' ? 'A copy appears right below it, so you can change the copy.' : 'It swaps places with the item ' + (A === 'move-up' ? 'above' : 'below') + ' it.') + '</p>';
+    modal(TITLES[A] || ('Delete this ' + d.kind + '?'), body, [{ label: A === 'edit' ? 'Keep editing' : 'Cancel', ghost: true, value: false }, { label: A === 'edit' ? 'Save change' : A === 'delete' || A === 'image-delete' ? 'Delete' : A === 'duplicate' ? 'Duplicate' : 'Move', value: true }]).then(function (yes) {
       if (!yes) return reply(d.id, { ok: false, cancelled: true });
-      setStatus('Saving…', 'saving');
-      var folder = ED.folder, p = ED.path;
-      api('/api/edit/block', { folder: folder, path: p, sha: ED.sha, block: d.block, action: d.action, html: d.html, text: d.text, href: d.href }).then(function (j) {
-        if (!ED || ED.folder !== folder || ED.path !== p) return;
-        if (j.ok) {
-          ED.sha = j.sha;
-          setStatus(edit ? 'Saved to GitHub ✓' : 'Deleted and saved ✓', 'saved');
-          reply(d.id, { ok: true });
-          toast(edit ? 'Saved. Your live site updates within about a minute.' : 'Deleted. Your live site updates within about a minute.');
-          if (j.reload) loadPage(p, true);
-          return;
-        }
-        setStatus('Not saved', 'bad');
-        reply(d.id, { ok: false, message: j.error });
-        toast(j.error || 'Saving didn’t work.', true);
-        if (j.status !== 401) showHelp(j.error || 'Saving didn’t work.', j.code || (j.status === 0 ? 'network' : ''));
-        if (j.status === 401) return route();
-        if (j.status === 409) loadPage(p, true);
+      sendBlock(d, A === 'edit' ? { html: d.html, text: d.text, href: d.href } : {});
+    });
+  }
+  var DONE_MSG = { edit: 'Saved.', delete: 'Deleted.', 'move-up': 'Moved up.', 'move-down': 'Moved down.', duplicate: 'Duplicated. Change the copy with ✎.', image: 'Picture changed.', 'image-delete': 'Picture deleted.' };
+  function sendBlock(d, extra) {
+    setStatus('Saving…', 'saving');
+    var folder = ED.folder, p = ED.path;
+    return api('/api/edit/block', Object.assign({ folder: folder, path: p, sha: ED.sha, block: d.block, action: d.action }, extra)).then(function (j) {
+      if (!ED || ED.folder !== folder || ED.path !== p) return;
+      if (j.ok) {
+        ED.sha = j.sha; ED.filesStale = true;
+        setStatus('Saved to GitHub ✓', 'saved');
+        reply(d.id, { ok: true });
+        toast(DONE_MSG[d.action] + ' Your live site updates within about a minute.');
+        if (j.reload) { if (d.action === 'duplicate') ED.flash = d.block + 1; else if (d.action === 'move-up') ED.flash = null; loadPage(p, true); }
+        return;
+      }
+      setStatus('Not saved', 'bad');
+      reply(d.id, { ok: false, message: j.error });
+      if (j.status === 401) { toast(j.error || 'Log in again.', true); return route(); }
+      if (j.code !== 'edge') showHelp(j.error || 'Saving didn’t work.', j.code || (j.status === 0 ? 'network' : '')); else toast(j.error, true);
+      if (j.status === 409) loadPage(p, true);
+    });
+  }
+  function dirOf(p) { return p.indexOf('/') > -1 ? p.slice(0, p.lastIndexOf('/') + 1) : ''; }
+  function encPath(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+  function designBase(dir) { return location.origin + '/d/' + ED.folder + '/' + encPath(dir || ''); }
+  function absSrc(src) { try { return new URL(src, designBase(dirOf(ED.path || ''))).href; } catch (e) { return src; } }
+  function relPath(fromDir, target) { var ups = fromDir ? fromDir.split('/').filter(Boolean).length : 0; return new Array(ups + 1).join('../') + target; }
+  function safeFileName(n) { var m = String(n).toLowerCase().match(/^(.*?)(\.[a-z0-9]+)?$/); return ((m[1] || 'file').normalize('NFKD').replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'file') + (m[2] || ''); }
+  function fileList() { return api('/api/edit/files?folder=' + encodeURIComponent(ED.folder)).then(function (j) { if (j.ok) { ED.files = j.files; ED.filesStale = false; } return j; }); }
+  function imageDir(files) {
+    var dirs = {}; (files || []).forEach(function (f) { if (f.kind === 'image' && f.path.indexOf('/') > -1) { var d = f.path.slice(0, f.path.lastIndexOf('/')); dirs[d] = (dirs[d] || 0) + 1; } });
+    var best = Object.keys(dirs).sort(function (a, b) { return dirs[b] - dirs[a]; })[0];
+    return best || 'images';
+  }
+  function freeName(files, path) {
+    var taken = {}; (files || []).forEach(function (f) { taken[f.path] = 1; });
+    if (!taken[path]) return path;
+    var m = path.match(/^(.*?)(\.[^.\/]+)?$/); for (var i = 2; ; i++) { var c = m[1] + '-' + i + (m[2] || ''); if (!taken[c]) return c; }
+  }
+  function uploadFile(path, file, overwrite) {
+    return fetch('/api/edit/upload?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(path) + (overwrite ? '&overwrite=1' : ''), { method: 'POST', body: file, credentials: 'same-origin', headers: { 'Content-Type': 'application/octet-stream' } })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'The server answered with error ' + r.status + '.' }; }).then(function (j) { j.status = r.status; return j; }); })
+      .catch(function () { return { ok: false, status: 0, error: 'Couldn’t reach the server. Check your connection and try again.' }; });
+  }
+  function changeImage(d) {
+    modal('Change this picture', '<div class="imgcmp"><img alt="" src="' + esc(absSrc(d.src)) + '"><span class="muted">' + esc(d.src) + '</span></div>' +
+      '<label class="fld">New picture <small>optional: .jpg, .png, .webp, .gif or .svg, up to 25 MB</small><input type="file" id="img-file" accept="image/*"></label>' +
+      '<label class="fld">Description <small>what the picture shows, for people who can’t see it (and Google)</small><input type="text" id="img-alt" maxlength="300" value="' + esc(d.alt) + '"></label>',
+      [{ label: 'Cancel', ghost: true, value: false }, { label: 'Save picture', value: true }]).then(function (yes) {
+      var file = $('img-file') && $('img-file').files[0], alt = $('img-alt') ? $('img-alt').value.trim() : d.alt;
+      if (!yes || (!file && alt === d.alt)) return reply(d.id, { ok: false, cancelled: true });
+      if (file && file.size > 25 * 1024 * 1024) { reply(d.id, { ok: false, cancelled: true }); return showHelp('That picture is over 25 MB.', 'file-too-big'); }
+      if (file && !/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif)$/i.test(file.name)) { reply(d.id, { ok: false, cancelled: true }); return showHelp('That file isn’t a picture. Choose a .jpg, .png, .webp, .gif or .svg file.', 'bad-type'); }
+      setStatus('Uploading picture…', 'saving');
+      var step = file ? fileList().then(function (j) {
+        if (!j.ok) throw j;
+        var dest = freeName(j.files, imageDir(j.files) + '/' + safeFileName(file.name));
+        return uploadFile(dest, file, false).then(function (u) { if (!u.ok) throw u; return relPath(dirOf(ED.path), dest); });
+      }) : Promise.resolve(null);
+      step.then(function (src) { return sendBlock(d, { src: src, alt: alt }); }, function (err) {
+        setStatus('Not saved', 'bad'); reply(d.id, { ok: false, message: err.error });
+        showHelp(err.error || 'Uploading the picture didn’t work.', err.code || (err.status === 0 ? 'network' : ''));
       });
     });
   }
 
+  /* ---------- modes: visual / code & files / colours ---------- */
+  var MODE = 'visual';
+  var HELP_TEXT = {
+    visual: 'Click <b>✎</b> to change text, <b>🗑</b> to delete it and <b>⋯</b> to move or duplicate it. Pictures have their own buttons to swap or delete them. You confirm every change before it’s saved.',
+    code: 'Change any file of your site: pages (<b>.html</b>), styles (<b>.css</b>) and scripts (<b>.js</b>). <b>Ctrl/⌘+S</b> saves. Every save is kept in <b>History</b>, so you can always go back.',
+    colours: 'Pick new colours for your whole site. The preview changes right away; nothing is saved until you click <b>Save colours</b>.'
+  };
+  function setMode(m, force) {
+    if (!ED) return;
+    if (!force && MODE === 'code' && m !== 'code' && CODE && CODE.dirty) {
+      return modal('Leave without saving?', '<p>Your changes to <b>' + esc(CODE.path) + '</b> aren’t saved yet.</p>', [{ label: 'Stay', ghost: true, value: false }, { label: 'Discard changes', value: true }]).then(function (y) { if (y) { CODE.dirty = false; setMode(m, true); } });
+    }
+    if (!force && MODE === 'colours' && m !== 'colours' && KOL && KOL.changed()) {
+      return modal('Leave without saving?', '<p>Your new colours aren’t saved yet.</p>', [{ label: 'Stay', ghost: true, value: false }, { label: 'Discard colours', value: true }]).then(function (y) { if (y) { KOL = null; setMode(m, true); } });
+    }
+    MODE = m;
+    document.body.classList.remove('mode-visual', 'mode-code', 'mode-colours'); document.body.classList.add('mode-' + m);
+    [].forEach.call(document.querySelectorAll('.emodes [data-mode]'), function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-mode') === m)); });
+    $('eframe').hidden = m !== 'visual'; $('code-view').hidden = m !== 'code'; $('colour-view').hidden = m !== 'colours';
+    $('ed-help').innerHTML = HELP_TEXT[m];
+    sizeBar();
+    var q = m === 'visual' ? (ED.path && ED.path !== ED.entry ? '?page=' + encodeURIComponent(ED.path) : '') : '?mode=' + m + (m === 'code' && CODE && CODE.path ? '&file=' + encodeURIComponent(CODE.path) : '');
+    history.replaceState(null, '', '/studio/edit/' + ED.folder + q);
+    if (m === 'code') openCode();
+    if (m === 'colours') openColours();
+    if (m === 'visual') { setStatus(ED.count != null ? ED.count + ' text blocks' : 'Loading…'); if (ED.needReload || !ED.frame) { ED.needReload = false; loadPage(ED.pages && ED.pages.indexOf(ED.path) > -1 ? ED.path : ED.entry, true); } }
+  }
+  document.querySelector('.emodes').addEventListener('click', function (e) { var b = e.target.closest('[data-mode]'); if (b) setMode(b.getAttribute('data-mode')); });
+  $('ed-newver').onclick = function () { var f = ED && ED.folder, n = ED && ED.name; if (!f) return; go('/studio'); setTimeout(function () { startNewVersion(f, n); }, 50); };
+  window.addEventListener('beforeunload', function (e) { if ((CODE && CODE.dirty) || (KOL && KOL.changed())) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && ED && MODE === 'code') { e.preventDefault(); saveCode(); }
+  });
+
+  /* ---------- code & files ---------- */
+  var CODE = null;   // { folder, files, path, kind, sha, original, cm, ta, dirty }
+  function cmAssets() {
+    if (cmAssets.p) return cmAssets.p;
+    cmAssets.p = new Promise(function (resolve) {
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/vendor/codemirror.css'; document.head.appendChild(l);
+      var sc = document.createElement('script'); sc.src = '/vendor/codemirror.min.js'; sc.onload = function () { resolve(!!window.CodeMirror); }; sc.onerror = function () { resolve(false); }; document.head.appendChild(sc);
+    });
+    return cmAssets.p;
+  }
+  var ICONS = { html: '📄', htm: '📄', css: '🎨', js: '⚙️', mjs: '⚙️', json: '🧾', svg: '🖼', md: '📝', txt: '📝' };
+  function iconFor(f) { var e = (f.path.split('.').pop() || '').toLowerCase(); return ICONS[e] || (f.kind === 'image' ? '🖼' : f.kind === 'text' ? '📝' : '📦'); }
+  function isPage(p) { return /\.html?$/i.test(p); }
+  function openCode(want) {
+    if (!CODE || CODE.folder !== ED.folder) {
+      CODE = { folder: ED.folder, files: [], path: null, dirty: false };
+      if (window.innerWidth < 900) { $('code-view').classList.add('no-prev'); $('cp-toggle').textContent = 'Show'; }   // small screens: code first, preview on request
+    }
+    setStatus('Code & files');
+    loadFiles().then(function (ok) {
+      if (!ok) return;
+      var q = new URLSearchParams(location.search).get('file');
+      var target = want || CODE.path || (q && hasFile(q) ? q : null) || (ED.path && hasFile(ED.path) ? ED.path : ED.entry);
+      if (target && hasFile(target) && (target !== CODE.path || !CODE.loaded)) openFile(target, true);
+      else drawPreview();
+    });
+  }
+  function hasFile(p) { return CODE.files.some(function (f) { return f.path === p; }); }
+  function fileInfo(p) { return CODE.files.filter(function (f) { return f.path === p; })[0]; }
+  function loadFiles() {
+    return fileList().then(function (j) {
+      if (!j.ok) { $('cf-list').innerHTML = '<p class="err" style="padding:10px">' + esc(j.error || 'Couldn’t load the files.') + '</p>'; if (j.status === 401) route(); else showHelp(j.error, j.code); return false; }
+      CODE.files = j.files; ED.entry = j.entry;
+      var pages = j.files.filter(function (f) { return isPage(f.path); }).map(function (f) { return f.path; });
+      if (pages.join() !== (ED.pages || []).join()) { ED.pages = pages; $('ed-page').innerHTML = pages.map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + '</option>'; }).join(''); if (ED.path) $('ed-page').value = ED.path; }
+      drawFiles(); return true;
+    });
+  }
+  function drawFiles() {
+    var groups = {}; CODE.files.forEach(function (f) { var d = f.path.indexOf('/') > -1 ? f.path.slice(0, f.path.lastIndexOf('/')) : ''; (groups[d] = groups[d] || []).push(f); });
+    var dirs = Object.keys(groups).sort(function (a, b) { return a === '' ? -1 : b === '' ? 1 : a.localeCompare(b); });
+    $('cf-list').innerHTML = dirs.map(function (d) {
+      var list = groups[d].sort(function (a, b) { return (isPage(b.path) - isPage(a.path)) || a.path.localeCompare(b.path); });
+      return (d ? '<div class="cf-dir">📁 ' + esc(d) + '</div>' : '') + list.map(function (f) {
+        var nm = f.path.slice(d ? d.length + 1 : 0), cur = f.path === CODE.path;
+        return '<button type="button" class="cf-item" data-file="' + esc(f.path) + '" aria-current="' + cur + '" title="' + esc(f.path) + (f.path === ED.entry ? ' (home page)' : '') + '"><span class="ic">' + iconFor(f) + '</span><span class="nm">' + esc(nm) + (f.path === ED.entry ? ' <small class="muted">home</small>' : '') + '</span>' + (cur && CODE.dirty ? '<span class="dot">●</span>' : '') + '</button>';
+      }).join('');
+    }).join('') || '<p class="muted" style="padding:10px">No files.</p>';
+  }
+  $('cf-list').addEventListener('click', function (e) { var b = e.target.closest('[data-file]'); if (b) openFile(b.getAttribute('data-file')); });
+  function confirmDiscard() {
+    if (!CODE.dirty) return Promise.resolve(true);
+    return modal('Discard your changes?', '<p>Your changes to <b>' + esc(CODE.path) + '</b> aren’t saved yet.</p>', [{ label: 'Keep editing', ghost: true, value: false }, { label: 'Discard changes', value: true }]);
+  }
+  function setBtns() {
+    var has = !!CODE.path;
+    $('cc-hist').disabled = $('cc-ren').disabled = $('cc-del').disabled = !has;
+    $('cc-save').disabled = !CODE.dirty;
+    $('cc-path').textContent = has ? (CODE.dirty ? '● ' : '') + CODE.path : 'Pick a file';
+  }
+  function openFile(p, force) {
+    if (!force && p === CODE.path) return;
+    (force ? Promise.resolve(true) : confirmDiscard()).then(function (yes) {
+      if (!yes) return;
+      CODE.path = p; CODE.dirty = false; CODE.cm = null; CODE.ta = null; CODE.loaded = true; CODE.original = null; CODE.sha = null;
+      var f = fileInfo(p) || { path: p, kind: 'other' }; CODE.kind = f.kind;
+      history.replaceState(null, '', '/studio/edit/' + ED.folder + '?mode=code&file=' + encodeURIComponent(p));
+      setBtns(); drawFiles();
+      var body = $('cc-body');
+      if (f.kind !== 'text') { showFileInfo(f); drawPreview(); return; }
+      body.innerHTML = '<div class="cc-empty">Opening ' + esc(p) + '…</div>';
+      Promise.all([api('/api/edit/file?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(p)), cmAssets()]).then(function (r) {
+        var j = r[0], hasCM = r[1];
+        if (!CODE || CODE.path !== p) return;
+        if (!j.ok) { body.innerHTML = '<div class="cc-info"><p class="err">' + esc(j.error) + '</p></div>'; return showHelp(j.error, j.code); }
+        if (j.binary || j.tooBig) { showFileInfo(f, j.tooBig ? 'This file is too big to edit here (' + fmtBytes(j.size) + '). Upload a new version of it instead.' : null); drawPreview(); return; }
+        CODE.sha = j.sha; CODE.original = j.text;
+        body.innerHTML = '';
+        if (hasCM) {
+          var ext = (p.split('.').pop() || '').toLowerCase();
+          var mode = /^html?$/.test(ext) ? 'htmlmixed' : ext === 'css' ? 'css' : /^(m?js)$/.test(ext) ? 'javascript' : ext === 'json' || ext === 'webmanifest' || ext === 'map' ? { name: 'javascript', json: true } : ext === 'svg' || ext === 'xml' ? 'xml' : null;
+          CODE.cm = window.CodeMirror(body, { value: j.text, mode: mode, theme: 'material-darker', lineNumbers: true, lineWrapping: true, indentUnit: 2, tabSize: 2, autoCloseBrackets: true, autoCloseTags: true, matchBrackets: true, matchTags: { bothTags: true }, styleActiveLine: true,
+            extraKeys: { 'Cmd-S': saveCode, 'Ctrl-S': saveCode, Tab: function (cm) { if (cm.somethingSelected()) cm.indentSelection('add'); else cm.replaceSelection('  ', 'end'); } } });
+          CODE.cm.on('change', onCodeChange);
+          setTimeout(function () { if (CODE.cm) CODE.cm.refresh(); }, 30);
+        } else {
+          CODE.ta = document.createElement('textarea'); CODE.ta.className = 'plain'; CODE.ta.spellcheck = false; CODE.ta.value = j.text;
+          CODE.ta.addEventListener('input', onCodeChange); body.appendChild(CODE.ta);
+        }
+        drawPreview();
+      });
+    });
+  }
+  function codeText() { return CODE.cm ? CODE.cm.getValue() : CODE.ta ? CODE.ta.value : CODE.original; }
+  function onCodeChange() {
+    var was = CODE.dirty; CODE.dirty = codeText() !== CODE.original;
+    if (was !== CODE.dirty) { setBtns(); drawFiles(); }
+    clearTimeout(onCodeChange.t); onCodeChange.t = setTimeout(drawPreview, 600);
+  }
+  function showFileInfo(f, note) {
+    var url = designBase('') + encPath(f.path) + '?v=' + Date.now();
+    var useAs = f.kind === 'image' ? '<p>Use it in a page with <code>&lt;img src="' + esc(relPath(dirOf(ED.path || ED.entry), f.path)) + '" alt="…"&gt;</code>, or swap any picture in the <b>Visual</b> tab.</p>' : '';
+    $('cc-body').innerHTML = '<div class="cc-info">' + (f.kind === 'image' ? '<img alt="" src="' + esc(url) + '">' : '') + '<p><b>' + esc(f.path) + '</b> · ' + fmtBytes(f.size || 0) + '</p>' + (note ? '<p>' + esc(note) + '</p>' : '') + useAs +
+      '<div class="acts" style="justify-content:flex-start"><button class="btn small" type="button" id="cc-replace">⬆ Replace with another file</button><a class="btn ghost small" href="' + esc(url) + '" target="_blank" rel="noopener">Open ↗</a></div></div>';
+    $('cc-replace').onclick = function () { pickFiles(false, f.path); };
+  }
+  function lineStats(a, b) {
+    var count = {}; a.split('\n').forEach(function (l) { count[l] = (count[l] || 0) + 1; });
+    var added = 0; b.split('\n').forEach(function (l) { if (count[l]) count[l]--; else added++; });
+    var removed = 0; Object.keys(count).forEach(function (k) { removed += count[k]; });
+    return { added: added, removed: removed };
+  }
+  function saveCode() {
+    if (!CODE || !CODE.dirty || saveCode.busy) return;
+    var p = CODE.path, text = codeText(), st = lineStats(CODE.original, text);
+    modal('Save ' + p + '?', '<p><b>+' + st.added + '</b> line' + (st.added === 1 ? '' : 's') + ' added or changed, <b>−' + st.removed + '</b> removed.</p><p class="muted">It’s saved to GitHub right away and the public site updates within about a minute. You can always go back with <b>History</b>.</p>',
+      [{ label: 'Keep editing', ghost: true, value: false }, { label: 'Save', value: true }]).then(function (yes) {
+      if (!yes) return;
+      saveCode.busy = true; setStatus('Saving…', 'saving'); $('cc-save').disabled = true;
+      api('/api/edit/file', { folder: ED.folder, path: p, text: text, sha: CODE.sha }).then(function (j) {
+        saveCode.busy = false;
+        if (!CODE || CODE.path !== p) return;
+        if (!j.ok) { setStatus('Not saved', 'bad'); setBtns(); if (j.status === 401) return route(); return showHelp(j.error || 'Saving didn’t work.', j.code || (j.status === 0 ? 'network' : '')); }
+        var r = j.files[0]; CODE.sha = r.sha;
+        if (r.text != null) { if (CODE.cm) CODE.cm.setValue(r.text); else if (CODE.ta) CODE.ta.value = r.text; }
+        CODE.original = r.text != null ? r.text : text; CODE.dirty = codeText() !== CODE.original;
+        ED.needReload = true; setBtns(); drawFiles(); setStatus('Saved to GitHub ✓', 'saved');
+        toast('Saved ' + p + '. Your live site updates within about a minute.');
+        if (j.secrets && j.secrets.length) showHelp('Your file contained ' + j.secrets.length + ' secret key(s). They were replaced with REMOVED_SECRET_KEY.', 'secret');
+        CODE.pageHtml = null; drawPreview(true);
+      });
+    });
+  }
+  $('cc-save').onclick = saveCode;
+  window.addEventListener('resize', function () { if (CODE && CODE.cm) { clearTimeout(CODE.rt); CODE.rt = setTimeout(function () { CODE.cm.refresh(); }, 150); } });
+
+  /* preview: the page being edited (unsaved changes included), or the home page for styles/scripts */
+  function withBase(html, dir) {
+    var tag = '<base href="' + designBase(dir) + '">';
+    return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + tag; }) : tag + html;
+  }
+  function previewFrame(host, html) {
+    var f = document.createElement('iframe'); f.setAttribute('sandbox', 'allow-scripts allow-forms'); f.title = 'Preview'; f.srcdoc = html;
+    host.innerHTML = ''; host.appendChild(f);
+  }
+  function pageSource(p, fresh) {
+    if (!fresh && CODE.pageHtml && CODE.pageHtml.p === p) return Promise.resolve(CODE.pageHtml.html);
+    return fetch(designBase(dirOf(p)) + encodeURIComponent(p.split('/').pop()) + '?v=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (h) { CODE.pageHtml = { p: p, html: h }; return h; });
+  }
+  function drawPreview(fresh) {
+    if (!CODE || MODE !== 'code' || $('code-view').classList.contains('no-prev')) return;
+    var host = $('cp-frame'), p = CODE.path;
+    if (p && isPage(p) && CODE.original != null) { $('cp-note').textContent = CODE.dirty ? ' · with your unsaved changes' : ''; return previewFrame(host, withBase(codeText(), dirOf(p))); }
+    var page = ED.path && hasFile(ED.path) ? ED.path : ED.entry;
+    $('cp-note').textContent = ' · ' + page + (p && /\.css$/i.test(p) && CODE.dirty ? ' with your unsaved styles' : '');
+    pageSource(page, fresh).then(function (html) {
+      if (!CODE || CODE.path !== p) return;
+      var extra = p && /\.css$/i.test(p) && CODE.dirty ? '<style>' + codeText().replace(/<\/style/gi, '<\\/style') + '</style>' : '';
+      previewFrame(host, withBase(extra ? html.replace(/<\/head>/i, extra + '</head>') : html, dirOf(page)));
+    });
+  }
+  $('cp-reload').onclick = function () { if (CODE) { CODE.pageHtml = null; drawPreview(true); } };
+  $('cp-toggle').onclick = function () { var v = $('code-view'); v.classList.toggle('no-prev'); this.textContent = v.classList.contains('no-prev') ? 'Show' : 'Hide'; if (!v.classList.contains('no-prev')) drawPreview(); if (CODE && CODE.cm) setTimeout(function () { CODE.cm.refresh(); }, 30); };
+
+  /* new page / file */
+  $('cf-new').onclick = function () {
+    var pages = CODE.files.filter(function (f) { return isPage(f.path); }).map(function (f) { return f.path; });
+    modal('Add something new', '<label class="fld">What do you want to add?<select id="nw-kind"><option value="page">A new page (.html)</option><option value="css">A style file (.css)</option><option value="js">A script (.js)</option></select></label>' +
+      '<label class="fld">Name <small>for example “contact” or “pages/team”</small><input type="text" id="nw-name" maxlength="80" placeholder="contact"></label>' +
+      '<label class="fld" id="nw-from-l">Start from<select id="nw-from"><option value="">A blank page with your site’s styles</option>' + pages.map(function (p) { return '<option value="' + esc(p) + '">A copy of ' + esc(p) + '</option>'; }).join('') + '</select></label>',
+      [{ label: 'Cancel', ghost: true, value: false }, { label: 'Create', value: true }]).then(function (yes) {
+      if (!yes) return;
+      var kind = $('nw-kind').value, ext = kind === 'page' ? '.html' : '.' + kind;
+      var name = $('nw-name').value.trim().toLowerCase().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').replace(/\.[a-z0-9]+$/, '').split('/').map(function (x) { return safeFileName(x); }).join('/');
+      if (!name) return showHelp('Give it a name, like “contact”.', 'empty-name');
+      var path = name + ext;
+      if (hasFile(path)) return showHelp('There’s already a file called “' + path + '”. Pick another name.', 'taken');
+      var from = kind === 'page' ? $('nw-from').value : '';
+      var make = from ? api('/api/edit/file?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(from)).then(function (j) { if (!j.ok || j.text == null) throw j; return fixCopy(j.text, dirOf(from), dirOf(path)); })
+        : Promise.resolve(kind === 'page' ? blankPage(dirOf(path)) : kind === 'css' ? '/* Styles */\n' : '// Script\n');
+      make.then(function (text) {
+        setStatus('Saving…', 'saving');
+        return api('/api/edit/file', { folder: ED.folder, path: path, text: text, sha: null }).then(function (j) {
+          if (!j.ok) throw j;
+          setStatus('Saved to GitHub ✓', 'saved'); ED.needReload = true;
+          toast('Created ' + path + (kind === 'page' ? '. Link to it from your other pages with <a href="…">.' : '.'));
+          return loadFiles().then(function () { openFile(path, true); });
+        });
+      }).catch(function (j) { setStatus('Not saved', 'bad'); showHelp((j && j.error) || 'Creating it didn’t work.', j && j.code); });
+    });
+    setTimeout(function () { var k = $('nw-kind'); if (k) k.onchange = function () { $('nw-from-l').hidden = this.value !== 'page'; }; }, 0);
+  };
+  function blankPage(dir) {
+    var css = CODE.files.filter(function (f) { return /\.css$/i.test(f.path); }).map(function (f) { return '  <link rel="stylesheet" href="' + esc(relPath(dir, f.path)) + '">\n'; }).join('');
+    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>New page</title>\n' + css + '</head>\n<body>\n  <main>\n    <h1>New page</h1>\n    <p>Write something here. Switch to the Visual tab to edit this text on the page.</p>\n  </main>\n</body>\n</html>\n';
+  }
+  function fixCopy(html, fromDir, toDir) {   // links in a copied page keep working when it lands in another folder
+    if (fromDir === toDir) return html;
+    return html.replace(/(\s(?:href|src)=["'])(?![a-z][a-z0-9+.-]*:|\/|#|data:)([^"']+)/gi, function (m, pre, url) {
+      var parts = (fromDir + url).split('/'), out = [];
+      parts.forEach(function (x) { if (x === '..') out.pop(); else if (x !== '.') out.push(x); });
+      return pre + relPath(toDir, out.join('/'));
+    });
+  }
+
+  /* upload / replace files */
+  $('cf-up').onclick = function () { pickFiles(true); };
+  function pickFiles(multiple, replacePath) {
+    var inp = $('cf-input'); inp.multiple = !!multiple; inp.value = '';
+    inp.onchange = function () { var list = [].slice.call(inp.files); if (list.length) uploadMany(list, replacePath); };
+    inp.click();
+  }
+  function uploadMany(list, replacePath) {
+    var big = list.filter(function (f) { return f.size > 25 * 1024 * 1024; });
+    if (big.length) return showHelp('“' + big[0].name + '” is over 25 MB. Make it smaller first, or use “New version” to upload your whole site again.', 'file-too-big');
+    var dir = imageDir(CODE.files), plan = list.map(function (f) {
+      if (replacePath) return { file: f, path: replacePath, over: true };
+      var nm = safeFileName(f.name), isImg = /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|avif|ico)$/i.test(nm);
+      var path = isImg ? dir + '/' + nm : nm;
+      return { file: f, path: path, over: hasFile(path) };
+    });
+    var clash = plan.filter(function (x) { return x.over; }).map(function (x) { return x.path; });
+    var ask = clash.length ? modal(replacePath ? 'Replace ' + replacePath + '?' : 'Replace existing files?', '<p>' + (replacePath ? 'The new file takes its place. Pages that use it show the new one.' : 'These files already exist and will be replaced: <b>' + clash.map(esc).join(', ') + '</b>') + '</p><p class="muted">The old version stays in History.</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Replace', value: true }])
+      : modal('Upload ' + plan.length + ' file' + (plan.length === 1 ? '' : 's') + '?', '<p>' + plan.map(function (x) { return '<b>' + esc(x.path) + '</b>'; }).join(', ') + '</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Upload', value: true }]);
+    ask.then(function (yes) {
+      if (!yes) return;
+      var i = 0, last = null;
+      (function next() {
+        if (i >= plan.length) { setStatus('Saved to GitHub ✓', 'saved'); ED.needReload = true; toast('Uploaded ' + plan.length + ' file' + (plan.length === 1 ? '' : 's') + '.'); return loadFiles().then(function () { if (last) openFile(last, true); }); }
+        var x = plan[i++]; setStatus('Uploading ' + x.path + '…', 'saving');
+        uploadFile(x.path, x.file, x.over).then(function (j) {
+          if (!j.ok) { setStatus('Not saved', 'bad'); loadFiles(); return showHelp(j.error || 'Uploading didn’t work.', j.code || (j.status === 0 ? 'network' : '')); }
+          last = x.path; next();
+        });
+      })();
+    });
+  }
+
+  /* rename / delete */
+  $('cc-ren').onclick = function () {
+    var p = CODE.path; if (!p) return;
+    confirmDiscard().then(function (ok) {
+      if (!ok) return;
+      modal('Rename ' + p, '<label class="fld">New name <small>you can also move it into a folder, like “pages/' + esc(p.split('/').pop()) + '”</small><input type="text" id="rn-to" maxlength="120" value="' + esc(p) + '"></label>' + (isPage(p) ? '<p class="muted">Links to this page in your other pages don’t change by themselves. Update them in the code afterwards.</p>' : '<p class="muted">Pages that use this file need their links updated afterwards.</p>'),
+        [{ label: 'Cancel', ghost: true, value: false }, { label: 'Rename', value: true }]).then(function (yes) {
+        var to = yes && $('rn-to').value.trim().replace(/^\/+/, '');
+        if (!to || to === p) return;
+        api('/api/edit/rename', { folder: ED.folder, path: p, to: to }).then(function (j) {
+          if (!j.ok) return showHelp(j.error || 'Renaming didn’t work.', j.code);
+          ED.needReload = true; if (ED.path === p) ED.path = j.path; ED.entry = j.entry || ED.entry;
+          toast('Renamed to ' + j.path + '.'); CODE.dirty = false;
+          loadFiles().then(function () { openFile(j.path, true); });
+        });
+      });
+    });
+  };
+  $('cc-del').onclick = function () {
+    var p = CODE.path; if (!p) return;
+    modal('Delete ' + p + '?', '<p>It’s removed from your site' + (isPage(p) ? ', and links to it stop working' : '') + '. You can bring it back from GitHub’s history with your teacher’s help.</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Delete', value: true }]).then(function (yes) {
+      if (!yes) return;
+      api('/api/edit/remove', { folder: ED.folder, path: p }).then(function (j) {
+        if (!j.ok) return showHelp(j.error || 'Deleting didn’t work.', j.code);
+        ED.needReload = true; ED.entry = j.entry || ED.entry; if (ED.path === p) ED.path = ED.entry;
+        toast('Deleted ' + p + '.'); CODE.dirty = false; CODE.path = null;
+        loadFiles().then(function () { openFile(ED.entry, true); });
+      });
+    });
+  };
+
+  /* history */
+  $('cc-hist').onclick = function () {
+    var p = CODE.path; if (!p) return;
+    api('/api/edit/history?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(p)).then(function (j) {
+      if (!j.ok) return showHelp(j.error || 'Couldn’t load the history.', j.code);
+      var v = j.versions || [];
+      if (v.length < 2) return modal('History of ' + p, '<p>There’s only one version of this file so far. Every time you save, the old version is kept here.</p>', [{ label: 'OK', value: false }]);
+      modal('History of ' + p, '<p class="muted">Every save is kept. Pick an older version to look at it or bring it back.</p><ul class="vlist">' + v.map(function (x, i) {
+        return '<li><input type="radio" name="ver" value="' + esc(x.commit) + '" id="ver' + i + '"' + (i === 1 ? ' checked' : '') + (i === 0 ? ' disabled' : '') + '><label class="vm" for="ver' + i + '">' + esc(x.date ? new Date(x.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '') + (i === 0 ? ' <b>(current)</b>' : '') + '<small>' + esc(x.message) + '</small></label></li>';
+      }).join('') + '</ul>', [{ label: 'Close', ghost: true, value: 0 }, { label: 'Look at it', ghost: true, value: 1 }, { label: 'Bring this version back', value: 2 }]).then(function (act) {
+        var sel = document.querySelector('input[name=ver]:checked'), commit = sel && sel.value;
+        if (!act || !commit) return;
+        if (act === 1) return api('/api/edit/version?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(p) + '&commit=' + encodeURIComponent(commit)).then(function (k) {
+          if (!k.ok) return showHelp(k.error, k.code);
+          modal('Older version of ' + p, k.binary ? '<p>This is a picture or other file (' + fmtBytes(k.size || 0) + '). Bring it back to see it.</p>' : '<pre class="vtext">' + esc(k.text) + '</pre>', [{ label: 'Back', ghost: true, value: false }, { label: 'Bring this version back', value: true }]).then(function (y) { if (y) restore(p, commit); });
+        });
+        restore(p, commit);
+      });
+    });
+  };
+  function restore(p, commit) {
+    modal('Bring back this version?', '<p><b>' + esc(p) + '</b> goes back to how it was then. Your current version stays in the history too, so nothing is lost.</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Bring it back', value: true }]).then(function (yes) {
+      if (!yes) return;
+      api('/api/edit/restore', { folder: ED.folder, path: p, commit: commit }).then(function (j) {
+        if (!j.ok) return showHelp(j.error || 'That didn’t work.', j.code);
+        ED.needReload = true; CODE.dirty = false; CODE.pageHtml = null; toast('Restored ' + p + '.');
+        loadFiles().then(function () { openFile(p, true); });
+      });
+    });
+  }
+  /* ---------- colours ---------- */
+  var KOL = null;   // { files: {path: {text, sha}}, vars: [], cols: [], set: {key: newHex}, pageHtml, changed() }
+  var COLOR_RE = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*[\d.]+%?\s*)?\)/g;
+  function parseColour(c) {
+    var m, r, g, b, a = 1;
+    if (c[0] === '#') {
+      var h = c.slice(1); if (h.length <= 4) h = h.split('').map(function (x) { return x + x; }).join('');
+      r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16); if (h.length === 8) a = parseInt(h.slice(6, 8), 16) / 255;
+    } else if ((m = c.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+)(%?))?/))) { r = +m[1]; g = +m[2]; b = +m[3]; if (m[4] != null) a = m[5] ? +m[4] / 100 : +m[4]; }
+    else return null;
+    var hx = '#' + [r, g, b].map(function (x) { return ('0' + Math.min(255, x).toString(16)).slice(-2); }).join('');
+    return { hex: hx, a: Math.round(a * 1000) / 1000 };
+  }
+  function rgbOf(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.slice(i, i + 2), 16); }); }
+  function writeColour(newHex, a) { if (a >= 1) return newHex; var c = rgbOf(newHex); return 'rgba(' + c.join(', ') + ', ' + a + ')'; }
+  function prettyVar(n) { return n.replace(/^--/, '').replace(/[-_]+/g, ' '); }
+  function openColours() {
+    setStatus('Colours');
+    if (KOL && KOL.folder === ED.folder) return drawColours();
+    $('k-panel').innerHTML = '<p class="muted">Looking for the colours in your styles…</p>'; $('k-frame').innerHTML = '';
+    fileList().then(function (j) {
+      if (!j.ok) { $('k-panel').innerHTML = '<p class="err">' + esc(j.error) + '</p>'; return; }
+      var css = j.files.filter(function (f) { return /\.css$/i.test(f.path) && f.size <= 2 * 1024 * 1024; }).slice(0, 15);
+      var page = ED.path && j.files.some(function (f) { return f.path === ED.path; }) ? ED.path : j.entry;
+      return Promise.all(css.map(function (f) { return api('/api/edit/file?folder=' + encodeURIComponent(ED.folder) + '&path=' + encodeURIComponent(f.path)); }).concat([
+        fetch(designBase(dirOf(page)) + encodeURIComponent(page.split('/').pop()) + '?v=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; })
+      ])).then(function (res) {
+        var html = res.pop();
+        KOL = { folder: ED.folder, files: {}, set: {}, page: page, pageHtml: html };
+        res.forEach(function (r) { if (r.ok && r.text != null) KOL.files[r.path] = { text: r.text, sha: r.sha }; });
+        analyseColours(); drawColours();
+      });
+    });
+  }
+  function analyseColours() {
+    var vars = {}, cols = {};
+    Object.keys(KOL.files).forEach(function (p) {
+      var t = KOL.files[p].text.replace(/\/\*[\s\S]*?\*\//g, function (m) { return m.replace(/[^\n]/g, ' '); });
+      var vr = /(--[A-Za-z0-9_-]+)\s*:\s*([^;{}]+)/g, m;
+      while ((m = vr.exec(t))) { var v = m[2].trim(), only = v.match(COLOR_RE); if (only && only.length === 1 && only[0] === v) { var c = parseColour(v); if (c && !vars[m[1]]) vars[m[1]] = { name: m[1], hex: c.hex }; } }
+      (t.match(COLOR_RE) || []).forEach(function (raw) { var c = parseColour(raw); if (c) cols[c.hex] = (cols[c.hex] || 0) + 1; });
+    });
+    KOL.vars = Object.keys(vars).map(function (k) { return vars[k]; });
+    KOL.cols = Object.keys(cols).map(function (k) { return { hex: k, n: cols[k] }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 40);
+    KOL.changed = function () { return Object.keys(KOL.set).length > 0; };
+  }
+  function kRow(key, label, hex, sub) {
+    var now = KOL.set[key] || hex;
+    return '<div class="krow' + (KOL.set[key] ? ' changed' : '') + '" data-key="' + esc(key) + '"><input type="color" value="' + esc(now) + '" aria-label="Colour for ' + esc(label) + '"><input type="text" value="' + esc(now) + '" maxlength="7" aria-label="Colour code for ' + esc(label) + '"><span class="kl">' + esc(label) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span></div>';
+  }
+  function drawColours() {
+    var files = Object.keys(KOL.files);
+    if (!files.length) { $('k-panel').innerHTML = '<p>Your site doesn’t have any .css style files, so there are no colours to change here. Colours written straight into pages can be changed in the <b>Code &amp; files</b> tab.</p>'; return; }
+    $('k-panel').innerHTML = (KOL.vars.length ? '<h3>Main colours <small class="muted">(your style settings)</small></h3>' + KOL.vars.map(function (v) { return kRow('v:' + v.name, prettyVar(v.name), v.hex, v.name); }).join('') : '') +
+      '<h3>' + (KOL.vars.length ? 'Every colour in your styles' : 'Colours in your styles') + '</h3><p class="muted" style="margin:0 0 6px;font-size:.85rem">Changing one changes it everywhere it’s used.</p>' +
+      KOL.cols.map(function (c) { return kRow('c:' + c.hex, c.hex, c.hex, 'used ' + c.n + '×'); }).join('') +
+      '<p class="muted" style="font-size:.82rem">From: ' + files.map(esc).join(', ') + '</p>' +
+      '<div class="kacts"><button class="btn" type="button" id="k-save"' + (KOL.changed() ? '' : ' disabled') + '>Save colours</button><button class="btn ghost" type="button" id="k-reset"' + (KOL.changed() ? '' : ' disabled') + '>Undo all</button></div>';
+    $('k-save').onclick = saveColours;
+    $('k-reset').onclick = function () { KOL.set = {}; drawColours(); };
+    kPreview();
+  }
+  function kChange(row, val) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(val)) return;
+    var key = row.getAttribute('data-key'), orig = key.slice(0, 2) === 'v:' ? KOL.vars.filter(function (v) { return 'v:' + v.name === key; })[0].hex : key.slice(2);
+    if (val.toLowerCase() === orig) delete KOL.set[key]; else KOL.set[key] = val.toLowerCase();
+    row.classList.toggle('changed', !!KOL.set[key]);
+    row.querySelector('input[type=color]').value = val; row.querySelector('input[type=text]').value = val;
+    $('k-save').disabled = $('k-reset').disabled = !KOL.changed();
+    clearTimeout(kChange.t); kChange.t = setTimeout(kPreview, 150);
+  }
+  $('k-panel').addEventListener('input', function (e) { var row = e.target.closest('.krow'); if (row) kChange(row, e.target.value.trim()); });
+  function newTexts() {   // css files with the chosen colours, only those that change
+    var out = {};
+    Object.keys(KOL.files).forEach(function (p) {
+      var t = KOL.files[p].text;
+      Object.keys(KOL.set).forEach(function (key) {
+        if (key.slice(0, 2) !== 'v:') return;
+        var name = key.slice(2).replace(/[-]/g, '\\-');
+        t = t.replace(new RegExp('(' + name + '\\s*:\\s*)([^;{}]+)', 'g'), function (m, pre, v) { var c = parseColour(v.trim()); return c && (v.trim().match(COLOR_RE) || []).length === 1 ? pre + writeColour(KOL.set[key], c.a) + (v.match(/\s*$/) || [''])[0] : m; });
+      });
+      t = t.replace(COLOR_RE, function (raw) { var c = parseColour(raw), nw = c && KOL.set['c:' + c.hex]; return nw ? writeColour(nw, c.a) : raw; });
+      if (t !== KOL.files[p].text) out[p] = t;
+    });
+    return out;
+  }
+  function kPreview() {
+    if (!KOL || MODE !== 'colours') return;
+    var t = newTexts(), extra = Object.keys(t).map(function (p) { return '<style>' + t[p].replace(/<\/style/gi, '<\\/style') + '</style>'; }).join('');
+    previewFrame($('k-frame'), withBase(extra ? KOL.pageHtml.replace(/<\/head>/i, extra + '</head>') : KOL.pageHtml, dirOf(KOL.page)));
+  }
+  function saveColours() {
+    var t = newTexts(), paths = Object.keys(t);
+    if (!paths.length) return;
+    var list = Object.keys(KOL.set).map(function (k) {
+      var old = k.slice(0, 2) === 'v:' ? KOL.vars.filter(function (v) { return 'v:' + v.name === k; })[0].hex : k.slice(2);
+      return '<li style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:22px;height:22px;border-radius:6px;background:' + esc(old) + ';border:1px solid #fff3"></span>→<span style="width:22px;height:22px;border-radius:6px;background:' + esc(KOL.set[k]) + ';border:1px solid #fff3"></span><span>' + esc(k.slice(0, 2) === 'v:' ? prettyVar(k.slice(2)) : old) + '</span></li>';
+    }).join('');
+    modal('Save the new colours?', '<ul style="list-style:none;padding:0;margin:0 0 10px">' + list + '</ul><p class="muted">This changes ' + paths.map(esc).join(', ') + '. You can always go back with History in the Code &amp; files tab.</p>', [{ label: 'Keep editing', ghost: true, value: false }, { label: 'Save colours', value: true }]).then(function (yes) {
+      if (!yes) return;
+      setStatus('Saving…', 'saving');
+      api('/api/edit/file', { folder: ED.folder, changes: paths.map(function (p) { return { path: p, text: t[p], sha: KOL.files[p].sha }; }) }).then(function (j) {
+        if (!j.ok) { setStatus('Not saved', 'bad'); return showHelp(j.error || 'Saving didn’t work.', j.code); }
+        j.files.forEach(function (f) { KOL.files[f.path] = { text: f.text != null ? f.text : t[f.path], sha: f.sha }; });
+        KOL.set = {}; ED.needReload = true; if (CODE) { CODE.pageHtml = null; if (CODE.path && t[CODE.path] != null) CODE.loaded = false; }
+        setStatus('Saved to GitHub ✓', 'saved'); toast('New colours saved. Your live site updates within about a minute.');
+        analyseColours(); drawColours();
+      });
+    });
+  }
   route();
 })();
 </script>

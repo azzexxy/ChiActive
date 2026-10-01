@@ -73,7 +73,7 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
 
   // upload a small design in pieces
   const files = [
-    ['site/index.html', '<!doctype html><html><head><title>T</title><link rel="stylesheet" href="s.css"></head><body><h1>Hello world</h1><p>First paragraph.</p><a href="two.html">Two</a><label>Name <input></label></body></html>'],
+    ['site/index.html', '<!doctype html><html><head><title>T</title><link rel="stylesheet" href="s.css"></head><body><h1>Hello world</h1><p>First paragraph.</p><a href="two.html">Two</a><label>Name <input></label><img src="pic.png" alt="Pic"></body></html>'],
     ['site/two.html', '<!doctype html><title>2</title><h2>Second page</h2>'],
     ['site/s.css', 'h1{color:red}'],
     ['site/config.js', 'var mapKey = "' + 'AKIA' + 'QWERTYUIOPASDFGH' + '";\nvar ai = "' + 'sk-' + 'ant-' + 'api03-' + 'Zx9'.repeat(12) + '";\n'],
@@ -156,6 +156,57 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   z = await dl('helper'); check('a non-editor cannot download it', z.status === 403, z.status);
   z = await dl('admin'); check('admin can download any design', z.status === 200 && z.buf.length > 100, z.status);
   z = await dl('nobody'); check('logged-out visitors cannot download', z.status === 401, z.status);
+
+  // code editor: files, save, conflicts, new files, upload, rename, delete, history, restore
+  r = await call(`/api/edit/files?folder=${folder}`); check('editor lists every file', r.json && r.json.ok && r.json.files.some(x => x.path === 's.css' && x.kind === 'text') && r.json.files.some(x => x.path === 'pic.png' && x.kind === 'image'), r.text.slice(0, 200));
+  r = await call(`/api/edit/file?folder=${folder}&path=s.css`); const css = r.json || {};
+  check('a CSS file opens as text', css.ok && css.text === 'h1{color:red}' && css.sha, r.text.slice(0, 200));
+  r = await call('/api/edit/file', { folder, path: 's.css', text: 'h1{color:blue}', sha: css.sha }); check('a CSS file can be saved', r.json && r.json.ok, r.text);
+  r = await call(`/d/${folder}/s.css?x=1`); check('the saved CSS is live', r.text.includes('blue'), r.text);
+  r = await call('/api/edit/file', { folder, path: 's.css', text: 'h1{color:green}', sha: css.sha }); check('saving over a newer version is refused', r.status === 409, r.text);
+  r = await call('/api/edit/file', { folder, path: 'new.html', text: '<!doctype html><title>New</title><h1>New page</h1>', sha: null }); check('a new page can be created', r.json && r.json.ok, r.text);
+  r = await call('/api/edit/file', { folder, path: 'new.html', text: 'x', sha: null }); check('a page name can’t be used twice', r.status === 409, r.text);
+  r = await call('/api/edit/file', { folder, path: 'evil.exe', text: 'x', sha: null }); check('files that aren’t web files are refused', r.status === 400, r.text);
+  r = await call('/api/edit/file', { folder, path: '../escape.html', text: 'x', sha: null }); check('paths outside the design are refused', r.status === 400, r.text);
+  r = await call(`/api/edit/upload?folder=${folder}&path=images/up.png`, Buffer.from('89504e470d0a1a0a00', 'hex'), 'student', true); check('an image can be uploaded', r.json && r.json.ok, r.text);
+  r = await call(`/api/edit/upload?folder=${folder}&path=images/up.png`, Buffer.from('89504e47', 'hex'), 'student', true); check('uploading over a file needs “replace”', r.status === 409, r.text);
+  r = await call(`/api/edit/upload?folder=${folder}&path=images/up.png&overwrite=1`, Buffer.from('89504e47', 'hex'), 'student', true); check('a file can be replaced', r.json && r.json.replaced, r.text);
+  r = await call('/api/edit/rename', { folder, path: 'new.html', to: 'renamed.html' }); check('a file can be renamed', r.json && r.json.ok, r.text);
+  r = await call('/api/edit/remove', { folder, path: 'renamed.html' }); check('a file can be deleted', r.json && r.json.ok, r.text);
+  r = await call(`/api/edit/files?folder=${folder}`); check('the file list is up to date', r.json && !r.json.files.some(x => /new|renamed/.test(x.path)) && r.json.files.some(x => x.path === 'images/up.png'), r.text.slice(0, 300));
+  r = await call(`/api/edit/history?folder=${folder}&path=s.css`); const vers = (r.json && r.json.versions) || [];
+  check('a file has a version history', vers.length >= 2, r.text.slice(0, 300));
+  r = await call(`/api/edit/version?folder=${folder}&path=s.css&commit=${(vers[vers.length - 1] || {}).commit}`); check('an old version can be viewed', r.json && r.json.text === 'h1{color:red}', r.text);
+  r = await call('/api/edit/restore', { folder, path: 's.css', commit: (vers[vers.length - 1] || {}).commit }); check('an old version can be restored', r.json && r.json.ok, r.text);
+  r = await call(`/api/edit/file?folder=${folder}&path=s.css`); check('the restored file is back', r.json && r.json.text === 'h1{color:red}', r.text);
+  r = await call(`/api/edit/files?folder=${folder}`, undefined, 'helper'); check('non-editors can’t see the files', r.status === 403, r.status);
+
+  // visual editor: move, duplicate, images
+  let pg = (await call(`/api/edit/page?folder=${folder}&path=index.html`)).json || {};
+  const firstP = pg.html && pg.html.match(/<p data-ca-b="(\d+)"/), img = pg.html && pg.html.match(/<img[^>]*data-ca-i="(\d+)"/);
+  check('images are editable on the page', !!img, pg.html && pg.html.slice(0, 200));
+  const blk = firstP ? +firstP[1] : (pg.html.match(/<a data-ca-b="(\d+)"/) || [0, 1])[1];
+  r = await call('/api/edit/block', { folder, path: 'index.html', sha: pg.sha, block: +blk, action: 'duplicate' }); check('a block can be duplicated', r.json && r.json.ok && r.json.reload, r.text);
+  r = await call('/api/edit/block', { folder, path: 'index.html', sha: r.json && r.json.sha, block: +blk, action: 'move-up' }); check('a block can be moved', r.json && r.json.ok, r.text);
+  r = await call('/api/edit/block', { folder, path: 'index.html', sha: r.json && r.json.sha, block: img ? +img[1] : 0, action: 'image', src: 'images/up.png', alt: 'Uploaded' }); check('an image can be swapped', r.json && r.json.ok, r.text);
+  r = await call(`/d/${folder}/index.html?x=2`); check('the swapped image is on the page', r.text.includes('src="images/up.png"') && r.text.includes('alt="Uploaded"'), r.text.slice(0, 300));
+  pg = (await call(`/api/edit/page?folder=${folder}&path=index.html`)).json || {};
+  r = await call('/api/edit/block', { folder, path: 'index.html', sha: pg.sha, block: img ? +img[1] : 0, action: 'image-delete' }); check('an image can be deleted', r.json && r.json.ok, r.text);
+
+  // upload a new version of the whole design
+  const v2 = [['site/index.html', '<!doctype html><title>V2</title><h1>Version two</h1>'], ['site/style.css', 'body{}']];
+  r = await call('/api/upload/start', { replace: folder, files: v2.map(f => ({ path: f[0], size: Buffer.byteLength(f[1]) })) });
+  check('a new version can be started', r.json && r.json.ok && r.json.folder === folder, r.text);
+  const up2 = r.json || {};
+  for (let k = 0; k < (up2.files || []).length; k++) await call(`/api/upload/chunk?id=${up2.id}&k=${k}&o=0`, Buffer.from(v2[up2.files[k]][1]), 'student', true);
+  r = await call('/api/upload/finish', { id: up2.id }); st = r.json || {};
+  for (let i = 0; i < 40 && st.status === 'saving'; i++) { await new Promise(z => setTimeout(z, 250)); st = (await call('/api/upload/status?id=' + up2.id)).json || {}; }
+  r = await call(`/api/edit/files?folder=${folder}`);
+  check('the new version replaces all files', st.status === 'done' && r.json && r.json.files.map(x => x.path).sort().join() === 'index.html,style.css', JSON.stringify(st).slice(0, 100) + ' ' + r.text.slice(0, 200));
+  r = await call('/api/designs'); const dd = r.json && r.json.designs.find(x => x.folder === folder);
+  check('name and owner stay the same', dd && dd.name === 'Website design - Self Test' && dd.owner, JSON.stringify(dd));
+  r = await call('/api/upload/start', { replace: folder, files: v2.map(f => ({ path: f[0], size: 5 })) }, 'helper');
+  check('others can’t upload a new version', r.status === 403, r.text);
 
   finish();
 })();

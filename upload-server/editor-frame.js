@@ -7,6 +7,8 @@
   if (window.__caEditor) return;
   window.__caEditor = true;
   var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  var MORE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>';
+  var PHOTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>';
   var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
   var NAMES = { H1: 'heading', H2: 'heading', H3: 'heading', H4: 'heading', H5: 'heading', H6: 'heading', P: 'text', A: 'link', BUTTON: 'button', LI: 'list item',
     LABEL: 'label', TD: 'table cell', TH: 'table heading', BLOCKQUOTE: 'quote', FIGCAPTION: 'caption', SUMMARY: 'question', 'CA-TEXT': 'text', LEGEND: 'label', CAPTION: 'caption' };
@@ -39,17 +41,53 @@
     t.setAttribute('data-block', el.getAttribute('data-ca-b'));
     var what = kind(el) + ': ' + clip(el.textContent, 40);
     t.innerHTML = '<button type="button" class="ca-btn ca-edit" data-act="edit" title="Edit this ' + kind(el) + '">' + PENCIL + '</button>' +
-      '<button type="button" class="ca-btn ca-del" data-act="delete" title="Delete this ' + kind(el) + '">' + TRASH + '</button>';
+      '<button type="button" class="ca-btn ca-del" data-act="delete" title="Delete this ' + kind(el) + '">' + TRASH + '</button>' +
+      (el.tagName === 'CA-TEXT' ? '' : '<button type="button" class="ca-btn ca-more" data-act="more" title="Move or duplicate" aria-haspopup="menu">' + MORE + '</button>');
     t.children[0].setAttribute('aria-label', 'Edit ' + what);
     t.children[1].setAttribute('aria-label', 'Delete ' + what);
     layer.appendChild(t);
     tools.push({ el: el, t: t });
+    if (t.children[2]) t.children[2].setAttribute('aria-label', 'More for ' + what);
     function on() { el.classList.add('ca-hover'); t.classList.add('on'); }
     function off() { el.classList.remove('ca-hover'); t.classList.remove('on'); }
     el.addEventListener('mouseenter', on); el.addEventListener('mouseleave', off);
     t.addEventListener('mouseenter', on); t.addEventListener('mouseleave', off);
     t.addEventListener('focusin', on); t.addEventListener('focusout', off);
   });
+  // pictures: change (new file / description) or delete
+  [].slice.call(document.querySelectorAll('img[data-ca-i]')).forEach(function (img) {
+    var t = document.createElement('div');
+    t.className = 'ca-tools ca-img-tools';
+    t.setAttribute('data-image', img.getAttribute('data-ca-i'));
+    t.innerHTML = '<button type="button" class="ca-btn ca-edit" data-act="image" title="Change this picture">' + PHOTO + '</button>' +
+      '<button type="button" class="ca-btn ca-del" data-act="image-delete" title="Delete this picture">' + TRASH + '</button>';
+    t.children[0].setAttribute('aria-label', 'Change picture ' + (img.getAttribute('alt') || ''));
+    t.children[1].setAttribute('aria-label', 'Delete picture ' + (img.getAttribute('alt') || ''));
+    layer.appendChild(t);
+    tools.push({ el: img, t: t, img: true });
+    function on() { img.classList.add('ca-hover'); t.classList.add('on'); }
+    function off() { img.classList.remove('ca-hover'); t.classList.remove('on'); }
+    img.addEventListener('mouseenter', on); img.addEventListener('mouseleave', off);
+    t.addEventListener('mouseenter', on); t.addEventListener('mouseleave', off);
+    t.addEventListener('focusin', on); t.addEventListener('focusout', off);
+  });
+  var menu = null;
+  function closeMenu() { if (menu) { menu.remove(); menu = null; } }
+  function openMenu(btn, el) {
+    closeMenu();
+    menu = document.createElement('div'); menu.id = 'ca-menu'; menu.setAttribute('role', 'menu');
+    menu.innerHTML = '<button type="button" role="menuitem" data-m="move-up">↑ Move up</button><button type="button" role="menuitem" data-m="move-down">↓ Move down</button><button type="button" role="menuitem" data-m="duplicate">⧉ Duplicate</button>';
+    var r = btn.getBoundingClientRect();
+    menu.style.left = Math.max(4, Math.min(r.left + window.pageXOffset - 120, window.pageXOffset + document.documentElement.clientWidth - 170)) + 'px';
+    menu.style.top = (r.bottom + window.pageYOffset + 6) + 'px';
+    layer.appendChild(menu);
+    menu.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-m]'); if (!b) return;
+      e.preventDefault(); e.stopPropagation(); closeMenu();
+      ask({ type: 'ask', action: b.getAttribute('data-m'), block: +el.getAttribute('data-ca-b'), kind: kind(el), before: textOf(el) });
+    });
+    menu.querySelector('button').focus();
+  }
   var queued = false;
   function place() {
     queued = false;
@@ -59,8 +97,9 @@
       var r = x.el.getBoundingClientRect();
       if (!r.width && !r.height) { x.t.style.display = 'none'; return; }
       x.t.style.display = 'flex';
-      var left = Math.max(sx + 2, Math.min(sx + r.right - 8, sx + W - 62));
-      var top = Math.max(0, sy + r.top - 14);
+      var wide = x.t.children.length * 30 + 2;
+      var left = x.img ? Math.max(sx + 2, Math.min(sx + r.right - wide - 6, sx + W - wide - 2)) : Math.max(sx + 2, Math.min(sx + r.right - 8, sx + W - wide - 2));
+      var top = x.img ? Math.max(0, sy + r.top + 6) : Math.max(0, sy + r.top - 14);
       x.t.style.transform = 'translate(' + Math.round(left) + 'px,' + Math.round(top) + 'px)';
     });
     if (active) placePop();
@@ -81,10 +120,17 @@
     var btn = t.closest && t.closest('#ca-layer .ca-btn');
     if (btn) {
       e.preventDefault(); e.stopPropagation();
+      var act = btn.getAttribute('data-act');
+      if (act === 'image' || act === 'image-delete') {
+        var img = document.querySelector('img[data-ca-i="' + btn.parentNode.getAttribute('data-image') + '"]');
+        if (img) { closeMenu(); if (active) closeEditor(true); ask({ type: 'ask', action: act, block: +img.getAttribute('data-ca-i'), kind: 'picture', src: img.getAttribute('src') || '', alt: img.getAttribute('alt') || '', before: img.getAttribute('alt') || img.getAttribute('src') || 'picture' }); }
+        return;
+      }
       var el = byIndex(btn.parentNode.getAttribute('data-block'));
-      if (el) { if (btn.getAttribute('data-act') === 'edit') openEditor(el); else askDelete(el); }
+      if (el) { if (act === 'edit') { closeMenu(); openEditor(el); } else if (act === 'more') { if (menu) closeMenu(); else openMenu(btn, el); } else { closeMenu(); askDelete(el); } }
       return;
     }
+    if (menu && !(t.closest && t.closest('#ca-menu'))) closeMenu();
     if (t.closest && t.closest('#ca-pop')) return;   // the edit box handles its own buttons
     if (active && active.el.contains(t)) { e.preventDefault(); return; }
     var a = t.closest && t.closest('a[href]');
@@ -95,7 +141,7 @@
     if (/^(mailto|tel|javascript|sms):/i.test(href)) return;
     send({ type: 'nav', href: a.href });
   }, true);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && active) { e.preventDefault(); closeEditor(true); } }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu) { closeMenu(); return; } if (e.key === 'Escape' && active) { e.preventDefault(); closeEditor(true); } }, true);
 
   /* ---------- editing ---------- */
   var active = null;
@@ -225,5 +271,5 @@
     });
   }
 
-  send({ type: 'ready', count: blocks.length, title: document.title });
+  send({ type: 'ready', count: blocks.length, images: document.querySelectorAll('img[data-ca-i]').length, title: document.title });
 })();

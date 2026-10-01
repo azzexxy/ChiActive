@@ -48,6 +48,21 @@ function findBlocks(src) {
   return { doc, blocks };
 }
 
+// every <img> in the page (in document order), also those inside <picture>; numbered separately from text blocks
+const IMG_SKIP = new Set(['head', 'script', 'style', 'template', 'noscript', 'svg', 'math', 'iframe', 'textarea', 'select', 'object']);
+function findImages(src) {
+  const doc = parse(src, { sourceCodeLocationInfo: true });
+  const imgs = [];
+  (function walk(node) {
+    for (const c of node.childNodes || []) {
+      if (!isEl(c) || IMG_SKIP.has(c.tagName)) continue;
+      if (c.tagName === 'img' && c.sourceCodeLocation && c.sourceCodeLocation.startTag) imgs.push(c);
+      walk(c.content || c);
+    }
+  })(doc);
+  return imgs;
+}
+const attr = (n, name) => { const a = n.attrs.find(x => x.name === name); return a ? a.value : null; };
 function describe(b, src) {
   if (b.kind === 'text') return { kind: 'text', tag: '#text', text: b.node.value.trim() };
   const [s, e] = innerRange(b.node);
@@ -68,6 +83,11 @@ function annotate(input, { headStart = '', bodyEnd = '' } = {}) {
   const [bom, src] = stripBom(input);
   const { doc, blocks } = findBlocks(src);
   const edits = [];
+  findImages(src).forEach((img, i) => {
+    let at = img.sourceCodeLocation.startTag.endOffset - 1;
+    if (src[at - 1] === '/') at--;
+    edits.push({ at, text: ` data-ca-i="${i}"` });
+  });
   blocks.forEach((b, i) => {
     const loc = b.node.sourceCodeLocation;
     if (b.kind === 'text') { edits.push({ at: loc.startOffset, text: `<ca-text data-ca-b="${i}">` }, { at: loc.endOffset, text: '</ca-text>' }); return; }
@@ -163,7 +183,79 @@ function applyDelete(input, index) {
   return bom + splice(src, [{ at: s, del: e - s, text: '' }]);
 }
 
+/* ---------- images ---------- */
+function pickImage(src, index) {
+  const img = findImages(src)[index];
+  if (!img) throw Object.assign(new Error('That image no longer exists on this page. The page will reload.'), { user: true, status: 409, code: 'stale' });
+  return img;
+}
+function imageInfo(input, index) { const [, src] = stripBom(input); const img = pickImage(src, index); return { src: attr(img, 'src') || '', alt: attr(img, 'alt') || '' }; }
+// new src and/or alt text; srcset/sizes are dropped when the picture changes, or browsers keep showing the old one
+function applyImage(input, index, change) {
+  const [bom, src] = stripBom(input);
+  const img = pickImage(src, index), loc = img.sourceCodeLocation, attrsLoc = loc.attrs || {}, edits = [];
+  const set = (name, value) => {
+    const al = attrsLoc[name];
+    if (al && value == null) { let st = al.startOffset; while (st > 0 && /[ \t\n]/.test(src[st - 1])) st--; edits.push({ at: st, del: al.endOffset - st, text: '' }); }
+    else if (al) edits.push({ at: al.startOffset, del: al.endOffset - al.startOffset, text: `${name}="${escAttr(value)}"` });
+    else if (value != null) { let at = loc.startTag.endOffset - 1; if (src[at - 1] === '/') at--; edits.push({ at, text: ` ${name}="${escAttr(value)}"` }); }
+  };
+  if (change.src != null) {
+    const v = String(change.src).trim();
+    if (!v || /^\s*(javascript|vbscript):/i.test(v)) throw Object.assign(new Error('That picture address isn’t allowed.'), { user: true, status: 400 });
+    if (v !== attr(img, 'src')) { set('src', v.slice(0, 2000)); if (attrsLoc.srcset) set('srcset', null); if (attrsLoc.sizes) set('sizes', null); if (attrsLoc['data-src']) set('data-src', null); }
+  }
+  if (change.alt != null) set('alt', String(change.alt).slice(0, 300));
+  return bom + splice(src, edits);
+}
+function applyImageDelete(input, index) {
+  const [bom, src] = stripBom(input);
+  let node = pickImage(src, index);
+  if (node.parentNode && node.parentNode.tagName === 'picture') node = node.parentNode;   // the whole <picture>
+  return bom + removeNode(src, node);
+}
+function removeNode(src, node) {
+  const loc = node.sourceCodeLocation;
+  let s = loc.startOffset, e = loc.endOffset;
+  const lineStart = src.lastIndexOf('\n', s - 1) + 1, lineEnd = src.indexOf('\n', e);
+  if (/^[ \t]*$/.test(src.slice(lineStart, s)) && /^[ \t]*$/.test(src.slice(e, lineEnd < 0 ? src.length : lineEnd))) { s = lineStart; e = lineEnd < 0 ? src.length : lineEnd + 1; }
+  return splice(src, [{ at: s, del: e - s, text: '' }]);
+}
+
+/* ---------- moving and duplicating a block ---------- */
+function siblingEl(node, dir) {
+  const kids = (node.parentNode && node.parentNode.childNodes) || [];
+  let i = kids.indexOf(node) + dir;
+  for (; i >= 0 && i < kids.length; i += dir) {
+    const k = kids[i];
+    if (k.nodeName === '#text' && !/\S/.test(k.value)) continue;
+    if (k.nodeName === '#comment') continue;
+    return isEl(k) && k.sourceCodeLocation ? k : null;   // loose text next to it: don't move across
+  }
+  return null;
+}
+function applyMove(input, index, dir) {
+  const [bom, src] = stripBom(input);
+  const { b } = pick(src, index);
+  if (b.kind !== 'el') throw Object.assign(new Error('This piece of text can’t be moved on its own. Use the code editor for that.'), { user: true, status: 400 });
+  const other = siblingEl(b.node, dir < 0 ? -1 : 1);
+  if (!other) throw Object.assign(new Error(dir < 0 ? 'This is already the first item here.' : 'This is already the last item here.'), { user: true, status: 400, code: 'edge' });
+  const [first, second] = dir < 0 ? [other, b.node] : [b.node, other];
+  const a = first.sourceCodeLocation, c = second.sourceCodeLocation;
+  const out = src.slice(0, a.startOffset) + src.slice(c.startOffset, c.endOffset) + src.slice(a.endOffset, c.startOffset) + src.slice(a.startOffset, a.endOffset) + src.slice(c.endOffset);
+  return bom + out;
+}
+function applyDuplicate(input, index) {
+  const [bom, src] = stripBom(input);
+  const { b } = pick(src, index);
+  if (b.kind !== 'el') throw Object.assign(new Error('This piece of text can’t be copied on its own. Use the code editor for that.'), { user: true, status: 400 });
+  const loc = b.node.sourceCodeLocation;
+  const lineStart = src.lastIndexOf('\n', loc.startOffset - 1) + 1, indent = src.slice(lineStart, loc.startOffset);
+  const sep = /^[ \t]*$/.test(indent) ? '\n' + indent : ' ';
+  return bom + splice(src, [{ at: loc.endOffset, text: sep + src.slice(loc.startOffset, loc.endOffset) }]);
+}
 function blockInfo(input, index) { const [, src] = stripBom(input); return describe(pick(src, index).b, src); }
 function countBlocks(input) { return findBlocks(stripBom(input)[1]).blocks.length; }
 
-module.exports = { annotate, applyEdit, applyDelete, blockInfo, countBlocks, sanitizeInline, findBlocks };
+function countImages(input) { return findImages(stripBom(input)[1]).length; }
+module.exports = { annotate, applyEdit, applyDelete, blockInfo, countBlocks, sanitizeInline, findBlocks, findImages, imageInfo, applyImage, applyImageDelete, applyMove, applyDuplicate, countImages };

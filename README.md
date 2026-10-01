@@ -12,6 +12,13 @@ Every design is treated the same, including the original ChiActive store (`desig
 - Only the owner (and the admin) can edit a design. The design runs in a sandboxed frame in the Studio, so its own scripts can't touch the Studio or the login.
 - A `.zip` added straight to `designs/` on GitHub is unpacked by the GitHub Action in `.github/workflows/unzip-designs.yml` (it has no owner until the admin sets one).
 
+## Editing a whole site (Studio → ✎ Edit site)
+- **Visual:** ✎ change text and links, 🗑 delete, ⋯ move up/down or duplicate; pictures have their own buttons to swap the image (upload a new one) or change its description, or delete it.
+- **Code & files:** every file of the design in a code editor (CodeMirror) with a live preview: edit pages, CSS and JavaScript, add pages (blank or a copy of another page), add CSS/JS files, upload or replace images and other files (up to 25 MB each), rename/move, delete. **History** shows every saved version of a file and can bring any of them back.
+- **Colours:** finds the colours in the site's CSS (named colour settings first, then every colour used), with colour pickers and a live preview; saves all changed CSS files at once.
+- **⬆ New version:** upload the whole site again; it replaces every file but keeps the name, owner and editors (old versions stay in GitHub history).
+- Every change asks for confirmation and is saved to GitHub straight away; secret keys are removed automatically. Owners, editors and admins can edit; nobody else.
+
 ## Admin page
 **https://chiactive-uploads.onrender.com/admin** (password = `ADMIN_PASSWORD` in Render).
 - **Activity:** uploads (started, saved, refused, failed, abandoned, with the error and error code), text edits and deletes (before → after), sign-ups, logins, wrong passwords, gallery visits, design views, pages clicked inside designs, and admin actions, all timestamped with device and a random visitor id. Filter, search, click a person to see only them, download CSV.
