@@ -191,7 +191,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin']
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
   function inFilter(e, f) {
@@ -249,7 +249,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     if (e.page) bits.push('Page: <code>' + esc(e.page) + '</code>');
     if (e.files != null || e.size != null) bits.push([e.files != null ? e.files + ' files' : '', e.size != null ? mb(e.size) : ''].filter(Boolean).join(', ') + (e.received != null ? ' (' + mb(e.received) + ' arrived)' : '') + (e.saved != null ? ' (' + e.saved + ' saved before it failed)' : ''));
     if (e.seconds != null) bits.push('took ' + (e.seconds >= 90 ? Math.round(e.seconds / 60) + ' min' : e.seconds + ' s'));
-    if (e.stage) bits.push('stage: ' + esc(e.stage));
+    if (e.stage) bits.push((e.type === 'request-error' ? 'request: ' : 'stage: ') + esc(e.stage) + (e.status ? ' → HTTP ' + esc(e.status) : ''));
     if (e.error) bits.push('<span class="msg">' + esc(e.error) + '</span>');
     if (e.message) bits.push(/error|fail|problem|drop/i.test(e.type + e.message) ? '<span class="msg">' + esc(e.message) + '</span>' : esc(e.message));
     if (e.detail) bits.push('<span class="dev">Technical: ' + esc(e.detail) + '</span>');

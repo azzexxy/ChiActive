@@ -89,6 +89,7 @@ const extOf = p => (String(p).split('.').pop() || '').toLowerCase();
 function userError(status, code, message) { const e = new Error(message); e.status = status; e.code = code; e.user = true; return e; }
 function cors(origin) { return origin ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {}; }
 function send(res, status, body, origin, extra) {
+  if (status >= 400 && body && body.error) res.caError = { error: body.error, code: body.code, ref: body.ref };
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...cors(origin), ...(extra || {}) });
   res.end(JSON.stringify(body));
 }
@@ -473,13 +474,29 @@ async function servePreview(req, res, url) {
   const local = s && s.files.find(f => f.path === p);
   if (local) { res.writeHead(200, { ...head, 'Content-Length': local.size }); return req.method === 'HEAD' ? res.end() : fs.createReadStream(local.file).pipe(res); }
   try {
-    const u = `${RAW}/${REPO}/${await headSha()}/${DIR}/${folder}/${p}`.split('/').map((x, i) => i < 3 ? x : encodeURIComponent(x)).join('/');
-    const r = await fetch(u, { headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {} });
-    if (!r.ok) return notFound();
-    const buf = Buffer.from(await r.arrayBuffer());
+    const buf = await repoFile(folder, p);
+    if (!buf) return notFound();
     res.writeHead(200, { ...head, 'Content-Length': buf.length });
     return res.end(req.method === 'HEAD' ? undefined : buf);
   } catch (e) { return notFound(); }
+}
+
+// A design file at the newest commit: the public raw address first (fast, no rate limit),
+// then the GitHub API (works even if the raw address is slow to update or refuses the request).
+async function repoFile(folder, p) {
+  const sha = await headSha();
+  const enc = `${DIR}/${folder}/${p}`.split('/').map(encodeURIComponent).join('/');
+  try {
+    const r = await fetch(`${RAW}/${REPO}/${sha}/${enc}`, { signal: AbortSignal.timeout(20e3) });
+    if (r.ok) return Buffer.from(await r.arrayBuffer());
+    if (r.status !== 404) console.error(`raw ${r.status} for ${folder}/${p}`);
+  } catch (e) { console.error('raw fetch failed:', e.message); }
+  if (!TOKEN) return null;
+  try {
+    const r = await fetch(`${API}/repos/${REPO}/contents/${enc}?ref=${sha}`, { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github.raw', 'User-Agent': 'chiactive-upload-server', 'X-GitHub-Api-Version': '2022-11-28' }, signal: AbortSignal.timeout(30e3) });
+    if (r.ok) return Buffer.from(await r.arrayBuffer());
+  } catch (e) { console.error('API raw fetch failed:', e.message); }
+  return null;
 }
 
 /* ---------- activity log ---------- */
@@ -920,6 +937,13 @@ const server = http.createServer(async (req, res) => {
   const origin = allowedOrigin(req);
   const url = new URL(req.url, 'http://x');
   const route = url.pathname;
+  const t0 = Date.now();
+  res.on('finish', () => {   // every failed API request ends up in the admin log with its exact message
+    if (res.statusCode < 400 || !route.startsWith('/api/') || route === '/api/event' || route === '/api/account/me') return;
+    if (res.statusCode === 401 && (route.startsWith('/api/admin/') || route === '/api/edit/pages')) return;
+    logEvent('request-error', { stage: `${req.method} ${route}`, status: res.statusCode, error: res.caError ? res.caError.error : `HTTP ${res.statusCode}`,
+      ref: res.caError && res.caError.ref, detail: res.caError && res.caError.code ? 'code: ' + res.caError.code : undefined, seconds: Math.round((Date.now() - t0) / 100) / 10 }, req);
+  });
   try {
     if (req.method === 'OPTIONS') {
       res.writeHead(origin ? 204 : 403, origin ? { ...cors(origin), 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' } : {});
@@ -954,7 +978,7 @@ const server = http.createServer(async (req, res) => {
 
     // activity beacons from the gallery and the demo viewer
     if (req.method === 'POST' && route === '/api/event') {
-      if (!origin || eventLimited(clientIp(req))) { req.resume(); res.writeHead(204, cors(origin)); return res.end(); }
+      if ((!origin && !(req.headers.origin && sameOrigin(req))) || eventLimited(clientIp(req))) { req.resume(); res.writeHead(204, cors(origin)); return res.end(); }
       let body = {};
       try { body = JSON.parse((await readBody(req, 4096)).toString('utf8')); } catch (e) { res.writeHead(400, cors(origin)); return res.end(); }
       if (EVENT_TYPES.has(body.type)) {
