@@ -56,6 +56,7 @@ const { Readable } = require('stream');
 const blocksLib = require('./blocks');
 const secretsLib = require('./secrets');
 const { ZipWriter } = require('./zipstream');
+const wpLib = require('./wordpress');
 
 const PORT = process.env.PORT || 10000;
 const TOKEN = process.env.GITHUB_TOKEN || '';
@@ -546,6 +547,7 @@ function logEvent(type, data, req, who) {
   logState.recent.push(e); if (logState.recent.length > 6000) logState.recent.splice(0, 1000);
   if (logState.persist) { logState.buffer.push(e); scheduleFlush(/^(upload|admin|server|ai)/.test(type) ? 5e3 : 60e3); }
   if (fixer) try { fixer.onEvent(e); } catch (x) { console.error('AI fixer:', x); }
+  try { wpOnEvent(e); } catch (x) { console.error('WordPress:', x); }
   return e;
 }
 function scheduleFlush(ms) {
@@ -1165,6 +1167,168 @@ async function handleDownload(req, res, url) {
     res.destroy();
   }
 }
+/* ---------- WordPress: the winning design is published to the class's WordPress site ---------- */
+const WP_PATH = 'wordpress/settings.enc';
+const wpState = { data: null, sha: null, lock: mutex(), job: null, again: null, timer: null };
+async function wpLoad() {
+  if (wpState.data) return wpState.data;
+  if (!DATA_KEY) throw userError(503, 'no-key', 'Set ADMIN_PASSWORD in Render first.');
+  let f = null;
+  try { f = await gh('GET', `/repos/${REPO}/contents/${WP_PATH}?ref=${LOG_BRANCH}`, null, { retries: 2 }); } catch (e) { if (e.status !== 404) throw e; }
+  const d = f ? decrypt(Buffer.from(f.content || '', 'base64').toString('utf8'), DATA_KEY, true) : null;
+  wpState.sha = f ? f.sha : null;
+  wpState.data = d && typeof d === 'object' ? { url: '', secret: '', auto: true, history: [], ...d } : { url: '', secret: '', auto: true, history: [] };
+  return wpState.data;
+}
+function wpSave(fn) {
+  return wpState.lock(async () => {
+    const d = await wpLoad(); const out = await fn(d);
+    d.history = (d.history || []).slice(-30);
+    await ensureLogBranch();
+    const body = { message: 'WordPress settings', branch: LOG_BRANCH, content: Buffer.from(encrypt(d, DATA_KEY)).toString('base64') };
+    for (let attempt = 0; ; attempt++) {
+      try { const r = await gh('PUT', `/repos/${REPO}/contents/${WP_PATH}`, { ...body, ...(wpState.sha ? { sha: wpState.sha } : {}) }, { retries: 2 }); wpState.sha = r.content.sha; break; }
+      catch (e) { if ((e.status !== 409 && e.status !== 422) || attempt > 2) throw e; try { wpState.sha = (await gh('GET', `/repos/${REPO}/contents/${WP_PATH}?ref=${LOG_BRANCH}`, null, { retries: 1 })).sha; } catch (x) { wpState.sha = null; } }
+    }
+    return out;
+  });
+}
+function wpView(d, winner) {
+  return { ok: true, url: d.url || '', keySet: !!d.secret, auto: d.auto !== false, connected: d.connected || null, winner: winner ? { folder: winner.folder, name: winner.name } : null,
+    busy: !!wpState.job, last: d.last || null, history: (d.history || []).slice().reverse().slice(0, 15) };
+}
+const wpSlug = folder => 'chiactive-' + folder.replace(/^website-design-/, '').slice(0, 50);
+// every file of a design -> a WordPress theme .zip (in memory)
+async function themeZip(folder, slug, themeName) {
+  const d = (await freshManifest(0)).find(x => x && x.folder === folder);
+  if (!d) throw userError(404, 'not-found', 'That design isn’t in the gallery (anymore).');
+  const tree = await designTree(folder);
+  if (!tree || !tree.length) throw userError(404, 'not-found', 'The files of this design aren’t on GitHub yet.');
+  const total = tree.reduce((n, f) => n + (f.size || 0), 0);
+  if (total > 150 * MB) throw userError(400, 'too-big', `This design is ${fmtMB(total)}. WordPress sites usually refuse uploads that big; make the large videos/pictures smaller first (max 150 MB).`);
+  const files = new Array(tree.length);
+  await pool(tree, 4, async (f, k) => { const buf = await repoFile(folder, f.path, 120e3); if (!buf) throw userError(502, 'missing', `“${f.path}” couldn’t be downloaded from GitHub. Try again in a minute.`); files[k] = { path: f.path, buf }; });
+  const t = wpLib.buildTheme(files, { folder, name: d.name, by: d.by, entry: d.entry || 'index.html', slug, themeName: themeName || d.name, version: `${d.editedAt || d.uploadedAt || ''}|${Date.now()}` });
+  const chunks = [];
+  const sink = new (require('stream').Writable)({ write(c, e, cb) { chunks.push(c); cb(); } });
+  const z = new ZipWriter(sink);
+  for (const f of t.files) await z.add(`${slug}/${f.path}`, f.buf);
+  await z.finish();
+  return { buf: Buffer.concat(chunks), pages: t.pages, design: d };
+}
+async function wpCall(s, method, route, body) {
+  const headers = wpLib.signRequest(s.secret, method, route, body);
+  if (body) headers['Content-Type'] = 'application/zip';
+  let r;
+  try { r = await fetch(s.url.replace(/\/+$/, '') + '/?rest_route=' + encodeURIComponent(route), { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(300e3) }); }
+  catch (e) { throw userError(502, 'wp-unreachable', `Couldn’t reach ${s.url} (${(e.cause && e.cause.code) || e.name}). Check the address, and that the site is online.`); }
+  if (r.status >= 300 && r.status < 400) throw userError(502, 'wp-redirect', `${s.url} redirects to ${r.headers.get('location') || 'another address'}. Enter that address (usually the https:// one) instead.`);
+  const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch (e) { /* not JSON */ }
+  if (r.status === 404 || (j && j.code === 'rest_no_route')) throw userError(502, 'wp-no-plugin', 'The WordPress site answered, but the ChiActive Connector plugin isn’t active there. Install and activate it (step 2).');
+  if (r.status === 401 || r.status === 403) throw userError(502, 'wp-auth', 'The WordPress site refused the key' + (j && j.message ? ` (${j.message})` : '') + '. Download the connector plugin again and install it: it contains the current key.');
+  if (r.status === 413) throw userError(502, 'wp-too-big', 'The WordPress site refused an upload this big. Ask your web host to raise the upload limit (post_max_size).');
+  if (!r.ok || !j || !j.ok) throw userError(502, 'wp-failed', 'WordPress said: ' + cleanText((j && j.message) || `error ${r.status} ${text.slice(0, 120)}`, 300));
+  return j;
+}
+function wpPublish(reason) {
+  if (wpState.job) { wpState.again = reason; return wpState.job; }
+  wpState.job = (async () => {
+    const entry = { t: new Date().toISOString(), reason, ok: false };
+    let s;
+    try {
+      s = await wpLoad();
+      if (!s.url || !s.secret) throw userError(400, 'wp-setup', 'Connect a WordPress site first (WordPress tab).');
+      const winner = (await freshManifest(0)).find(d => d && d.winner);
+      if (!winner) throw userError(400, 'no-winner', 'There’s no winner yet. Pick one in the Designs tab (🏆).');
+      entry.folder = winner.folder; entry.name = winner.name;
+      const z = await themeZip(winner.folder, 'chiactive-winner', `ChiActive winner: ${winner.name}`);
+      const r = await wpCall(s, 'POST', '/chiactive/v1/deploy', z.buf);
+      Object.assign(entry, { ok: true, pages: r.pages, url: r.url, size: z.buf.length });
+      logEvent('wordpress-publish', { folder: winner.folder, name: winner.name, message: `Published “${winner.name}” to ${s.url} (${r.pages} pages, ${fmtMB(z.buf.length)}): ${reason}` });
+    } catch (e) {
+      if (!e.user) console.error('WordPress publish failed:', e);
+      entry.error = e.user ? e.message : explain(e);
+      logEvent('wordpress-failed', { folder: entry.folder, name: entry.name, error: entry.error, detail: e.user ? undefined : cleanText(e.message, 300), message: reason });
+    }
+    try { await wpSave(d => { d.last = entry; d.history.push(entry); }); } catch (e) { console.error('Saving WordPress history failed:', e.message); }
+    return entry;
+  })().finally(() => { wpState.job = null; if (wpState.again) { const r = wpState.again; wpState.again = null; wpPublish(r); } });
+  return wpState.job;
+}
+// the winning design changed: publish again a little later (several quick edits become one update)
+const WP_EDIT_EVENTS = /^(edit-(save|delete|move-up|move-down|duplicate|image|image-delete)|file-(save|upload|rename|delete|restore)|upload-saved)$/;
+function wpOnEvent(e) {
+  if (!WP_EDIT_EVENTS.test(e.type) || !e.folder || !TOKEN) return;
+  clearTimeout(wpState.timer);
+  wpState.timer = setTimeout(async () => {
+    try {
+      const s = await wpLoad(); if (!s.url || !s.secret || s.auto === false) return;
+      const winner = (await freshManifest(0)).find(d => d && d.winner);
+      if (winner && winner.folder === e.folder) wpPublish('the winning design was changed');
+    } catch (x) { console.error('WordPress auto-publish:', x.message); }
+  }, +process.env.WP_DEBOUNCE_MS || 90e3);
+  if (wpState.timer.unref) wpState.timer.unref();
+}
+async function handleWordPress(req, res, route, url) {
+  if (req.method === 'GET' && route === '/api/admin/wordpress') {
+    const winner = (await freshManifest(5e3)).find(d => d && d.winner);
+    return send(res, 200, wpView(await wpLoad(), winner));
+  }
+  if (req.method === 'GET' && (route === '/api/admin/wordpress/theme' || route === '/api/admin/wordpress/plugin')) {
+    let zipBuf, fname;
+    if (route.endsWith('/theme')) {
+      const folder = String(url.searchParams.get('folder') || '');
+      if (!/^[a-z0-9-]+$/.test(folder)) throw userError(400, 'bad-folder', 'That design isn’t valid.');
+      const z = await themeZip(folder, wpSlug(folder));
+      zipBuf = z.buf; fname = `${z.design.name} (WordPress theme).zip`;
+      logEvent('wordpress-export', { folder, name: z.design.name, message: `Downloaded “${z.design.name}” as a WordPress theme (${z.pages} pages)` }, req);
+    } else {
+      const d = await wpLoad();
+      if (!d.secret) throw userError(400, 'wp-setup', 'Save your WordPress address first (step 1).');
+      const chunks = [], sink = new (require('stream').Writable)({ write(c, e, cb) { chunks.push(c); cb(); } }), z = new ZipWriter(sink);
+      for (const f of wpLib.buildPlugin({ secret: d.secret, server: selfUrl(req) })) await z.add('chiactive-connector/' + f.path, f.buf);
+      await z.finish(); zipBuf = Buffer.concat(chunks); fname = 'chiactive-connector.zip';
+      logEvent('admin-wordpress', { message: 'Downloaded the ChiActive Connector plugin' }, req);
+    }
+    const ascii = fname.normalize('NFKD').replace(/[^\x20-\x7e]/g, '').replace(/"/g, '');
+    res.writeHead(200, { 'Content-Type': 'application/zip', 'Cache-Control': 'no-store', 'Content-Length': zipBuf.length, 'Content-Disposition': `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fname)}` });
+    return res.end(zipBuf);
+  }
+  const body = req.method === 'POST' ? await readJson(req, 16 * 1024) : {};
+  if (req.method === 'POST' && route === '/api/admin/wordpress/settings') {
+    const u = body.url != null ? String(body.url).trim().replace(/\/+$/, '') : null;
+    if (u != null && u && !/^https?:\/\/[^\s/$.?#][^\s]*$/i.test(u)) throw userError(400, 'bad-url', 'Enter the full address of your WordPress site, like https://www.example.com');
+    await wpSave(d => {
+      if (u != null) { if (u !== d.url) d.connected = null; d.url = u; }
+      if (body.auto != null) d.auto = !!body.auto;
+      if (!d.secret || body.newKey) { d.secret = crypto.randomBytes(32).toString('hex'); d.connected = null; }
+    });
+    logEvent('admin-wordpress', { message: body.newKey ? 'Created a new WordPress connector key (install the new plugin)' : `WordPress settings saved${u ? ': ' + u : ''}${body.auto != null ? ` (automatic publishing ${body.auto ? 'on' : 'off'})` : ''}` }, req);
+  } else if (req.method === 'POST' && route === '/api/admin/wordpress/test') {
+    const d = await wpLoad();
+    if (!d.url || !d.secret) throw userError(400, 'wp-setup', 'Save your WordPress address first (step 1).');
+    const r = await wpCall(d, 'GET', '/chiactive/v1/status');
+    await wpSave(x => { x.connected = { t: new Date().toISOString(), site: cleanText(r.site, 80), wordpress: cleanText(r.wordpress, 20), theme: cleanText(r.theme, 80), maxUpload: r.max_upload }; });
+    logEvent('admin-wordpress', { message: `Connected to WordPress site “${cleanText(r.site, 80)}” (WordPress ${cleanText(r.wordpress, 20)})` }, req);
+  } else if (req.method === 'POST' && route === '/api/admin/wordpress/publish') {
+    wpPublish('published by an admin');
+    await sleep(100);
+  } else if (req.method === 'POST' && route === '/api/admin/winner') {
+    const folder = String(body.folder || '');
+    if (folder && !/^[a-z0-9-]+$/.test(folder)) throw userError(400, 'bad-folder', 'That design isn’t valid.');
+    let name = '';
+    await commitToMain(folder ? `Winner: ${folder}` : 'No winner', [], list => {
+      if (folder && !list.some(d => d && d.folder === folder)) throw userError(404, 'not-found', 'That design isn’t in the gallery list.');
+      list.forEach(d => { if (!d) return; if (d.folder === folder) { d.winner = true; name = d.name; } else delete d.winner; });
+      return list;
+    });
+    logEvent('admin-winner', { folder: folder || undefined, name, message: folder ? `🏆 “${name}” is the winner` : 'Winner removed' }, req);
+    const d = await wpLoad();
+    if (folder && d.url && d.secret && d.auto !== false) wpPublish(`“${name}” was picked as the winner`);
+  } else return send(res, 404, { ok: false, error: 'Not found' });
+  const winner = (await freshManifest(0)).find(x => x && x.winner);
+  return send(res, 200, wpView(await wpLoad(), winner));
+}
 let studioHtml = null;
 function studioPage(res) {
   if (!studioHtml) studioHtml = fs.readFileSync(path.join(__dirname, 'studio.html'));
@@ -1300,6 +1464,11 @@ const server = http.createServer(async (req, res) => {
           logEvent('admin-view-as', { username: acc.username, student: acc.name, message: body.createTest ? 'Created a test student and opened Studio as them' : `Opened Studio as @${acc.username}` }, req);
           return send(res, 200, { ok: true, user: { username: acc.username, name: acc.name } }, null, { 'Set-Cookie': [userCookie(req, acc, 12 * 3600), viewAsCookie(req, true)] });
         } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) }); }
+      }
+      // WordPress
+      if (route.startsWith('/api/admin/wordpress') || route === '/api/admin/winner') {
+        try { return await handleWordPress(req, res, route, url); }
+        catch (e) { if (!e.user) console.error(e); return send(res, e.user && e.status ? e.status : 502, { ok: false, code: e.code, error: e.user ? e.message : explain(e) }); }
       }
       // AI fixer
       if (req.method === 'GET' && route === '/api/admin/ai') return send(res, 200, await fixer.adminView());

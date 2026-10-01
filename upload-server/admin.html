@@ -124,6 +124,12 @@ textarea { font: inherit; background: var(--bg); color: #fff; border: 1px solid 
 details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-top: 10px; }
 .fix .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 @media (max-width: 900px) { .ai-top { grid-template-columns: 1fr; } }
+.wp-steps { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 14px; }
+.wp-steps small { color: var(--muted); }
+.wp-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.wph { display: grid; gap: 8px; }
+.wph div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .9rem; }
+.btn.win { background: rgba(242,179,61,.18); color: #ffd27a; box-shadow: inset 0 0 0 1.5px rgba(242,179,61,.6); }
 .appnav { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
 .appnav a { color: var(--text); text-decoration: none; font-weight: 700; font-size: .88rem; padding: 6px 14px; border-radius: 999px; }
 .appnav a small { font-weight: 500; color: var(--muted); }
@@ -173,6 +179,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     <button class="tab" role="tab" id="tab-activity" aria-selected="true" aria-controls="activity">Activity</button>
     <button class="tab" role="tab" id="tab-designs" aria-selected="false" aria-controls="designs">Designs</button>
     <button class="tab" role="tab" id="tab-accounts" aria-selected="false" aria-controls="accounts">Student accounts</button>
+    <button class="tab" role="tab" id="tab-wp" aria-selected="false" aria-controls="wp">WordPress</button>
     <button class="tab" role="tab" id="tab-ai" aria-selected="false" aria-controls="ai">AI fixes</button>
   </div>
 
@@ -205,6 +212,22 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     <p class="meta"><button class="btn small" type="button" id="new-test">➕ Create a test student and open Studio as them</button></p>
     <p class="meta">Students sign up in <a href="/studio" target="_blank" rel="noopener">ChiActive Studio</a> with a username and password. Forgot a password? Set a new one here and tell the student (they can change it afterwards). Deleting an account keeps its designs in the gallery, without an owner.</p>
     <div class="designs" id="account-list"><p class="empty">Loading accounts…</p></div>
+  </section>
+
+  <section id="wp" role="tabpanel" aria-labelledby="tab-wp" hidden>
+    <div class="ai-top">
+      <div class="panel" id="wp-status"><p>Loading…</p></div>
+      <div class="panel">
+        <h2>Connect your WordPress site</h2>
+        <ol class="wp-steps">
+          <li><form id="wp-form" class="wp-row"><label class="sr" for="wp-url">WordPress address</label><input id="wp-url" type="text" placeholder="https://www.your-site.com" style="flex:1;min-width:200px"><button class="btn small" type="submit">Save</button></form></li>
+          <li><a class="btn ghost small" id="wp-plugin" href="/api/admin/wordpress/plugin">⬇ Download the ChiActive Connector plugin</a><br><small>In WordPress: <b>Plugins → Add New → Upload Plugin</b> → choose the file → <b>Install</b> → <b>Activate</b>. Only once.</small></li>
+          <li><button class="btn ghost small" type="button" id="wp-test">Test connection</button> <span id="wp-test-out" class="muted"></span></li>
+        </ol>
+        <p class="meta"><label><input type="checkbox" id="wp-auto"> Publish the winner automatically (when you pick a winner, and about 1½ minutes after the winning design is edited)</label></p>
+      </div>
+    </div>
+    <div class="panel"><h2>Publishing history</h2><div id="wp-history"><p class="muted">Nothing published yet.</p></div></div>
   </section>
 
   <section id="ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
@@ -254,7 +277,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-winner': ['Admin picked a winner', 'admin'], 'admin-wordpress': ['Admin changed WordPress settings', 'admin'], 'wordpress-publish': ['Published to WordPress', 'ok'], 'wordpress-failed': ['WordPress publish failed', 'bad'], 'wordpress-export': ['Exported a WordPress theme', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
     'server-error': ['Server error', 'bad'], 'server-crash': ['Server crash', 'bad'], 'ai-fix': ['AI fixer', 'admin'], 'admin-report': ['Reported by admin', 'admin'], 'admin-ai': ['Admin used the AI fixer', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['ai', 'AI fixer'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
@@ -286,16 +309,18 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
 
   /* ---------- tabs ---------- */
   function tab(which) {
-    ['activity', 'designs', 'accounts', 'ai'].forEach(function (t) { $('tab-' + t).setAttribute('aria-selected', String(t === which)); $(t).hidden = t !== which; });
+    ['activity', 'designs', 'accounts', 'wp', 'ai'].forEach(function (t) { $('tab-' + t).setAttribute('aria-selected', String(t === which)); $(t).hidden = t !== which; });
     if (which === 'designs') loadDesigns();
     if (which === 'accounts') loadAccounts();
     if (which === 'ai') loadAi();
+    if (which === 'wp') loadWp();
     try { sessionStorage.setItem('ca-tab', which); } catch (e) {}
   }
   $('tab-activity').addEventListener('click', function () { tab('activity'); });
   $('tab-designs').addEventListener('click', function () { tab('designs'); });
   $('tab-accounts').addEventListener('click', function () { tab('accounts'); });
   $('tab-ai').addEventListener('click', function () { tab('ai'); });
+  $('tab-wp').addEventListener('click', function () { tab('wp'); });
 
   /* ---------- activity ---------- */
   $('chips').innerHTML = FILTERS.map(function (f) { return '<button class="chip" type="button" data-f="' + f[0] + '" aria-pressed="' + (f[0] === 'all') + '">' + f[1] + '</button>'; }).join('');
@@ -414,7 +439,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
         '<div><h3>' + esc(d.name || d.folder) + (d.unlisted ? '<span class="tag">not listed</span>' : '') + (d.missing ? '<span class="tag">files missing</span>' : '') + '</h3>' +
         '<p>By ' + esc(d.by || '—') + ' · <code>' + esc(d.folder) + '</code>' + (d.uploadedAt ? ' · added ' + esc(new Date(d.uploadedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) : '') + (d.editedAt ? ' · edited ' + esc(new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) : '') + '</p>' +
         (d.unlisted ? '' : '<p class="owner-row"><label>Owner (can edit it in Studio) <select data-owner>' + '<option value="">No owner (only admins can edit)</option>' + accounts.map(function (a) { return '<option value="' + esc(a.id) + '"' + (a.id === d.owner ? ' selected' : '') + '>' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + (d.owner && !accounts.some(function (a) { return a.id === d.owner; }) ? '<option value="' + esc(d.owner) + '" selected>' + esc(d.ownerName || 'deleted account') + '</option>' : '') + '</select></label></p>') + '</div>' +
-        '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' + (d.unlisted || d.missing ? '' : '<a class="btn ghost small" href="/studio/edit/' + esc(d.folder) + '">✎ Edit site</a><a class="btn ghost small" href="/api/download?folder=' + encodeURIComponent(d.folder) + '" download title="Download every file of this design as a .zip">⬇ .zip</a>') +
+        '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' + (d.unlisted || d.missing ? '' : '<button class="btn small' + (d.winner ? ' win' : ' ghost') + '" type="button" data-winner="' + (d.winner ? '' : esc(d.folder)) + '" title="' + (d.winner ? 'This is the winner. Click to remove.' : 'Make this the winning design') + '">🏆 ' + (d.winner ? 'Winner' : 'Make winner') + '</button><a class="btn ghost small" href="/studio/edit/' + esc(d.folder) + '">✎ Edit site</a><a class="btn ghost small" href="/api/admin/wordpress/theme?folder=' + encodeURIComponent(d.folder) + '" download title="Download as a WordPress theme">⬇ WordPress</a><a class="btn ghost small" href="/api/download?folder=' + encodeURIComponent(d.folder) + '" download title="Download every file of this design as a .zip">⬇ .zip</a>') +
         '<button class="btn ghost small" type="button" data-edit>Rename</button><button class="btn danger small" type="button" data-del>Delete</button></div>' +
         (d.unlisted ? '' : editorsHtml(d)) +
         (d.unlisted ? '<p class="warn-line">This folder is in the repository but not in the gallery list. Rename it to add it to the gallery, or delete it.</p>' : '') +
@@ -447,6 +472,16 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     var b = e.target.closest('[data-rm-editor]'); if (!b) return;
     var card = b.closest('.design'), d = designs[+card.getAttribute('data-i')], id = b.getAttribute('data-rm-editor');
     saveEditors(card, d, (d.editors || []).filter(function (x) { return x !== id; }), 'Editor removed.');
+  });
+  $('design-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-winner]'); if (!b) return;
+    var folder = b.getAttribute('data-winner'); b.disabled = true;
+    api('/api/admin/winner', { body: { folder: folder } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { b.disabled = false; return toast(j.error || 'That didn’t work.', true); }
+      designs.forEach(function (d) { d.winner = d.folder === folder; }); drawDesigns();
+      toast(folder ? (j.url && j.keySet && j.auto ? 'Winner saved. Publishing it to WordPress now…' : 'Winner saved. Connect WordPress (WordPress tab) to publish it automatically.') : 'Winner removed.');
+    });
   });
   function loadDesigns() {
     $('design-list').innerHTML = '<p class="empty">Loading designs…</p>';
@@ -683,6 +718,51 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
           } }]);
     });
   }
+
+  /* ---------- WordPress ---------- */
+  var wp = { data: null, timer: null };
+  function loadWp() {
+    return api('/api/admin/wordpress').then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { $('wp-status').innerHTML = '<p class="err">' + esc(j.error || 'Couldn’t load.') + '</p>'; return; }
+      wp.data = j; drawWp();
+      clearTimeout(wp.timer); if (j.busy) wp.timer = setTimeout(function () { if (!$('wp').hidden) loadWp(); }, 3000);
+    });
+  }
+  function when2(t) { return t ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : ''; }
+  function drawWp() {
+    var d = wp.data;
+    if (document.activeElement !== $('wp-url')) $('wp-url').value = d.url || '';
+    $('wp-auto').checked = d.auto;
+    $('wp-plugin').classList.toggle('disabled', !d.keySet);
+    $('wp-status').innerHTML = '<h2>Winner on WordPress</h2>' +
+      (d.winner ? '<p>🏆 <b>' + esc(d.winner.name) + '</b></p>' : '<p class="muted">No winner yet. Pick one in the <b>Designs</b> tab with 🏆.</p>') +
+      (d.connected ? '<p><span class="badge ok">Connected</span> ' + esc(d.connected.site || '') + ' · WordPress ' + esc(d.connected.wordpress || '') + '</p>' : d.url ? '<p><span class="badge warn">Not tested yet</span> Install the plugin, then click Test connection.</p>' : '<p><span class="badge warn">Not connected</span> Follow the 3 steps on the right.</p>') +
+      (d.busy ? '<p><span class="badge view">Publishing…</span></p>' : d.last ? '<p>Last publish: ' + (d.last.ok ? '<span class="badge ok">done</span>' : '<span class="badge bad">failed</span>') + ' ' + esc(when2(d.last.t)) + (d.last.ok && d.last.url ? ' · <a href="' + esc(d.last.url) + '" target="_blank" rel="noopener">open site ↗</a>' : '') + '</p>' : '') +
+      '<p><button class="btn small" type="button" id="wp-publish"' + (d.busy || !d.winner || !d.url ? ' disabled' : '') + '>Publish the winner now</button> <button class="btn ghost small" type="button" id="wp-newkey"' + (d.keySet ? '' : ' hidden') + '>Make a new key</button></p>';
+    $('wp-history').innerHTML = d.history.length ? '<div class="wph">' + d.history.map(function (h) {
+      return '<div>' + (h.ok ? '<span class="badge ok">published</span>' : '<span class="badge bad">failed</span>') + ' <b>' + esc(h.name || '') + '</b> · ' + esc(when2(h.t)) + ' · <span class="muted">' + esc(h.reason || '') + '</span>' +
+        (h.ok ? ' · ' + h.pages + ' pages' + (h.url ? ' · <a href="' + esc(h.url) + '" target="_blank" rel="noopener">open ↗</a>' : '') : '<br><span class="msg" style="color:#ff9fb0">' + esc(h.error || '') + '</span>') + '</div>';
+    }).join('') + '</div>' : '<p class="muted">Nothing published yet.</p>';
+    $('wp-publish').onclick = function () { this.disabled = true; api('/api/admin/wordpress/publish', { body: {} }).then(function (j) { if (j.ok) { wp.data = j; drawWp(); toast('Publishing to WordPress…'); setTimeout(loadWp, 2500); } else toast(j.error, true); }); };
+    $('wp-newkey').onclick = function () {
+      var b = this; if (!b.classList.contains('confirm')) { b.classList.add('confirm'); b.textContent = 'Click again: the old plugin stops working'; return; }
+      api('/api/admin/wordpress/settings', { body: { newKey: true } }).then(function (j) { if (!j.ok) return toast(j.error, true); wp.data = j; drawWp(); toast('New key made. Download the plugin again and install it in WordPress (replace the old one).'); });
+    };
+  }
+  $('wp-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    api('/api/admin/wordpress/settings', { body: { url: $('wp-url').value } }).then(function (j) { if (!j.ok) return toast(j.error, true); wp.data = j; drawWp(); toast('Saved. Now download the plugin (step 2).'); });
+  });
+  $('wp-auto').addEventListener('change', function () { api('/api/admin/wordpress/settings', { body: { auto: this.checked } }).then(function (j) { if (j.ok) { wp.data = j; drawWp(); toast(j.auto ? 'Automatic publishing is on.' : 'Automatic publishing is off.'); } }); });
+  $('wp-test').addEventListener('click', function () {
+    var b = this; b.disabled = true; $('wp-test-out').textContent = 'Testing…';
+    api('/api/admin/wordpress/test', { body: {} }).then(function (j) {
+      b.disabled = false;
+      if (!j.ok) { $('wp-test-out').textContent = ''; return toast(j.error || 'The test failed.', true); }
+      wp.data = j; drawWp(); $('wp-test-out').innerHTML = '<span class="badge ok">Works</span>';
+    });
+  });
 
   /* ---------- start ---------- */
   function start() {

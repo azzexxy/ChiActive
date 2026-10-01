@@ -53,7 +53,7 @@
         if (!d || !d.folder) return;
         var cur = found[d.folder];
         if (cur && !over) return;
-        found[d.folder] = { folder: d.folder, name: d.name || (cur && cur.name) || prettyFolder(d.folder), by: d.by || (cur && cur.by) || '', entry: d.entry || (cur && cur.entry) || 'index.html', uploadedAt: d.uploadedAt || (cur && cur.uploadedAt) || '', editedAt: d.editedAt || (cur && cur.editedAt) || '' };
+        found[d.folder] = { folder: d.folder, name: d.name || (cur && cur.name) || prettyFolder(d.folder), by: d.by || (cur && cur.by) || '', entry: d.entry || (cur && cur.entry) || 'index.html', uploadedAt: d.uploadedAt || (cur && cur.uploadedAt) || '', editedAt: d.editedAt || (cur && cur.editedAt) || '' , winner: !!(d.winner || (!over && cur && cur.winner)) };
       });
     }
     function fallback() {   // upload server asleep: read the list from GitHub and the published site
@@ -99,12 +99,12 @@
   function bust(u, d) { var v = d.editedAt || d.uploadedAt; return v && u && u.indexOf('/d/') < 0 ? u + (u.indexOf('?') > -1 ? '&' : '?') + 'v=' + encodeURIComponent(v) : u; }
   function cardHtml(d) {
     var view = viewUrl(d);  // opens inside the demo bar
-    var tag = d.publishing ? '<span class="tag pub">Publishing</span>' : d.fresh ? '<span class="tag up">Just added</span>' : '<span class="tag shared">Class gallery</span>';
+    var tag = d.winner ? '<span class="tag win">🏆 Winner</span>' : d.publishing ? '<span class="tag pub">Publishing</span>' : d.fresh ? '<span class="tag up">Just added</span>' : '<span class="tag shared">Class gallery</span>';
     var meta = [d.by ? 'By ' + esc(d.by) : '', when(d) ? 'Added ' + when(d) : '', d.editedAt ? 'Edited ' + new Date(d.editedAt).toLocaleDateString() : ''].filter(Boolean).join(' &middot; ');
     var stage = d.publishing
       ? '<div class="frame frame-wait"><div><b>Publishing&hellip;</b><span>New uploads go live in about a minute.</span><button class="btn btn-ghost" type="button" data-refresh>Check again</button></div></div>'
       : '<div class="frame"><iframe src="' + esc(bust(d.url, d)) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-same-origin"></iframe></div>';
-    return '<article class="option community-card" data-id="' + esc(d.folder) + '">' +
+    return '<article class="option community-card' + (d.winner ? ' is-winner' : '') + '" data-id="' + esc(d.folder) + '">' +
       (ADMIN_TOOLS ? '<a class="card-del" href="' + esc(API + '/admin?delete=' + encodeURIComponent(d.folder)) + '" title="Delete this design (admin)" aria-label="Delete ' + esc(d.name) + ' (admin)">' + BIN + '</a>' : '') +
       (d.publishing ? '' : '<a class="cover" href="' + esc(view) + '" aria-label="Open ' + esc(d.name) + '"></a>') +
       '<div class="stage"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>' + esc('designs / ' + d.folder) + '</span></div>' + stage + '</div></div>' +

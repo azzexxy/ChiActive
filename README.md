@@ -19,6 +19,13 @@ Every design is treated the same, including the original ChiActive store (`desig
 - **⬆ New version:** upload the whole site again; it replaces every file but keeps the name, owner and editors (old versions stay in GitHub history).
 - Every change asks for confirmation and is saved to GitHub straight away; secret keys are removed automatically. Owners, editors and admins can edit; nobody else.
 
+## WordPress: the winning design (admin page → Designs 🏆 and WordPress tab)
+- **🏆 Make winner** on a design (one winner at a time). The gallery shows a trophy on it.
+- **⬇ WordPress** on any design downloads it as a WordPress theme (.zip): *Appearance → Themes → Add New → Upload Theme → Activate* creates one page per page of the design, sets the home page, and keeps every picture, style and link working. The page content is a "Custom HTML" block, editable in WordPress.
+- **Automatic publishing:** WordPress tab → enter the site address → download the **ChiActive Connector** plugin → install and activate it in WordPress once → *Test connection*. From then on the winner is uploaded, activated and its pages created automatically when it's picked, and again about 90 seconds after it's edited (several edits become one update). Every publish is listed with its result.
+- Security: every request to WordPress is signed with a secret key (HMAC-SHA256, valid 5 minutes, never reused) that only the plugin and this server know; it's stored encrypted on the activity-log branch and never shown. *Make a new key* invalidates the old plugin. No WordPress password is needed or stored.
+- Needs: WordPress 5.5+, a host that lets WordPress write files directly (standard on most hosts), and an upload limit bigger than the design (the publish history says so if it isn't).
+
 ## Admin page
 **https://chiactive-uploads.onrender.com/admin** (password = `ADMIN_PASSWORD` in Render).
 - **Activity:** uploads (started, saved, refused, failed, abandoned, with the error and error code), text edits and deletes (before → after), sign-ups, logins, wrong passwords, gallery visits, design views, pages clicked inside designs, and admin actions, all timestamped with device and a random visitor id. Filter, search, click a person to see only them, download CSV.
