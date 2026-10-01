@@ -1018,6 +1018,8 @@ const server = http.createServer(async (req, res) => {
 
     // ChiActive Studio (accounts, uploads, editor)
     if (req.method === 'GET' && (route === '/studio' || route.startsWith('/studio/'))) return studioPage(res);
+    if (req.method === 'GET' && (route === '/favicon.ico' || route === '/favicon.png')) return staticFile(res, 'favicon.png', 'image/png');
+    if (req.method === 'GET' && (route === '/apple-touch-icon.png' || route === '/apple-touch-icon-precomposed.png')) return staticFile(res, 'apple-touch-icon.png', 'image/png');
     if (req.method === 'GET' && route === '/vendor/jszip.min.js') return staticFile(res, 'vendor/jszip.min.js', 'text/javascript; charset=utf-8');
     if (route.startsWith('/api/account/')) return await handleAccount(req, res, route);
     if (route.startsWith('/api/edit/')) return await handleEdit(req, res, route, url);
