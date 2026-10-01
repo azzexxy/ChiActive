@@ -91,6 +91,14 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .owner-row { margin-top: 8px !important; }
 .owner-row label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .85rem; color: var(--sand); font-weight: 700; }
 .owner-row select { padding: 6px 10px; font-size: .88rem; max-width: 100%; }
+.editors-row { grid-column: 1 / -1; margin: -4px 0 0 6px; padding: 6px 0 2px 14px; border-left: 2px solid rgba(65,182,230,.45); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.editors-row .ed-label { font-size: .85rem; color: var(--sand); font-weight: 700; margin-right: 2px; }
+.editors-row .ed-label small { color: var(--muted); font-weight: 400; }
+.ed-chip { display: inline-flex; align-items: center; gap: 4px; background: rgba(65,182,230,.14); color: #bfe6f8; border-radius: 999px; padding: 3px 4px 3px 10px; font-size: .84rem; font-weight: 700; }
+.ed-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 5px; border-radius: 50%; }
+.ed-chip button:hover { background: rgba(228,2,43,.5); color: #fff; }
+.editors-row select { padding: 5px 8px; font-size: .85rem; }
+.editors-row .none { color: var(--muted); font-size: .84rem; }
 .tag { display: inline-block; margin-left: 8px; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: rgba(242,179,61,.18); color: #ffd27a; vertical-align: 2px; }
 .toast { position: fixed; right: 20px; bottom: 20px; background: var(--card-2); border: 1px solid var(--line); color: #fff; padding: 12px 16px; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); opacity: 0; transform: translateY(10px); transition: all .2s; pointer-events: none; max-width: 420px; }
 .toast.show { opacity: 1; transform: none; }
@@ -235,7 +243,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
     'server-error': ['Server error', 'bad'], 'server-crash': ['Server crash', 'bad'], 'ai-fix': ['AI fixer', 'admin'], 'admin-report': ['Reported by admin', 'admin'], 'admin-ai': ['Admin used the AI fixer', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['ai', 'AI fixer'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
@@ -397,10 +405,38 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
         (d.unlisted ? '' : '<p class="owner-row"><label>Owner (can edit it in Studio) <select data-owner>' + '<option value="">No owner (only admins can edit)</option>' + accounts.map(function (a) { return '<option value="' + esc(a.id) + '"' + (a.id === d.owner ? ' selected' : '') + '>' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + (d.owner && !accounts.some(function (a) { return a.id === d.owner; }) ? '<option value="' + esc(d.owner) + '" selected>' + esc(d.ownerName || 'deleted account') + '</option>' : '') + '</select></label></p>') + '</div>' +
         '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' + (d.unlisted || d.missing ? '' : '<a class="btn ghost small" href="/studio/edit/' + esc(d.folder) + '" target="_blank" rel="noopener">✎ Edit text</a>') +
         '<button class="btn ghost small" type="button" data-edit>Rename</button><button class="btn danger small" type="button" data-del>Delete</button></div>' +
+        (d.unlisted ? '' : editorsHtml(d)) +
         (d.unlisted ? '<p class="warn-line">This folder is in the repository but not in the gallery list. Rename it to add it to the gallery, or delete it.</p>' : '') +
         '</article>';
     }).join('');
   }
+  // editors: other students who may edit this design in Studio, with the same rights as its owner
+  function editorsHtml(d) {
+    var eds = d.editors || [], acc = function (id) { return accounts.filter(function (a) { return a.id === id; })[0]; };
+    var free = accounts.filter(function (a) { return a.id !== d.owner && eds.indexOf(a.id) < 0; });
+    return '<div class="editors-row"><span class="ed-label">Editors <small>(same rights as the owner: edit and delete text in Studio)</small></span>' +
+      (eds.length ? eds.map(function (id) { var a = acc(id); return '<span class="ed-chip">' + esc(a ? a.name + ' (@' + a.username + ')' : 'deleted account') + '<button type="button" data-rm-editor="' + esc(id) + '" title="Remove as editor" aria-label="Remove ' + esc(a ? a.name : 'editor') + ' as editor">×</button></span>'; }).join('') : '<span class="none">None yet</span>') +
+      (accounts.length ? '<select data-add-editor aria-label="Add an editor"><option value="">+ Add editor…</option>' + free.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + '</select>' : '') + '</div>';
+  }
+  function saveEditors(card, d, list, msg) {
+    var ctl = card.querySelectorAll('.editors-row select, .editors-row button'); [].forEach.call(ctl, function (c) { c.disabled = true; });
+    api('/api/admin/editors', { body: { folder: d.folder, editors: list } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { drawDesigns(); return rowError(designCard(d), j.error || 'Changing the editors failed.'); }
+      d.editors = list.filter(function (id) { return id !== d.owner; }); drawDesigns(); toast(msg);
+    });
+  }
+  function designCard(d) { return $('design-list').querySelector('.design[data-i="' + designs.indexOf(d) + '"]'); }
+  $('design-list').addEventListener('change', function (e) {
+    var sel = e.target.closest('[data-add-editor]'); if (!sel || !sel.value) return;
+    var card = sel.closest('.design'), d = designs[+card.getAttribute('data-i')], a = accounts.filter(function (x) { return x.id === sel.value; })[0];
+    saveEditors(card, d, (d.editors || []).concat(sel.value), (a ? a.name : 'They') + ' can now edit “' + (d.name || d.folder) + '” in Studio.');
+  });
+  $('design-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-rm-editor]'); if (!b) return;
+    var card = b.closest('.design'), d = designs[+card.getAttribute('data-i')], id = b.getAttribute('data-rm-editor');
+    saveEditors(card, d, (d.editors || []).filter(function (x) { return x !== id; }), 'Editor removed.');
+  });
   function loadDesigns() {
     $('design-list').innerHTML = '<p class="empty">Loading designs…</p>';
     api('/api/admin/designs').then(function (j) {
@@ -444,7 +480,8 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
       sel.disabled = false;
       if (j.status === 401) return showLogin();
       if (!j.ok) { sel.value = d.owner || ''; return rowError(card, j.error || 'Changing the owner failed.'); }
-      d.owner = sel.value || undefined; toast(sel.value ? 'Owner changed. They can now edit this design in Studio.' : 'Owner removed.');
+      d.owner = sel.value || undefined; if (d.editors) d.editors = d.editors.filter(function (x) { return x !== d.owner; }); drawDesigns();
+      toast(sel.value ? 'Owner changed. They can now edit this design in Studio.' : 'Owner removed.');
     });
   });
   $('design-list').addEventListener('submit', function (e) {
@@ -472,7 +509,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     if (!accs.length) { $('account-list').innerHTML = '<p class="empty">No student accounts yet. Students sign up in ChiActive Studio.</p>'; return; }
     $('account-list').innerHTML = accs.map(function (a, i) {
       return '<article class="design" data-a="' + i + '"><div><h3>' + esc(a.name) + ' <span class="dev">@' + esc(a.username) + '</span></h3>' +
-        '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + '</p></div>' +
+        '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + (a.editing && a.editing.length ? ' · editor of ' + a.editing.map(esc).join(', ') : '') + '</p></div>' +
         '<div class="acts"><button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button><button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button></div></article>';
     }).join('');
   }

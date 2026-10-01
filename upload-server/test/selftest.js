@@ -125,5 +125,22 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   r = await call('/api/admin/accounts', undefined, 'admin'); check('admin account list loads', r.json && r.json.ok && r.json.accounts.length >= 1, r.text.slice(0, 200));
   r = await call('/api/admin/logs?days=1', undefined, 'student'); check('students cannot read the admin log', r.status === 401, r.status);
 
+  // editors: the admin lets a second student edit the first student's design
+  r = await call('/api/account/signup', { name: 'Helper', username: 'selftest-helper', password: 'harbor-mitten-42' }, 'helper');
+  check('second student can sign up', r.status === 200, r.text);
+  const helperId = ((await call('/api/admin/accounts', undefined, 'admin')).json.accounts.find(a => a.username === 'selftest-helper') || {}).id;
+  r = await call(`/api/edit/page?folder=${folder}&path=index.html`, undefined, 'helper');
+  check('a non-editor cannot edit', r.status === 403, r.status);
+  r = await call('/api/admin/editors', { folder, editors: [helperId] }, 'admin'); check('admin can add an editor', r.status === 200, r.text);
+  r = await call('/api/admin/designs', undefined, 'admin'); check('editor shows in the admin design list', r.json && r.json.designs.find(d => d.folder === folder).editors.includes(helperId), r.text.slice(0, 200));
+  r = await call('/api/account/me', undefined, 'helper'); check('the design is listed for the editor', r.json && (r.json.designs || []).some(d => d.folder === folder && d.role === 'editor'), r.text.slice(0, 300));
+  const hp = (await call(`/api/edit/page?folder=${folder}&path=index.html`, undefined, 'helper')).json || {};
+  const h2 = hp.html && hp.html.match(/<h2 data-ca-b="(\d+)"|<a data-ca-b="(\d+)"/);
+  r = await call('/api/edit/block', { folder, path: 'index.html', sha: hp.sha, block: h2 ? +(h2[1] || h2[2]) : 0, action: 'edit', html: 'Edited by the helper' }, 'helper');
+  check('the editor can save a change', r.json && r.json.ok, r.text);
+  r = await call('/api/admin/editors', { folder, editors: [] }, 'admin'); check('admin can remove an editor', r.status === 200, r.text);
+  r = await call(`/api/edit/page?folder=${folder}&path=index.html`, undefined, 'helper');
+  check('a removed editor cannot edit anymore', r.status === 403, r.status);
+
   finish();
 })();

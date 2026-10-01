@@ -662,7 +662,7 @@ async function adminDesigns() {
   try { dirs = (await gh('GET', `/repos/${REPO}/contents/${DIR}?ref=${BRANCH}`, null, { retries: 2 })).filter(i => i.type === 'dir').map(i => i.name); } catch (e) { if (e.status !== 404) throw e; }
   let accounts = []; try { accounts = await loadAccounts(); } catch (e) { /* accounts not set up yet */ }
   const ownerName = id => { const a = accounts.find(x => x.id === id); return a ? `${a.name} (@${a.username})` : id ? 'deleted account' : ''; };
-  const list = manifest.filter(d => d && d.folder).map(d => ({ ...d, ownerName: ownerName(d.owner), missing: !dirs.includes(d.folder) }));
+  const list = manifest.filter(d => d && d.folder).map(d => ({ ...d, ownerName: ownerName(d.owner), editors: (d.editors || []).filter(id => accounts.some(a => a.id === id)), missing: !dirs.includes(d.folder) }));
   dirs.filter(f => !list.some(d => d.folder === f)).forEach(f => list.push({ folder: f, name: f, by: '', entry: 'index.html', unlisted: true }));
   return list.sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
 }
@@ -765,9 +765,14 @@ function checkPassword(pw, username) {
   if (/^(.)\1+$/.test(pw) || /^(12345678|password|qwertyui|abcdefgh)/i.test(pw)) throw userError(400, 'weak', 'That password is too easy to guess. Try three random words.');
   return pw;
 }
+// the owner and any editors the admin added can edit a design in Studio
+function mayEdit(d, userId) { return !!(d && userId && (d.owner === userId || (Array.isArray(d.editors) && d.editors.includes(userId)))); }
 async function myDesigns(user, admin) {
-  const list = (await freshManifest(3e3)).filter(d => d && d.folder && (admin || (user && d.owner === user.id)));
-  for (const s of live.values()) if ((admin || (user && s.owner === user.id)) && !list.some(d => d.folder === s.folder)) list.push({ folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date(s.created).toISOString(), saving: s.status !== 'done' });
+  let accounts = []; try { accounts = await loadAccounts(); } catch (e) { /* not set up */ }
+  const nameOf = id => { const a = accounts.find(x => x.id === id); return a ? a.name : ''; };
+  const list = (await freshManifest(3e3)).filter(d => d && d.folder && (admin || mayEdit(d, user && user.id)))
+    .map(d => ({ ...d, role: admin ? 'admin' : d.owner === user.id ? 'owner' : 'editor', ownerName: nameOf(d.owner), editorNames: (d.editors || []).map(nameOf).filter(Boolean) }));
+  for (const s of live.values()) if ((admin || (user && s.owner === user.id)) && !list.some(d => d.folder === s.folder)) list.push({ folder: s.folder, name: s.name, by: s.student, owner: s.owner, entry: s.entry, uploadedAt: new Date(s.created).toISOString(), saving: s.status !== 'done', role: admin ? 'admin' : 'owner' });
   return list.sort((a, b) => String(b.editedAt || b.uploadedAt || '').localeCompare(String(a.editedAt || a.uploadedAt || '')));
 }
 async function handleAccount(req, res, route) {
@@ -841,7 +846,7 @@ async function canEdit(req, folder) {
   const user = await currentUser(req);
   if (!user) throw userError(401, 'login', 'Your login expired. Log in again to keep editing.');
   const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
-  if (!d || d.owner !== user.id) throw userError(403, 'not-yours', 'You can only edit your own designs.');
+  if (!mayEdit(d, user.id)) throw userError(403, 'not-yours', 'You can only edit your own designs, or designs the admin made you an editor of.');
   return { user };
 }
 async function readDesignFile(folder, p) {
@@ -926,9 +931,28 @@ async function adminSetOwner(req, body) {
   if (owner) { acc = (await loadAccounts()).find(a => a.id === owner); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.'); }
   await commitToMain(`Set owner of ${folder}`, [], list => {
     const d = list.find(x => x.folder === folder); if (!d) throw userError(404, 'not-found', 'That design isn’t in the gallery list. Rename it first to add it.');
-    if (acc) d.owner = acc.id; else delete d.owner; return list;
+    if (acc) { d.owner = acc.id; if (Array.isArray(d.editors)) { d.editors = d.editors.filter(x => x !== acc.id); if (!d.editors.length) delete d.editors; } } else delete d.owner; return list;
   });
   logEvent('admin-owner', { folder, message: acc ? `Owner is now ${acc.name} (@${acc.username})` : 'Owner removed' }, req);
+}
+async function adminSetEditors(req, body) {
+  const folder = String(body.folder || '');
+  if (!/^[a-z0-9-]+$/.test(folder)) throw userError(400, 'bad-folder', 'That design folder isn’t valid.');
+  const accounts = await loadAccounts();
+  const ids = [...new Set((Array.isArray(body.editors) ? body.editors : []).map(String))];
+  const accs = ids.map(id => accounts.find(a => a.id === id));
+  if (accs.some(a => !a)) throw userError(404, 'no-account', 'One of those accounts doesn’t exist anymore. Reload the page.');
+  if (accs.length > 20) throw userError(400, 'too-many', 'A design can have up to 20 editors.');
+  let before = [];
+  await commitToMain(`Set editors of ${folder}`, [], list => {
+    const d = list.find(x => x.folder === folder); if (!d) throw userError(404, 'not-found', 'That design isn’t in the gallery list. Rename it first to add it.');
+    before = d.editors || [];
+    const keep = ids.filter(id => id !== d.owner);
+    if (keep.length) d.editors = keep; else delete d.editors;
+    return list;
+  });
+  const added = accs.filter(a => !before.includes(a.id)), removed = before.filter(id => !ids.includes(id)).map(id => accounts.find(a => a.id === id)).filter(Boolean);
+  logEvent('admin-editors', { folder, message: [added.length ? 'Added editor ' + added.map(a => `${a.name} (@${a.username})`).join(', ') : '', removed.length ? 'Removed editor ' + removed.map(a => `${a.name} (@${a.username})`).join(', ') : ''].filter(Boolean).join('; ') || 'Editors unchanged' }, req);
 }
 async function adminResetPassword(req, body) {
   const id = String(body.id || '');
@@ -942,6 +966,10 @@ async function adminDeleteAccount(req, body) {
   const id = String(body.id || '');
   const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
   await changeAccounts(list => { list.splice(list.findIndex(a => a.id === id), 1); });
+  // also take them off any design they could edit
+  if ((await freshManifest(0)).some(d => d && Array.isArray(d.editors) && d.editors.includes(id))) {
+    try { await commitToMain(`Remove deleted account from editors`, [], list => { list.forEach(d => { if (d && Array.isArray(d.editors)) { d.editors = d.editors.filter(x => x !== id); if (!d.editors.length) delete d.editors; } }); return list; }); } catch (e) { /* ignored: unknown ids are never allowed to edit anyway */ }
+  }
   logEvent('admin-account-delete', { username: acc.username, student: acc.name, message: 'Account deleted (their designs stay in the gallery without an owner)' }, req);
 }
 let studioHtml = null;
@@ -1053,7 +1081,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && route === '/api/admin/accounts') {
         try {
           const manifest = await freshManifest(5e3);
-          const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name) }));
+          const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name), editing: manifest.filter(d => d && Array.isArray(d.editors) && d.editors.includes(a.id)).map(d => d.name) }));
           return send(res, 200, { ok: true, accounts: list.sort((a, b) => String(b.created).localeCompare(String(a.created))) });
         } catch (e) { return send(res, 200, { ok: false, error: explain(e), accounts: [] }); }
       }
@@ -1102,10 +1130,11 @@ const server = http.createServer(async (req, res) => {
           return send(res, 200, await fixer.adminView());
         } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: e.user ? e.message : explain(e) }); }
       }
-      if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
+      if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/editors', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
         const body = await readJson(req, 16 * 1024);
         try {
           if (route === '/api/admin/owner') await adminSetOwner(req, body);
+          else if (route === '/api/admin/editors') await adminSetEditors(req, body);
           else if (route === '/api/admin/account/reset') await adminResetPassword(req, body);
           else await adminDeleteAccount(req, body);
           return send(res, 200, { ok: true });
