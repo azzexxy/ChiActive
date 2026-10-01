@@ -11,14 +11,16 @@
 <meta property="og:title" content="ChiActive | Pick your style">
 <meta property="og:description" content="Upload your ChiActive website design (a .zip or a folder) with your student name, and see every design from the class.">
 <meta property="og:image" content="images/previews/classic-desktop.webp">
-<link rel="stylesheet" href="picker.css?v=12">
+<link rel="stylesheet" href="picker.css?v=13">
 </head>
 <body>
 <div class="stripes" aria-hidden="true"></div>
 <div class="wrap">
-  <nav class="topbar" aria-label="Gallery tools">
-    <a class="top-link" id="studio-link" href="https://chiactive-uploads.onrender.com/studio">ChiActive Studio</a>
+  <nav class="topbar" aria-label="ChiActive pages">
+    <a class="top-link current" href="./" aria-current="page">Gallery</a>
+    <a class="top-link" id="studio-link" href="https://chiactive-uploads.onrender.com/studio">Studio <small>upload &amp; edit</small></a>
     <a class="top-link admin" id="admin-link" href="https://chiactive-uploads.onrender.com/admin" title="Admin page (password needed)"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Admin</a>
+    <span class="admin-tools-note">Admin tools on · <a href="?admin=0">turn off</a></span>
   </nav>
   <header class="gallery-hero">
     <div class="hero-brand">
@@ -67,8 +69,8 @@
 
   <footer><span>&copy; 2026 ChiActive &middot; Class design gallery. No real orders are placed. Only upload your own work.<br><span class="privacy">For the class admin, this gallery keeps a log of uploads, errors and which designs are viewed (with a random visitor id, and your student name if you uploaded).</span></span><span>Built for the four-season city.</span></footer>
 </div>
-<script src="site-config.js?v=12"></script>
-<script src="track.js?v=12"></script>
+<script src="site-config.js?v=13"></script>
+<script src="track.js?v=13"></script>
 <script>
 (function () {
   var cfg = window.CHIACTIVE || {};
@@ -85,7 +87,7 @@
   });
 })();
 </script>
-<script src="designs.js?v=12"></script>
+<script src="designs.js?v=13"></script>
 <script>window.chiTrack && window.chiTrack('visit');</script>
 </body>
 </html>

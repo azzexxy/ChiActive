@@ -14,6 +14,18 @@
   if (!list) return;
   var onPages = PAGES && location.href.indexOf(PAGES) === 0;
   var STUDIO = API ? API + '/studio' : '';
+  // admin tools: turned on for this tab when you come here from the admin page or Studio as admin (?admin=1).
+  // They only add bins that open the admin page, where deleting still needs the admin password.
+  var ADMIN_TOOLS = false;
+  try {
+    var qs = location.search;
+    if (/[?&]admin=1\b/.test(qs)) sessionStorage.setItem('ca-admin-tools', '1');
+    if (/[?&]admin=0\b/.test(qs)) sessionStorage.removeItem('ca-admin-tools');
+    if (/[?&]admin=[01]\b/.test(qs)) history.replaceState(null, '', location.pathname + location.hash);
+    ADMIN_TOOLS = !!API && sessionStorage.getItem('ca-admin-tools') === '1';
+  } catch (e) {}
+  if (ADMIN_TOOLS) document.documentElement.classList.add('admin-tools');
+  var BIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function designName(student) { return 'Website design - ' + student; }
@@ -93,6 +105,7 @@
       ? '<div class="frame frame-wait"><div><b>Publishing&hellip;</b><span>New uploads go live in about a minute.</span><button class="btn btn-ghost" type="button" data-refresh>Check again</button></div></div>'
       : '<div class="frame"><iframe src="' + esc(bust(d.url, d)) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-same-origin"></iframe></div>';
     return '<article class="option community-card" data-id="' + esc(d.folder) + '">' +
+      (ADMIN_TOOLS ? '<a class="card-del" href="' + esc(API + '/admin?delete=' + encodeURIComponent(d.folder)) + '" title="Delete this design (admin)" aria-label="Delete ' + esc(d.name) + ' (admin)">' + BIN + '</a>' : '') +
       (d.publishing ? '' : '<a class="cover" href="' + esc(view) + '" aria-label="Open ' + esc(d.name) + '"></a>') +
       '<div class="stage"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>' + esc('designs / ' + d.folder) + '</span></div>' + stage + '</div></div>' +
       '<div class="body"><div class="name-row"><h2 class="name">' + esc(d.name) + '</h2>' + tag + '</div>' +

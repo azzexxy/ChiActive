@@ -39,6 +39,13 @@ input:focus { outline: 2px solid var(--sky); outline-offset: 1px; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 18px 0; }
 .top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .who { color: var(--muted); font-size: .92rem; }
+.appnav { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.appnav a { color: var(--text); text-decoration: none; font-weight: 700; font-size: .88rem; padding: 6px 14px; border-radius: 999px; }
+.appnav a:hover { background: rgba(255,255,255,.07); }
+.appnav a[aria-current] { background: var(--sky); color: var(--bg); }
+.dcard-del { position: absolute; top: 10px; right: 10px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #16202C; color: #fff; border: 2px solid #fff; box-shadow: 0 6px 16px rgba(0,0,0,.35); cursor: pointer; padding: 0; }
+.dcard-del:hover, .dcard-del:focus-visible { background: var(--red); }
+.dcard-del svg { width: 16px; height: 16px; }
 .who b { color: #fff; }
 
 /* auth */
@@ -125,7 +132,7 @@ body.editing { overflow: hidden; }
 
 <!-- sign up / log in -->
 <main class="wrap" id="auth-view" hidden>
-  <header class="top"><a class="brandline" href="#" data-gallery>ChiActive <span>Studio</span></a><a class="btn ghost small" href="#" data-gallery>← Class gallery</a></header>
+  <header class="top"><a class="brandline" href="#" data-gallery>ChiActive <span>Studio</span></a><a class="btn ghost small" href="#" data-gallery>← Gallery</a></header>
   <section class="auth">
     <div>
       <h1>Your design,<br><span>live and editable.</span></h1>
@@ -164,7 +171,7 @@ body.editing { overflow: hidden; }
 <main class="wrap" id="home-view" hidden>
   <header class="top">
     <a class="brandline" href="/studio" data-route>ChiActive <span>Studio</span></a>
-    <div class="top-right"><span class="who" id="who"></span><a class="btn ghost small" href="#" data-gallery>Class gallery ↗</a><button class="btn small" type="button" id="viewas-btn" hidden>View as student</button><button class="btn ghost small" type="button" id="pw-btn">Change password</button><button class="btn ghost small" type="button" id="logout-btn">Log out</button></div>
+    <div class="top-right"><nav class="appnav" aria-label="ChiActive pages"><a href="#" data-gallery>Gallery</a><a href="/studio" data-route aria-current="page">Studio</a><a href="/admin" id="nav-admin" hidden>Admin</a></nav><span class="who" id="who"></span><button class="btn small" type="button" id="viewas-btn" hidden>View as student</button><button class="btn ghost small" type="button" id="pw-btn">Change password</button><button class="btn ghost small" type="button" id="logout-btn">Log out</button></div>
   </header>
   <div id="admin-banner" class="admin-banner" hidden></div>
   <div id="upload-area">
@@ -279,11 +286,13 @@ body.editing { overflow: hidden; }
   function go(path, replace) { if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path); route(); }
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[data-route]'); if (a) { e.preventDefault(); go(a.getAttribute('href')); }
-    var g = e.target.closest('a[data-gallery]'); if (g && PAGES) { g.href = PAGES; }
+    var g = e.target.closest('a[data-gallery]'); if (g && PAGES) { g.href = galleryHref(); }
   });
   window.addEventListener('popstate', route);
   function show(view) { ['auth-view', 'home-view', 'editor-view'].forEach(function (v) { $(v).hidden = v !== view; }); document.body.classList.toggle('editing', view === 'editor-view'); }
-  function loadMe() { return api('/api/account/me').then(function (j) { ME = j.ok ? j : null; PAGES = (j && j.pages) || ''; document.querySelectorAll('a[data-gallery]').forEach(function (a) { a.href = PAGES || '#'; }); return j; }); }
+  function loadMe() { return api('/api/account/me').then(function (j) { ME = j.ok ? j : null; PAGES = (j && j.pages) || ''; document.querySelectorAll('a[data-gallery]').forEach(function (a) { a.href = galleryHref(); }); var na = $('nav-admin'); if (na) na.hidden = !(ME && (ME.admin || ME.viewingAs)); return j; }); }
+  // admins land on the gallery with its admin tools (bins) switched on
+  function galleryHref() { return PAGES ? PAGES + (ME && (ME.admin || ME.viewingAs) ? '?admin=1' : '') : '#'; }
   function route() {
     return loadMe().then(function (j) {
       if (!j.ok) { show('auth-view'); authError(j.error || ''); return; }
@@ -323,7 +332,23 @@ body.editing { overflow: hidden; }
       f.reset(); route();
     });
   });
-  $('logout-btn').onclick = function () { api('/api/account/logout', {}).then(function () { toast('You’re logged out.'); authTab('login'); go('/studio'); }); };
+  $('logout-btn').onclick = function () {
+    var wasAdmin = ME && ME.admin;
+    api('/api/account/logout', {}).then(function () { return wasAdmin ? api('/api/admin/logout', {}) : null; }).then(function () { toast('You’re logged out.'); authTab('login'); go('/studio'); });
+  };
+  // admins: bin icon on each design card
+  $('designs').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del-design]'); if (!b) return;
+    var folder = b.getAttribute('data-del-design'), name = b.getAttribute('data-name');
+    modal('Delete this design?', '<p><b>' + esc(name) + '</b> disappears from the class gallery for everyone within about a minute. Its files stay in the GitHub history, so it can be brought back if needed.</p>', [{ label: 'Cancel', ghost: true, value: false }, { label: 'Delete design', value: true }]).then(function (yes) {
+      if (!yes) return;
+      b.disabled = true;
+      api('/api/admin/delete', { folder: folder }).then(function (j) {
+        if (!j.ok) { b.disabled = false; return showHelp(j.error || 'Deleting didn’t work.', j.code); }
+        toast('“' + name + '” was deleted.'); route();
+      });
+    });
+  });
   $('viewas-btn').onclick = function () {
     var accs = ME.accounts || [];
     modal('View Studio as a student', '<p class="muted">See exactly what a student sees: only their designs, uploads under their name, and editing only their own work. Switch back any time with <b>Back to admin</b>.</p>' +
@@ -365,12 +390,12 @@ body.editing { overflow: hidden; }
     $('designs-count').textContent = list.length ? list.length + ' design' + (list.length === 1 ? '' : 's') : '';
     $('designs').innerHTML = list.length ? list.map(function (d) {
       var when = d.editedAt ? 'Edited ' + new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : d.uploadedAt ? 'Uploaded ' + new Date(d.uploadedAt).toLocaleDateString() : '';
-      return '<article class="dcard"><div class="thumb"><iframe src="' + esc('/d/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-scripts"></iframe></div>' +
+      return '<article class="dcard"><div class="thumb">' + (ME.admin ? '<button type="button" class="dcard-del" data-del-design="' + esc(d.folder) + '" data-name="' + esc(d.name) + '" title="Delete this design" aria-label="Delete ' + esc(d.name) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' : '') + '<iframe src="' + esc('/d/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-scripts"></iframe></div>' +
         '<div class="body"><h3>' + esc(d.name) + (d.saving ? '<span class="tag">saving…</span>' : '') + (d.role === 'editor' ? '<span class="tag">editor</span>' : '') + '</h3><p class="meta">' + esc(when) + (ME.admin && d.by ? ' · by ' + esc(d.by) : '') + (d.role === 'editor' ? ' · you’re an editor' + (d.ownerName ? ' (owner: ' + esc(d.ownerName) + ')' : '') : '') + (d.role === 'owner' && d.editorNames && d.editorNames.length ? ' · editors: ' + d.editorNames.map(esc).join(', ') : '') + '</p>' +
         '<div class="acts"><a class="btn small" href="/studio/edit/' + esc(d.folder) + '" data-route' + (d.saving ? ' aria-disabled="true"' : '') + '>✎ Edit text</a><a class="btn ghost small" href="' + esc(viewUrl(d)) + '" target="_blank" rel="noopener">View live ↗</a></div></div></article>';
     }).join('') : '<p class="empty">' + (u ? 'No designs yet. Upload your first one above.' : 'No designs in the gallery yet.') + '</p>';
     scaleThumbs();
-    if (u && !pending && !drop.innerHTML.trim()) idle();
+    if ((u || ME.admin) && !pending && !drop.innerHTML.trim()) idle();
   }
   // previews are a 1280px-wide page shrunk to the card; measured whenever a card gets its real size (it has none while hidden)
   var thumbObserver = window.ResizeObserver ? new ResizeObserver(function (entries) { entries.forEach(function (e) { var w = e.target.clientWidth; if (w) e.target.style.setProperty('--s', (w / 1280).toFixed(4)); }); }) : null;

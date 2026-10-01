@@ -124,6 +124,17 @@ textarea { font: inherit; background: var(--bg); color: #fff; border: 1px solid 
 details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-top: 10px; }
 .fix .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 @media (max-width: 900px) { .ai-top { grid-template-columns: 1fr; } }
+.appnav { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.appnav a { color: var(--text); text-decoration: none; font-weight: 700; font-size: .88rem; padding: 6px 14px; border-radius: 999px; }
+.appnav a small { font-weight: 500; color: var(--muted); }
+.appnav a:hover { background: rgba(255,255,255,.07); }
+.appnav a[aria-current] { background: var(--sky); color: var(--bg); }
+.amodal { position: fixed; inset: 0; z-index: 60; background: rgba(10,16,24,.7); display: grid; place-items: center; padding: 16px; }
+.amodal-box { width: min(500px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.7); }
+.amodal-box h2 { color: #fff; font-size: 1.35rem; }
+.amodal-box p { color: var(--muted); margin: 8px 0; }
+.amodal-box p b { color: #fff; }
+.am-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
 @media (max-width: 900px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .table thead { display: none; }
@@ -154,8 +165,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
   <header class="top">
     <h1>ChiActive <span>admin</span></h1>
     <div class="top-right">
-      <a class="btn small" href="/studio" target="_blank" rel="noopener">Upload / Studio ↗</a>
-      <a class="btn ghost small" id="gallery-link" href="#" target="_blank" rel="noopener">Open gallery ↗</a>
+      <nav class="appnav" aria-label="ChiActive pages"><a id="gallery-link" href="https://azzexxy.github.io/ChiActive/?admin=1">Gallery</a><a href="/studio">Studio <small>upload &amp; edit</small></a><a href="/admin" aria-current="page">Admin</a></nav>
       <button class="btn ghost small" id="logout" type="button">Log out</button>
     </div>
   </header>
@@ -218,6 +228,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     <div id="ai-list"><p class="empty">Loading…</p></div>
   </section>
 </div>
+<div class="amodal" id="amodal" hidden><div class="amodal-box" role="dialog" aria-modal="true" aria-labelledby="am-title"><h2 id="am-title"></h2><div id="am-body"></div><div class="am-acts" id="am-acts"></div></div></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -380,7 +391,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
       if (j.status === 401) return showLogin(j.needsPassword ? 'No admin password is set yet. Add ADMIN_PASSWORD in Render.' : '');
       if (!j.ok) { $('updated').textContent = ''; toast(j.error || 'Couldn’t load the log.', true); return; }
       state.events = j.events || []; state.data = j;
-      $('gallery-link').href = (j.server && j.server.pages) || '#';
+      if (j.server && j.server.pages) $('gallery-link').href = j.server.pages + '?admin=1';
       $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       stats(); notices(j); draw();
     });
@@ -403,7 +414,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
         '<div><h3>' + esc(d.name || d.folder) + (d.unlisted ? '<span class="tag">not listed</span>' : '') + (d.missing ? '<span class="tag">files missing</span>' : '') + '</h3>' +
         '<p>By ' + esc(d.by || '—') + ' · <code>' + esc(d.folder) + '</code>' + (d.uploadedAt ? ' · added ' + esc(new Date(d.uploadedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) : '') + (d.editedAt ? ' · edited ' + esc(new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) : '') + '</p>' +
         (d.unlisted ? '' : '<p class="owner-row"><label>Owner (can edit it in Studio) <select data-owner>' + '<option value="">No owner (only admins can edit)</option>' + accounts.map(function (a) { return '<option value="' + esc(a.id) + '"' + (a.id === d.owner ? ' selected' : '') + '>' + esc(a.name) + ' (@' + esc(a.username) + ')</option>'; }).join('') + (d.owner && !accounts.some(function (a) { return a.id === d.owner; }) ? '<option value="' + esc(d.owner) + '" selected>' + esc(d.ownerName || 'deleted account') + '</option>' : '') + '</select></label></p>') + '</div>' +
-        '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' + (d.unlisted || d.missing ? '' : '<a class="btn ghost small" href="/studio/edit/' + esc(d.folder) + '" target="_blank" rel="noopener">✎ Edit text</a>') +
+        '<div class="acts"><a class="btn ghost small" href="' + esc(link) + '" target="_blank" rel="noopener">Open ↗</a>' + (d.unlisted || d.missing ? '' : '<a class="btn ghost small" href="/studio/edit/' + esc(d.folder) + '">✎ Edit text</a>') +
         '<button class="btn ghost small" type="button" data-edit>Rename</button><button class="btn danger small" type="button" data-del>Delete</button></div>' +
         (d.unlisted ? '' : editorsHtml(d)) +
         (d.unlisted ? '<p class="warn-line">This folder is in the repository but not in the gallery list. Rename it to add it to the gallery, or delete it.</p>' : '') +
@@ -439,7 +450,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
   });
   function loadDesigns() {
     $('design-list').innerHTML = '<p class="empty">Loading designs…</p>';
-    api('/api/admin/designs').then(function (j) {
+    return api('/api/admin/designs').then(function (j) {
       if (j.status === 401) return showLogin();
       if (!j.ok) { $('design-list').innerHTML = '<p class="empty">' + esc(j.error || 'Couldn’t load the designs.') + '</p>'; return; }
       designs = j.designs || []; pages = j.pages || ''; accounts = j.accounts || []; accountsError = j.accountsError || ''; drawDesigns();
@@ -641,11 +652,43 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     });
   });
 
+  /* ---------- delete straight from the gallery's bin icon (/admin?delete=<folder>) ---------- */
+  function amodal(title, body, buttons) {
+    $('am-title').textContent = title; $('am-body').innerHTML = body;
+    $('am-acts').innerHTML = buttons.map(function (b, i) { return b.href ? '<a class="btn' + (b.ghost ? ' ghost' : '') + '" href="' + esc(b.href) + '">' + esc(b.label) + '</a>' : '<button type="button" class="btn' + (b.ghost ? ' ghost' : '') + '" data-i="' + i + '">' + esc(b.label) + '</button>'; }).join('');
+    $('amodal').hidden = false;
+    var first = $('am-acts').querySelector('.btn:not(.ghost)') || $('am-acts').firstChild; if (first) first.focus();
+    $('am-acts').onclick = function (e) { var b = e.target.closest('[data-i]'); if (!b) return; var fn = buttons[+b.getAttribute('data-i')].onclick; if (fn) fn(b); else $('amodal').hidden = true; };
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('amodal').hidden) $('amodal').hidden = true; });
+  function galleryUrl() { return $('gallery-link').getAttribute('href'); }
+  function deleteFromGallery() {
+    var folder = null; try { folder = new URLSearchParams(location.search).get('delete'); } catch (e) {}
+    if (!folder) return;
+    history.replaceState(null, '', '/admin');
+    tab('designs');
+    loadDesigns().then(function () {
+      var d = designs.filter(function (x) { return x.folder === folder; })[0];
+      if (!d) return amodal('Design not found', '<p>That design isn’t in the gallery anymore (maybe it was already deleted).</p>', [{ label: 'Back to gallery', href: galleryUrl() }, { label: 'Stay here', ghost: true }]);
+      amodal('Delete this design?', '<p><b>' + esc(d.name || d.folder) + '</b>' + (d.by ? ' by ' + esc(d.by) : '') + '</p><p>It disappears from the gallery for everyone within about a minute. Its files stay in the GitHub history, so it can be brought back if needed.</p>',
+        [{ label: 'Cancel', ghost: true, onclick: function () { $('amodal').hidden = true; location.href = galleryUrl(); } },
+         { label: 'Delete design', onclick: function (b) {
+            b.disabled = true; b.textContent = 'Deleting…';
+            api('/api/admin/delete', { body: { folder: d.folder } }).then(function (j) {
+              if (j.status === 401) { $('amodal').hidden = true; return showLogin(); }
+              if (!j.ok) { b.disabled = false; b.textContent = 'Delete design'; $('am-body').insertAdjacentHTML('beforeend', '<p class="err">' + esc(j.error || 'Deleting failed.') + '</p>'); return; }
+              designs = j.designs || []; drawDesigns();
+              amodal('Deleted', '<p><b>' + esc(d.name || d.folder) + '</b> was deleted. The gallery updates within about a minute.</p>', [{ label: 'Stay in admin', ghost: true }, { label: 'Back to gallery', href: galleryUrl() }]);
+            });
+          } }]);
+    });
+  }
+
   /* ---------- start ---------- */
   function start() {
     $('login-view').hidden = true; $('app').hidden = false;
     var t = 'activity'; try { t = sessionStorage.getItem('ca-tab') || 'activity'; } catch (e) {}
-    loadLogs().then(function () { if (!$('app').hidden) { tab(t); setAuto(); } });
+    loadLogs().then(function () { if (!$('app').hidden) { tab(t); setAuto(); deleteFromGallery(); } });
   }
   api('/api/admin/logs?days=1').then(function (j) {
     if (j.ok) return start();
