@@ -206,12 +206,12 @@ body.editing { overflow: hidden; }
   }
   // anything that breaks in this page is reported to the admin activity log
   var reported = 0;
-  function report(stage, message) {
+  function report(stage, message, stack) {
     if (reported++ > 20) return;
-    try { fetch('/api/event', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ type: 'client-error', stage: 'studio ' + stage, message: String(message).slice(0, 380), path: location.pathname, student: ME && ME.user ? ME.user.name : undefined, page: navigator.userAgent.slice(0, 150) }), keepalive: true }); } catch (e) {}
+    try { fetch('/api/event', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ type: 'client-error', stage: 'studio ' + stage, message: String(message).slice(0, 380), stack: stack ? String(stack).slice(0, 1200) : undefined, path: location.pathname, student: ME && ME.user ? ME.user.name : undefined, page: navigator.userAgent.slice(0, 150) }), keepalive: true }); } catch (e) {}
   }
-  window.addEventListener('error', function (e) { report('script', (e.message || 'error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '')); });
-  window.addEventListener('unhandledrejection', function (e) { report('promise', e.reason && (e.reason.stack || e.reason.message) || e.reason); });
+  window.addEventListener('error', function (e) { report('script', (e.message || 'error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''), e.error && e.error.stack); });
+  window.addEventListener('unhandledrejection', function (e) { report('promise', e.reason && e.reason.message || e.reason, e.reason && e.reason.stack); });
   var ME = null, PAGES = '';
   function viewUrl(d) { return PAGES + 'view.html?d=' + encodeURIComponent(d.folder) + '&e=' + encodeURIComponent(d.entry || 'index.html') + (d.by ? '&by=' + encodeURIComponent(d.by) : ''); }
 

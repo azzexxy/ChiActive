@@ -153,3 +153,9 @@ footer { border-top: 1px solid var(--line); padding-block: 26px 40px; color: var
 @media (max-width: 600px) { .hero-brand { grid-template-columns: 1fr; gap: 12px; } .hero-brand > img { width: 64px; height: 64px; } }
 .up-ref { display: inline-block; margin-top: 6px; font-size: .8rem; font-weight: 600; color: var(--muted); }
 .privacy { font-size: .82rem; color: var(--muted); }
+
+/* top bar: Studio + Admin (the admin page asks for the password) */
+.topbar { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 0 0; flex-wrap: wrap; }
+.top-link { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 999px; font-size: .88rem; font-weight: 700; text-decoration: none; color: inherit; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.25); }
+.top-link:hover, .top-link:focus-visible { background: rgba(255,255,255,.08); }
+.top-link.admin { box-shadow: inset 0 0 0 1.5px rgba(245,231,190,.45); color: #F5E7BE; }

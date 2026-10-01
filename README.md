@@ -19,6 +19,14 @@ Every design is treated the same, including the original ChiActive store (`desig
 - **Student accounts:** see every account and its designs, set a new password for a student who forgot theirs, delete an account (its designs stay, without an owner).
 - The log and the accounts file are encrypted on the repo branch `activity-log` (GitHub Pages only publishes `main`). The key comes from `ADMIN_PASSWORD` (or `LOG_KEY`/`DATA_KEY` if set). **If you ever change ADMIN_PASSWORD, first add `DATA_KEY` and `LOG_KEY` in Render with the OLD password**, or the accounts and older log entries can't be read.
 
+## AI fixer (admin page → AI fixes)
+When the server or Studio hits a real bug, the upload server asks Claude what went wrong, gets a small code fix, **tests it** on a full copy of the server (`upload-server/test/selftest.js`: start-up, sign up, login, upload, preview, text edit/delete, admin pages), and if every test passes commits it to `main`, so Render redeploys by itself. Everything (the error, Claude's diagnosis, the exact code change, the test results, the commit) is listed under **AI fixes**, with **Approve** and **Undo** buttons.
+- **Switch it on:** Render → `chiactive-uploads` → **Environment** → add `ANTHROPIC_API_KEY` (your Claude API key from console.anthropic.com) → Save. The key lives only in Render's encrypted settings; the server removes it from its environment at start-up and never logs it, shows it or writes it to GitHub. Setting a monthly spend limit in the Anthropic console is a good idea.
+- **Modes:** *Fix & deploy automatically* (default), *Ask me first*, *Off*. Browser-side errors, admin reports and any change touching logins or admin checks always wait for approval.
+- **Limits and safety:** 10 Claude checks and 3 automatic deploys a day (`AI_MAX_PER_DAY`, `AI_MAX_DEPLOYS_PER_DAY`); each error is looked at once per day; only the app's own files can change; fixes that add network calls, secrets access, new modules, eval or child processes are refused; it waits for running uploads before deploying.
+- **Manual:** click **Ask Claude to fix this** on any error in the Activity tab, or describe a problem in the AI fixes tab.
+- Optional: `AI_MODEL` (default `claude-sonnet-4-5`). Tests: `cd upload-server && node test/selftest.js` and `node test/fixer-test.js`.
+
 ## Upload server setup (one time)
 1. Fine-grained GitHub token: GitHub → Settings → Developer settings → Fine-grained tokens → *Only select repositories: ChiActive* → Repository permissions → **Contents: Read and write**.
 2. Render → **New → Blueprint** → the `azzexxy/ChiActive` repo → paste the token into `GITHUB_TOKEN`, choose an `ADMIN_PASSWORD` → Apply. `ADMIN_PASSWORD` also switches on student accounts.

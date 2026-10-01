@@ -40,6 +40,10 @@
  *   DESIGNS_DIR      folder in the repo, default "designs"
  *   ALLOWED_ORIGINS  comma-separated sites allowed to upload (default: the GitHub Pages site + localhost)
  *   PAGES_URL        public site, default "https://azzexxy.github.io/ChiActive/"
+ *   ANTHROPIC_API_KEY  optional: switches on the AI fixer (ai-fixer.js). It diagnoses real errors with Claude,
+ *                    tests a fix against a copy of the server (test/selftest.js) and commits it to main.
+ *                    The key is removed from process.env at start-up and never logged or shown.
+ *   AI_MODEL         optional Claude model (default claude-sonnet-4-5); AI_MAX_PER_DAY (10), AI_MAX_DEPLOYS_PER_DAY (3)
  */
 'use strict';
 const http = require('http');
@@ -63,7 +67,7 @@ const PAGES_URL = (process.env.PAGES_URL || 'https://azzexxy.github.io/ChiActive
 const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://azzexxy.github.io,http://localhost:8000,http://127.0.0.1:8000').split(',').map(s => s.trim()).filter(Boolean);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const LOG_SECRET = process.env.LOG_KEY || ADMIN_PASSWORD;
-const TMP = path.join(os.tmpdir(), 'chiactive-uploads');
+const TMP = process.env.UPLOAD_TMP || path.join(os.tmpdir(), 'chiactive-uploads');
 
 const MB = 1024 * 1024;
 const MAX_FILE = 100 * MB;      // GitHub refuses single files over 100 MB (a hard GitHub rule)
@@ -82,6 +86,7 @@ const MIME = { html: 'text/html; charset=utf-8', htm: 'text/html; charset=utf-8'
   mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg', pdf: 'application/pdf', glb: 'model/gltf-binary', gltf: 'model/gltf+json' };
 
 /* ---------- small helpers ---------- */
+let fixer = null;   // the AI fixer (ai-fixer.js), started below
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fmtMB = n => n >= MB ? (n / MB).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const newId = () => crypto.randomBytes(6).toString('hex');
@@ -214,6 +219,11 @@ function explain(e) {
     return `Saving to GitHub failed (error ${e.status}).` + said;
   }
   return 'Something went wrong on the upload server: ' + cleanText(e.message || String(e), 200);
+}
+// the code location of a real bug (not for user mistakes or GitHub problems); used by the admin log and the AI fixer
+function stackOf(e) {
+  if (!e || e.user || e instanceof GitHubError || !e.stack) return undefined;
+  return String(e.stack).split('\n').filter(l => !/node:internal|node_modules/.test(l)).slice(0, 8).join('\n').split(__dirname + path.sep).join('');
 }
 async function pathExists(p, branch = BRANCH) {
   try { await gh('GET', `/repos/${REPO}/contents/${encodeURI(p)}?ref=${branch}`, null, { retries: 2 }); return true; }
@@ -405,7 +415,7 @@ async function handleChunk(req, res, origin, url, user) {
     try { await fh.write(buf, 0, buf.length, o); } finally { await fh.close(); }
   } catch (e) {
     const msg = explain(e);
-    logEvent('upload-failed', { ref: s.id, stage: 'receive', student: s.student, visitor: s.visitor, folder: s.folder, error: msg, detail: cleanText(e.message, 200) }, req);
+    logEvent('upload-failed', { ref: s.id, stage: 'receive', student: s.student, visitor: s.visitor, folder: s.folder, error: msg, detail: cleanText(e.message, 200), stack: stackOf(e) }, req);
     return send(res, 507, { ok: false, code: e.code || 'disk', error: msg, ref: s.id }, origin);
   }
   f.got = Math.max(f.got, o + buf.length); s.lastActive = Date.now();
@@ -435,7 +445,7 @@ async function handleFinish(req, res, origin, user) {
     console.error(e);
     s.status = 'failed'; s.error = explain(e);
     logEvent('upload-failed', { ref: s.id, stage: s.stage === 'commit' ? 'commit' : 'saving files', student: s.student, visitor: s.visitor, folder: s.folder,
-      files: s.files.length, size: s.total, saved: s.done, error: s.error, detail: cleanText(e.message, 300) }, null, s.who);
+      files: s.files.length, size: s.total, saved: s.done, error: s.error, detail: cleanText(e.message, 300), stack: stackOf(e) }, null, s.who);
     if (live.get(s.folder) === s) live.delete(s.folder);
     reserved.delete(s.folder);
     setTimeout(() => dropUpload(s), 10 * 60e3).unref();   // keep the status for the browser a little longer
@@ -504,11 +514,12 @@ const LOG_KEY = LOG_SECRET ? crypto.scryptSync(LOG_SECRET, 'chiactive-activity-l
 const logState = { buffer: [], recent: [], timer: null, timerAt: 0, chain: Promise.resolve(), persist: !!(TOKEN && LOG_KEY), lastError: '', parts: {} };
 function logEvent(type, data, req, who) {
   const e = { id: newId(), t: new Date().toISOString(), type };
-  for (const [k, v] of Object.entries(data || {})) if (v !== undefined && v !== null && v !== '') e[k] = typeof v === 'string' ? cleanText(v, 500) : v;
+  for (const [k, v] of Object.entries(data || {})) if (v !== undefined && v !== null && v !== '') e[k] = typeof v === 'string' ? cleanText(v, k === 'stack' ? 1500 : 500) : v;
   if (req) { e.ip = ipTag(req); e.device = device(req.headers['user-agent']); } else if (who) { e.ip = who.ip; e.device = who.device; }
   console.log('[event] ' + JSON.stringify(e));
   logState.recent.push(e); if (logState.recent.length > 6000) logState.recent.splice(0, 1000);
-  if (logState.persist) { logState.buffer.push(e); scheduleFlush(/^(upload|admin|server)/.test(type) ? 5e3 : 60e3); }
+  if (logState.persist) { logState.buffer.push(e); scheduleFlush(/^(upload|admin|server|ai)/.test(type) ? 5e3 : 60e3); }
+  if (fixer) try { fixer.onEvent(e); } catch (x) { console.error('AI fixer:', x); }
   return e;
 }
 function scheduleFlush(ms) {
@@ -801,7 +812,7 @@ async function handleAccount(req, res, route) {
     }
     return send(res, 404, { ok: false, error: 'Not found' });
   } catch (e) {
-    if (!e.user) { console.error(e); logEvent('account-error', { stage: route.split('/').pop(), error: explain(e), detail: cleanText(e.message, 300) }, null, who); }
+    if (!e.user) { console.error(e); logEvent('account-error', { stage: route.split('/').pop(), error: explain(e), detail: cleanText(e.message, 300), stack: stackOf(e) }, null, who); }
     return send(res, e.user && e.status ? e.status : 502, { ok: false, code: e.code, error: explain(e) });
   }
 }
@@ -887,7 +898,7 @@ async function handleEdit(req, res, route, url) {
     return send(res, 404, { ok: false, error: 'Not found' });
   } catch (e) {
     if (!e.user) console.error(e);
-    if (!(e.user && (e.status === 401 || e.status === 409))) logEvent('edit-failed', { folder: folder || cleanText(body.folder, 80), page: cleanText(body.path || url.searchParams.get('path'), 120), student: who && who.user ? who.user.name : undefined, error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+    if (!(e.user && (e.status === 401 || e.status === 409))) logEvent('edit-failed', { folder: folder || cleanText(body.folder, 80), page: cleanText(body.path || url.searchParams.get('path'), 120), student: who && who.user ? who.user.name : undefined, error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300), stack: stackOf(e) }, req);
     return send(res, e.user && e.status ? e.status : 502, { ok: false, code: e.code, error: explain(e) });
   }
 }
@@ -930,7 +941,7 @@ function staticFile(res, rel, type) {
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'public, max-age=86400' });
   res.end(staticCache.get(rel));
 }
-const EVENT_FIELDS = ['folder', 'page', 'student', 'visitor', 'message', 'stage', 'size', 'files', 'ref', 'by', 'path'];
+const EVENT_FIELDS = ['folder', 'page', 'student', 'visitor', 'message', 'stage', 'size', 'files', 'ref', 'by', 'path', 'stack'];
 
 /* ---------- HTTP ---------- */
 const server = http.createServer(async (req, res) => {
@@ -980,10 +991,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && route === '/api/event') {
       if ((!origin && !(req.headers.origin && sameOrigin(req))) || eventLimited(clientIp(req))) { req.resume(); res.writeHead(204, cors(origin)); return res.end(); }
       let body = {};
-      try { body = JSON.parse((await readBody(req, 4096)).toString('utf8')); } catch (e) { res.writeHead(400, cors(origin)); return res.end(); }
+      try { body = JSON.parse((await readBody(req, 8192)).toString('utf8')); } catch (e) { res.writeHead(400, cors(origin)); return res.end(); }
       if (EVENT_TYPES.has(body.type)) {
         const data = {};
-        EVENT_FIELDS.forEach(k => { if (body[k] != null && body[k] !== '') data[k] = typeof body[k] === 'number' ? body[k] : cleanText(body[k], k === 'message' ? 400 : 160); });
+        EVENT_FIELDS.forEach(k => { if (body[k] != null && body[k] !== '') data[k] = typeof body[k] === 'number' ? body[k] : cleanText(body[k], k === 'message' ? 400 : k === 'stack' ? 1200 : 160); });
         if (data.student) data.student = cleanName(data.student);
         logEvent(body.type, data, req);
       }
@@ -1049,6 +1060,31 @@ const server = http.createServer(async (req, res) => {
           return send(res, 200, { ok: true, user: { username: acc.username, name: acc.name } }, null, { 'Set-Cookie': [userCookie(req, acc, 12 * 3600), viewAsCookie(req, true)] });
         } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) }); }
       }
+      // AI fixer
+      if (req.method === 'GET' && route === '/api/admin/ai') return send(res, 200, await fixer.adminView());
+      if (req.method === 'POST' && route.startsWith('/api/admin/ai/')) {
+        const body = await readJson(req, 16 * 1024);
+        try {
+          const what = route.split('/').pop();
+          if (what === 'settings') { await fixer.setMode(String(body.mode || '')); logEvent('admin-ai', { message: `AI fixer mode set to “${body.mode}”` }, req); }
+          else if (what === 'approve') { await fixer.approve(String(body.id || '')); logEvent('admin-ai', { ref: cleanText(body.id, 20), message: 'Approved an AI fix' }, req); }
+          else if (what === 'revert') { const sha = await fixer.revert(String(body.id || '')); logEvent('admin-ai', { ref: cleanText(body.id, 20), message: `Undid an AI fix (commit ${sha.slice(0, 7)})` }, req); }
+          else if (what === 'analyze') {
+            let ev = null;
+            if (body.eventId) {
+              ev = logState.recent.find(x => x.id === body.eventId) || (await loadLogs(30)).events.find(x => x.id === body.eventId);
+              if (!ev) throw userError(404, 'no-event', 'That log entry wasn’t found.');
+            } else {
+              const text = cleanText(body.text, 1500);
+              if (text.length < 10) throw userError(400, 'short', 'Describe the problem in a sentence or two.');
+              ev = { id: newId(), t: new Date().toISOString(), type: 'admin-report', stage: 'reported by admin', message: text };
+            }
+            fixer.analyzeNow(ev);
+            logEvent('admin-ai', { ref: ev.id, message: body.eventId ? `Asked Claude about a ${ev.type} entry` : 'Asked Claude about a problem: ' + cleanText(body.text, 200) }, req);
+          } else return send(res, 404, { ok: false, error: 'Not found' });
+          return send(res, 200, await fixer.adminView());
+        } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: e.user ? e.message : explain(e) }); }
+      }
       if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
         const body = await readJson(req, 16 * 1024);
         try {
@@ -1057,7 +1093,7 @@ const server = http.createServer(async (req, res) => {
           else await adminDeleteAccount(req, body);
           return send(res, 200, { ok: true });
         } catch (e) {
-          logEvent('admin-error', { stage: route.split('/').pop(), error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+          logEvent('admin-error', { stage: route.split('/').pop(), error: explain(e), detail: e.user ? undefined : cleanText(e.message, 300), stack: stackOf(e) }, req);
           return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) });
         }
       }
@@ -1068,7 +1104,7 @@ const server = http.createServer(async (req, res) => {
           return send(res, 200, { ok: true, designs: await adminDesigns() });
         } catch (e) {
           const msg = explain(e);
-          logEvent('admin-error', { folder: cleanText(body.folder, 80), stage: route.endsWith('rename') ? 'rename' : 'delete', error: msg, detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+          logEvent('admin-error', { folder: cleanText(body.folder, 80), stage: route.endsWith('rename') ? 'rename' : 'delete', error: msg, detail: e.user ? undefined : cleanText(e.message, 300), stack: stackOf(e) }, req);
           return send(res, e.user && e.status ? e.status : 502, { ok: false, error: msg });
         }
       }
@@ -1076,10 +1112,18 @@ const server = http.createServer(async (req, res) => {
     send(res, 404, { ok: false, error: 'Not found' }, origin);
   } catch (e) {
     console.error(e);
+    if (!e.user) logEvent('server-error', { stage: `${req.method} ${route}`, error: explain(e), detail: cleanText(e.message, 300), stack: stackOf(e) }, req);
     if (!res.headersSent) send(res, e.user && e.status ? e.status : 500, { ok: false, error: explain(e) }, origin);
     else res.end();
   }
 });
+
+/* ---------- AI fixer ---------- */
+fixer = require('./ai-fixer').createFixer({ gh, commitToMain, logEvent, encrypt, decrypt, ensureLogBranch, explain, key: LOG_KEY, REPO, BRANCH, LOG_BRANCH,
+  serverDir: __dirname, activeUploads: () => [...uploads.values()].filter(s => s.status !== 'done' && s.status !== 'failed').length, recentEvents: () => logState.recent.slice(-200) });
+// a bug outside a request: log it (the AI fixer picks it up) and keep serving
+process.on('uncaughtException', e => { console.error('Uncaught:', e); try { logEvent('server-crash', { error: explain(e), detail: cleanText(e && e.message, 300), stack: stackOf(e) }); } catch (x) { /* ignore */ } });
+process.on('unhandledRejection', e => { console.error('Unhandled rejection:', e); try { logEvent('server-crash', { error: explain(e), detail: cleanText(e && e.message || e, 300), stack: stackOf(e) }); } catch (x) { /* ignore */ } });
 
 /* ---------- start / stop ---------- */
 fs.rmSync(TMP, { recursive: true, force: true });
@@ -1088,7 +1132,7 @@ server.requestTimeout = 0;            // big uploads can take a while
 server.headersTimeout = 60e3;
 server.listen(PORT, () => {
   console.log(`ChiActive upload server on :${PORT} for ${REPO} (${TOKEN ? 'token set' : 'NO TOKEN'}, admin ${ADMIN_PASSWORD ? 'on' : 'off'}, log ${logState.persist ? 'saved to ' + LOG_BRANCH : 'memory only'})`);
-  logEvent('server-start', { message: `Upload server started (${TOKEN ? 'GitHub connected' : 'no GitHub token'}, activity log ${logState.persist ? 'saved' : 'memory only'})` });
+  logEvent('server-start', { message: `Upload server started (${TOKEN ? 'GitHub connected' : 'no GitHub token'}, activity log ${logState.persist ? 'saved' : 'memory only'}, AI fixer ${fixer.keySet() ? 'on' : 'off: no ANTHROPIC_API_KEY'})`, ref: process.env.RENDER_GIT_COMMIT ? process.env.RENDER_GIT_COMMIT.slice(0, 7) : undefined });
 });
 async function shutdown(sig) {
   console.log(`${sig}: saving the activity log…`);

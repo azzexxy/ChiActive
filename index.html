@@ -10,11 +10,15 @@
 <meta property="og:description" content="Upload your ChiActive website design (a .zip or a folder) with your student name, and see every design from the class.">
 <meta property="og:image" content="images/previews/classic-desktop.webp">
 <link rel="icon" type="image/png" href="images/favicon.png">
-<link rel="stylesheet" href="picker.css?v=11">
+<link rel="stylesheet" href="picker.css?v=12">
 </head>
 <body>
 <div class="stripes" aria-hidden="true"></div>
 <div class="wrap">
+  <nav class="topbar" aria-label="Gallery tools">
+    <a class="top-link" id="studio-link" href="https://chiactive-uploads.onrender.com/studio">ChiActive Studio</a>
+    <a class="top-link admin" id="admin-link" href="https://chiactive-uploads.onrender.com/admin" title="Admin page (password needed)"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Admin</a>
+  </nav>
   <header class="gallery-hero">
     <div class="hero-brand">
       <img src="images/chiactive-logo.png" alt="ChiActive logo" width="84" height="84">
@@ -62,12 +66,13 @@
 
   <footer><span>&copy; 2026 ChiActive &middot; Class design gallery. No real orders are placed. Only upload your own work.<br><span class="privacy">For the class admin, this gallery keeps a log of uploads, errors and which designs are viewed (with a random visitor id, and your student name if you uploaded).</span></span><span>Built for the four-season city.</span></footer>
 </div>
-<script src="site-config.js?v=11"></script>
-<script src="track.js?v=11"></script>
+<script src="site-config.js?v=12"></script>
+<script src="track.js?v=12"></script>
 <script>
 (function () {
   var cfg = window.CHIACTIVE || {};
   var link = (cfg.pages && /^https?:/.test(cfg.pages)) ? cfg.pages.replace(/\/?$/, '/') : location.href.split('#')[0];
+  if (cfg.uploadApi) { var api = cfg.uploadApi.replace(/\/+$/, ''); document.getElementById('admin-link').href = api + '/admin'; document.getElementById('studio-link').href = api + '/studio'; }
   var input = document.getElementById('share-link'), done = document.getElementById('copy-done');
   input.value = link;
   input.addEventListener('focus', function () { input.select(); });
@@ -79,7 +84,7 @@
   });
 })();
 </script>
-<script src="designs.js?v=11"></script>
+<script src="designs.js?v=12"></script>
 <script>window.chiTrack && window.chiTrack('visit');</script>
 </body>
 </html>

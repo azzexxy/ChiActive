@@ -94,6 +94,26 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .toast.show { opacity: 1; transform: none; }
 .toast.bad { border-color: rgba(228,2,43,.6); }
 
+.ai-top { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-bottom: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.panel p { margin: 4px 0; color: var(--muted); font-size: .9rem; }
+.panel p b { color: var(--text); }
+.ai-ask { display: grid; gap: 8px; margin-top: 8px; }
+textarea { font: inherit; background: var(--bg); color: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 64px; resize: vertical; }
+.fix { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+.fix-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.fix-head h3 { margin: 0; font-size: 1.05rem; color: #fff; }
+.fix .sub { color: var(--muted); font-size: .85rem; margin: 4px 0 10px; }
+.fix .lbl { font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--sand); font-weight: 700; margin: 12px 0 4px; }
+.fix .err-box { background: rgba(228,2,43,.08); border: 1px solid rgba(228,2,43,.3); border-radius: 10px; padding: 8px 12px; font-size: .88rem; color: #ffb3c0; overflow-wrap: anywhere; }
+.diff { display: grid; gap: 6px; }
+.diff pre { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: .78rem; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
+.diff .del { background: rgba(228,2,43,.12); color: #ffb3c0; }
+.diff .add { background: rgba(61,190,115,.12); color: #a6f0c4; }
+.steps { margin: 0; padding-left: 18px; color: var(--muted); font-size: .85rem; }
+details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-top: 10px; }
+.fix .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+@media (max-width: 900px) { .ai-top { grid-template-columns: 1fr; } }
 @media (max-width: 900px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .table thead { display: none; }
@@ -133,6 +153,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     <button class="tab" role="tab" id="tab-activity" aria-selected="true" aria-controls="activity">Activity</button>
     <button class="tab" role="tab" id="tab-designs" aria-selected="false" aria-controls="designs">Designs</button>
     <button class="tab" role="tab" id="tab-accounts" aria-selected="false" aria-controls="accounts">Student accounts</button>
+    <button class="tab" role="tab" id="tab-ai" aria-selected="false" aria-controls="ai">AI fixes</button>
   </div>
 
   <section id="activity" role="tabpanel" aria-labelledby="tab-activity">
@@ -165,6 +186,27 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     <p class="meta">Students sign up in <a href="/studio" target="_blank" rel="noopener">ChiActive Studio</a> with a username and password. Forgot a password? Set a new one here and tell the student (they can change it afterwards). Deleting an account keeps its designs in the gallery, without an owner.</p>
     <div class="designs" id="account-list"><p class="empty">Loading accounts…</p></div>
   </section>
+
+  <section id="ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
+    <div class="ai-top">
+      <div class="panel" id="ai-status"><p>Loading…</p></div>
+      <div class="panel">
+        <h2>Mode</h2>
+        <div class="chips" id="ai-mode">
+          <button class="chip" type="button" data-mode="auto">Fix &amp; deploy automatically</button>
+          <button class="chip" type="button" data-mode="approve">Ask me first</button>
+          <button class="chip" type="button" data-mode="off">Off</button>
+        </div>
+        <p id="ai-mode-help"></p>
+        <form class="ai-ask" id="ai-ask">
+          <label class="sr" for="ai-text">Describe a problem</label>
+          <textarea id="ai-text" maxlength="1500" placeholder="Describe a problem (e.g. “a student says the Save button does nothing on her iPad”). Claude looks at the code and proposes a tested fix for you to approve."></textarea>
+          <div><button class="btn small" type="submit">Ask Claude</button></div>
+        </form>
+      </div>
+    </div>
+    <div id="ai-list"><p class="empty">Loading…</p></div>
+  </section>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -191,9 +233,10 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin']
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
+    'server-error': ['Server error', 'bad'], 'server-crash': ['Server crash', 'bad'], 'ai-fix': ['AI fixer', 'admin'], 'admin-report': ['Reported by admin', 'admin'], 'admin-ai': ['Admin used the AI fixer', 'admin']
   };
-  var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
+  var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['ai', 'AI fixer'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
   function inFilter(e, f) {
     if (f === 'all') return true;
     if (f === 'uploads') return /^upload/.test(e.type) || e.type === 'client-error';
@@ -202,7 +245,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     if (f === 'accounts') return /^account-/.test(e.type) || e.type === 'admin-reset' || e.type === 'admin-account-delete';
     if (f === 'views') return e.type === 'view' || e.type === 'page';
     if (f === 'visits') return e.type === 'visit';
-    if (f === 'admin') return /^admin|server/.test(e.type);
+    if (f === 'ai') return /^ai-|admin-ai/.test(e.type);
+    if (f === 'admin') return /^admin|server|^ai-/.test(e.type);
   }
   var state = { events: [], filter: 'all', q: '', shown: 150, data: null, timer: null };
 
@@ -221,14 +265,16 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 
   /* ---------- tabs ---------- */
   function tab(which) {
-    ['activity', 'designs', 'accounts'].forEach(function (t) { $('tab-' + t).setAttribute('aria-selected', String(t === which)); $(t).hidden = t !== which; });
+    ['activity', 'designs', 'accounts', 'ai'].forEach(function (t) { $('tab-' + t).setAttribute('aria-selected', String(t === which)); $(t).hidden = t !== which; });
     if (which === 'designs') loadDesigns();
     if (which === 'accounts') loadAccounts();
+    if (which === 'ai') loadAi();
     try { sessionStorage.setItem('ca-tab', which); } catch (e) {}
   }
   $('tab-activity').addEventListener('click', function () { tab('activity'); });
   $('tab-designs').addEventListener('click', function () { tab('designs'); });
   $('tab-accounts').addEventListener('click', function () { tab('accounts'); });
+  $('tab-ai').addEventListener('click', function () { tab('ai'); });
 
   /* ---------- activity ---------- */
   $('chips').innerHTML = FILTERS.map(function (f) { return '<button class="chip" type="button" data-f="' + f[0] + '" aria-pressed="' + (f[0] === 'all') + '">' + f[1] + '</button>'; }).join('');
@@ -255,6 +301,9 @@ header.top { display: flex; align-items: center; justify-content: space-between;
     if (e.detail) bits.push('<span class="dev">Technical: ' + esc(e.detail) + '</span>');
     if (e.ref) bits.push((/failed|rejected|abandoned|error/.test(e.type) ? 'Error code' : 'Upload id') + ': <code>' + esc(e.ref) + '</code>');
     if (e.commit) bits.push('commit <code>' + esc(e.commit) + '</code>');
+    if (e.stack) bits.push('<details><summary>Code location</summary><span class="dev">' + esc(e.stack) + '</span></details>');
+    if (e.type === 'ai-fix' && e.ref) bits.push('<button class="btn ghost small" type="button" data-showfix="' + esc(e.ref) + '">Open in AI fixes</button>');
+    else if (/failed|error|crash/.test(e.type) && e.type !== 'admin-login-failed' && e.type !== 'account-login-failed') bits.push('<button class="btn ghost small" type="button" data-ask="' + esc(e.id) + '">Ask Claude to fix this</button>');
     return bits.filter(Boolean).join('<br>');
   }
   function when(t) {
@@ -283,6 +332,17 @@ header.top { display: flex; align-items: center; justify-content: space-between;
         '<td class="detail">' + details(e) + '</td></tr>';
     }).join('') + '</tbody></table>';
   }
+  $('table-wrap').addEventListener('click', function (e) {
+    var a = e.target.closest('[data-ask]'), sf = e.target.closest('[data-showfix]');
+    if (sf) { tab('ai'); return; }
+    if (!a) return;
+    a.disabled = true;
+    api('/api/admin/ai/analyze', { body: { eventId: a.getAttribute('data-ask') } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { a.disabled = false; return toast(j.error || 'That didn’t work.', true); }
+      toast('Claude is looking at it. Results appear under “AI fixes”.'); tab('ai');
+    });
+  });
   $('table-wrap').addEventListener('click', function (e) { var b = e.target.closest('[data-q]'); if (!b || !b.getAttribute('data-q')) return; $('q').value = b.getAttribute('data-q'); state.q = $('q').value.toLowerCase(); state.shown = 150; draw(); });
   function stats() {
     var ev = state.events, c = function (f) { return ev.filter(f).length; };
@@ -459,6 +519,86 @@ header.top { display: flex; align-items: center; justify-content: space-between;
       if (j.status === 401) return showLogin();
       if (!j.ok) return rowError(card, j.error || 'That didn’t work.');
       f.remove(); toast('New password saved for @' + a.username + '. Tell them, and suggest they change it in Studio.');
+    });
+  });
+
+  /* ---------- AI fixes ---------- */
+  var AI_STATUS = {
+    analyzing: ['Claude is looking…', 'view'], tested: ['Tested', 'ok'], proposed: ['Waiting for your approval', 'warn'], deploying: ['Deploying…', 'view'],
+    deployed: ['Deployed', 'ok'], reverted: ['Undone', ''], 'no-fix': ['Not a code bug', ''], 'failed-tests': ['Fix failed the tests (not deployed)', 'bad'],
+    blocked: ['Refused for safety', 'bad'], error: ['Couldn’t finish', 'bad']
+  };
+  var MODE_HELP = {
+    auto: 'Real server errors are diagnosed, fixed, tested on a copy of the server and deployed by themselves (max {d} a day). Browser-side errors and anything touching logins wait for your approval.',
+    approve: 'Claude diagnoses errors and prepares tested fixes, but nothing goes live until you click Approve.',
+    off: 'Errors are only logged. You can still click “Ask Claude to fix this” on an error.'
+  };
+  var ai = { data: null, timer: null };
+  function loadAi() {
+    return api('/api/admin/ai').then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { $('ai-list').innerHTML = '<p class="empty">' + esc(j.error || 'Couldn’t load the AI fixer.') + '</p>'; return; }
+      ai.data = j; drawAi();
+      clearTimeout(ai.timer);
+      var busy = j.queue || j.fixes.some(function (f) { return f.status === 'analyzing' || f.status === 'deploying'; });
+      ai.timer = setTimeout(function () { if (!$('ai').hidden && !document.hidden) loadAi(); }, busy ? 4000 : 30000);
+    });
+  }
+  function drawAi() {
+    var d = ai.data;
+    var cost = ((d.usage.input || 0) * 3 + (d.usage.output || 0) * 15) / 1e6;
+    $('ai-status').innerHTML = '<h2>AI fixer</h2>' + (d.keySet
+      ? '<p><span class="badge ok">Claude API key is set</span> It’s stored only in Render’s encrypted environment settings and is never shown here, logged or sent to GitHub.</p>'
+      : '<div class="notice">Add your Claude API key to switch this on: Render → <b>chiactive-uploads</b> → <b>Environment</b> → add <code>ANTHROPIC_API_KEY</code> → Save. The server restarts by itself.</div>') +
+      '<p>Model: <b>' + esc(d.model) + '</b> · Today: <b>' + d.today.analyses + '/' + d.limits.perDay + '</b> checks, <b>' + d.today.deploys + '/' + d.limits.deploysPerDay + '</b> automatic deploys' + (d.queue ? ' · <b>' + d.queue + '</b> waiting' : '') + '</p>' +
+      '<p>Claude usage so far: ' + Math.round((d.usage.input || 0) / 1000) + 'k tokens in, ' + Math.round((d.usage.output || 0) / 1000) + 'k out (about $' + cost.toFixed(2) + ').</p>' +
+      (d.error ? '<p class="err">' + esc(d.error) + '</p>' : '');
+    [].forEach.call($('ai-mode').children, function (c) { c.setAttribute('aria-pressed', String(c.getAttribute('data-mode') === d.mode)); });
+    $('ai-mode-help').textContent = (MODE_HELP[d.mode] || '').replace('{d}', d.limits.deploysPerDay);
+    if (!d.fixes.length) { $('ai-list').innerHTML = '<p class="empty">Nothing yet. When the server or Studio hits a bug, what Claude found and did shows up here.</p>'; return; }
+    $('ai-list').innerHTML = d.fixes.map(function (f, i) {
+      var st = AI_STATUS[f.status] || [f.status, ''], tr = f.trigger || {};
+      var link = function (sha) { return '<a href="https://github.com/' + esc(d.repo) + '/commit/' + esc(sha) + '" target="_blank" rel="noopener"><code>' + esc(sha.slice(0, 7)) + '</code></a>'; };
+      return '<article class="fix" data-i="' + i + '"><div class="fix-head"><h3>' + esc(f.title || 'Looking at an error…') + '</h3><span class="badge ' + st[1] + '">' + esc(st[0]) + '</span></div>' +
+        '<p class="sub">' + when(f.t).replace('</b><span>', ' · ').replace(/<[^>]+>/g, '') + (f.manual ? ' · asked by admin' : ' · found automatically') + (f.occurrences > 1 ? ' · error seen ' + f.occurrences + '×' : '') + (f.model ? ' · ' + esc(f.model) : '') +
+        (f.commit ? ' · commit ' + link(f.commit) : '') + (f.live ? ' · <span class="badge ok">live</span>' : '') + (f.revertCommit ? ' · undo ' + link(f.revertCommit) : '') + (f.recurred ? ' · <span class="badge warn">error came back after this fix</span>' : '') + '</p>' +
+        '<div class="lbl">The error</div><div class="err-box">' + esc([(TYPES[tr.type] || [tr.type])[0], tr.stage, tr.status ? 'HTTP ' + tr.status : ''].filter(Boolean).join(' · ')) + '<br>' + esc(tr.error || tr.message || '') + (tr.detail ? '<br><span class="dev">Technical: ' + esc(tr.detail) + '</span>' : '') + '</div>' +
+        (f.diagnosis ? '<div class="lbl">What Claude found</div><p>' + esc(f.diagnosis) + '</p>' : '') +
+        (f.impact ? '<div class="lbl">What students saw</div><p>' + esc(f.impact) + '</p>' : '') +
+        (f.edits && f.edits.length ? '<div class="lbl">Code change</div>' + f.edits.map(function (x) { return '<div class="diff"><code>' + esc(x.file) + '</code><pre class="del">− ' + esc(x.find) + '</pre><pre class="add">+ ' + esc(x.replace) + '</pre></div>'; }).join('') : '') +
+        (f.test ? '<div class="lbl">Tests</div><p>' + (f.test.ok ? '<span class="badge ok">' + f.test.passed + '/' + f.test.total + ' passed</span> on a copy of the server (sign up, login, upload, preview, editing, admin).' : '<span class="badge bad">' + esc(f.test.syntax || ((f.test.passed || 0) + '/' + (f.test.total || 0) + ' passed')) + '</span> ' + esc((f.test.failed || []).map(function (t) { return t.name; }).join(', ') + (f.test.fatal ? ' ' + f.test.fatal : ''))) + '</p>' : '') +
+        (f.steps && f.steps.length ? '<details><summary>Everything it did (' + f.steps.length + ' steps)</summary><ol class="steps">' + f.steps.map(function (s) { return '<li>' + esc(new Date(s.t).toLocaleTimeString()) + ' — ' + esc(s.text) + '</li>'; }).join('') + '</ol></details>' : '') +
+        '<div class="acts">' + (f.status === 'proposed' && f.test && f.test.ok ? '<button class="btn small" type="button" data-act="approve">Approve &amp; deploy</button>' : '') +
+        (f.status === 'deployed' ? '<button class="btn danger small" type="button" data-act="revert">Undo this fix</button>' : '') + '</div></article>';
+    }).join('');
+  }
+  $('ai-mode').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mode]'); if (!b) return;
+    api('/api/admin/ai/settings', { body: { mode: b.getAttribute('data-mode') } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) return toast(j.error || 'That didn’t work.', true);
+      ai.data = j; drawAi(); toast('Mode saved.');
+    });
+  });
+  $('ai-ask').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var b = e.target.querySelector('button'); b.disabled = true;
+    api('/api/admin/ai/analyze', { body: { text: $('ai-text').value } }).then(function (j) {
+      b.disabled = false;
+      if (j.status === 401) return showLogin();
+      if (!j.ok) return toast(j.error || 'That didn’t work.', true);
+      $('ai-text').value = ''; toast('Claude is looking at it. This takes a minute or two.'); ai.data = j; drawAi(); setTimeout(loadAi, 3000);
+    });
+  });
+  $('ai-list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var f = ai.data.fixes[+b.closest('.fix').getAttribute('data-i')], act = b.getAttribute('data-act');
+    if (!b.classList.contains('confirm')) { b.classList.add('confirm'); b.textContent = act === 'approve' ? 'Click again to deploy' : 'Click again to undo'; setTimeout(function () { if (b.isConnected) drawAi(); }, 4000); return; }
+    b.disabled = true;
+    api('/api/admin/ai/' + act, { body: { id: f.id } }).then(function (j) {
+      if (j.status === 401) return showLogin();
+      if (!j.ok) { drawAi(); return toast(j.error || 'That didn’t work.', true); }
+      ai.data = j; drawAi(); toast(act === 'approve' ? 'Deploying. Render restarts with the fix in about 2 minutes.' : 'Undone. Render restarts in about 2 minutes.'); setTimeout(loadAi, 2500);
     });
   });
 
