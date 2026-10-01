@@ -365,14 +365,16 @@ body.editing { overflow: hidden; }
     $('designs-count').textContent = list.length ? list.length + ' design' + (list.length === 1 ? '' : 's') : '';
     $('designs').innerHTML = list.length ? list.map(function (d) {
       var when = d.editedAt ? 'Edited ' + new Date(d.editedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : d.uploadedAt ? 'Uploaded ' + new Date(d.uploadedAt).toLocaleDateString() : '';
-      return '<article class="dcard"><div class="thumb"><iframe src="' + esc(PAGES + 'designs/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox></iframe></div>' +
+      return '<article class="dcard"><div class="thumb"><iframe src="' + esc('/d/' + encodeURIComponent(d.folder) + '/' + (d.entry || 'index.html').split('/').map(encodeURIComponent).join('/') + '?v=' + encodeURIComponent(d.editedAt || d.uploadedAt || '')) + '" title="Preview of ' + esc(d.name) + '" loading="lazy" tabindex="-1" sandbox="allow-scripts"></iframe></div>' +
         '<div class="body"><h3>' + esc(d.name) + (d.saving ? '<span class="tag">saving…</span>' : '') + '</h3><p class="meta">' + esc(when) + (ME.admin && d.by ? ' · by ' + esc(d.by) : '') + '</p>' +
         '<div class="acts"><a class="btn small" href="/studio/edit/' + esc(d.folder) + '" data-route' + (d.saving ? ' aria-disabled="true"' : '') + '>✎ Edit text</a><a class="btn ghost small" href="' + esc(viewUrl(d)) + '" target="_blank" rel="noopener">View live ↗</a></div></div></article>';
     }).join('') : '<p class="empty">' + (u ? 'No designs yet. Upload your first one above.' : 'No designs in the gallery yet.') + '</p>';
     scaleThumbs();
     if (u && !pending && !drop.innerHTML.trim()) idle();
   }
-  function scaleThumbs() { document.querySelectorAll('.dcard .thumb').forEach(function (t) { t.style.setProperty('--s', (t.clientWidth / 1280).toFixed(4)); }); }
+  // previews are a 1280px-wide page shrunk to the card; measured whenever a card gets its real size (it has none while hidden)
+  var thumbObserver = window.ResizeObserver ? new ResizeObserver(function (entries) { entries.forEach(function (e) { var w = e.target.clientWidth; if (w) e.target.style.setProperty('--s', (w / 1280).toFixed(4)); }); }) : null;
+  function scaleThumbs() { document.querySelectorAll('.dcard .thumb').forEach(function (t) { if (t.clientWidth) t.style.setProperty('--s', (t.clientWidth / 1280).toFixed(4)); if (thumbObserver && !t.__obs) { t.__obs = true; thumbObserver.observe(t); } }); }
   window.addEventListener('resize', scaleThumbs);
 
   /* ---------- upload (zip is unzipped here, then sent in 8 MB pieces) ---------- */
