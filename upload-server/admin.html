@@ -99,6 +99,13 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .ed-chip button:hover { background: rgba(228,2,43,.5); color: #fff; }
 .editors-row select { padding: 5px 8px; font-size: .85rem; }
 .editors-row .none { color: var(--muted); font-size: .84rem; }
+.sub-note { font-size: .88rem; }
+.intro { color: var(--muted); margin: 0 0 12px; max-width: 900px; }
+.intro a { color: var(--sky, #41B6E6); }
+.intro b { color: var(--text); }
+.sub-note a, .role a { color: var(--sky, #41B6E6); font-weight: 700; }
+.role { font-size: .85rem; color: var(--muted); margin-right: 4px; }
+.tag.sub { background: rgba(65,182,230,.16); color: #8fd6f5; }
 .tag { display: inline-block; margin-left: 8px; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: rgba(242,179,61,.18); color: #ffd27a; vertical-align: 2px; }
 .toast { position: fixed; right: 20px; bottom: 20px; background: var(--card-2); border: 1px solid var(--line); color: #fff; padding: 12px 16px; border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.6); opacity: 0; transform: translateY(10px); transition: all .2s; pointer-events: none; max-width: 420px; }
 .toast.show { opacity: 1; transform: none; }
@@ -164,6 +171,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     <input id="pw" type="password" autocomplete="current-password" placeholder="Admin password" required>
     <button class="btn" type="submit">Log in</button>
     <p class="err" id="login-err" role="alert"></p>
+    <p class="sub-note">Sub-admin? You don’t need this password: <a href="/studio">log in to ChiActive Studio</a> with your own account, then come back to this page.</p>
   </form>
 </section>
 
@@ -172,6 +180,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     <h1>ChiActive <span>admin</span></h1>
     <div class="top-right">
       <nav class="appnav" aria-label="ChiActive pages"><a id="gallery-link" href="https://azzexxy.github.io/ChiActive/?admin=1">Gallery</a><a href="/studio">Studio <small>upload &amp; edit</small></a><a href="/admin" aria-current="page">Admin</a></nav>
+      <span class="role" id="role"></span>
       <button class="btn ghost small" id="logout" type="button">Log out</button>
     </div>
   </header>
@@ -210,7 +219,8 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
 
   <section id="accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden>
     <p class="meta"><button class="btn small" type="button" id="new-test">➕ Create a test student and open Studio as them</button></p>
-    <p class="meta">Students sign up in <a href="/studio" target="_blank" rel="noopener">ChiActive Studio</a> with a username and password. Forgot a password? Set a new one here and tell the student (they can change it afterwards). Deleting an account keeps its designs in the gallery, without an owner.</p>
+    <p class="intro">Students sign up in <a href="/studio" target="_blank" rel="noopener">ChiActive Studio</a> with a username and password. Forgot a password? Set a new one here and tell the student (they can change it afterwards). Deleting an account keeps its designs in the gallery, without an owner.</p>
+    <p class="intro"><b>Sub-admins</b> can do everything an admin can (this page, every design, WordPress, AI fixes), logged in with their own Studio account, so they never need the admin password. Only the main admin can make or remove sub-admins, and removing one works immediately.</p>
     <div class="designs" id="account-list"><p class="empty">Loading accounts…</p></div>
   </section>
 
@@ -277,7 +287,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-winner': ['Admin picked a winner', 'admin'], 'admin-wordpress': ['Admin changed WordPress settings', 'admin'], 'wordpress-publish': ['Published to WordPress', 'ok'], 'wordpress-failed': ['WordPress publish failed', 'bad'], 'wordpress-export': ['Exported a WordPress theme', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'],
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-winner': ['Admin picked a winner', 'admin'], 'admin-wordpress': ['Admin changed WordPress settings', 'admin'], 'wordpress-publish': ['Published to WordPress', 'ok'], 'wordpress-failed': ['WordPress publish failed', 'bad'], 'wordpress-export': ['Exported a WordPress theme', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'], 'admin-subadmin-add': ['Admin made someone a sub-admin', 'admin'], 'admin-subadmin-remove': ['Admin removed a sub-admin', 'admin'],
     'server-error': ['Server error', 'bad'], 'server-crash': ['Server crash', 'bad'], 'ai-fix': ['AI fixer', 'admin'], 'admin-report': ['Reported by admin', 'admin'], 'admin-ai': ['Admin used the AI fixer', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['ai', 'AI fixer'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
@@ -286,7 +296,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     if (f === 'uploads') return /^upload/.test(e.type) || e.type === 'client-error';
     if (f === 'errors') return /failed|rejected|abandoned|error/.test(e.type);
     if (f === 'edits') return /^edit-/.test(e.type);
-    if (f === 'accounts') return /^account-/.test(e.type) || e.type === 'admin-reset' || e.type === 'admin-account-delete';
+    if (f === 'accounts') return /^account-/.test(e.type) || e.type === 'admin-reset' || e.type === 'admin-account-delete' || /^admin-subadmin/.test(e.type);
     if (f === 'views') return e.type === 'view' || e.type === 'page';
     if (f === 'visits') return e.type === 'visit';
     if (f === 'ai') return /^ai-|admin-ai/.test(e.type);
@@ -332,7 +342,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
   $('auto').addEventListener('change', setAuto);
   function setAuto() { clearInterval(state.timer); if ($('auto').checked) state.timer = setInterval(function () { if (!$('activity').hidden && !document.hidden) loadLogs(true); }, 30000); }
 
-  function who(e) { return /^admin/.test(e.type) ? 'Admin' : e.student ? e.student + (e.username ? ' (@' + e.username + ')' : '') : e.username ? '@' + e.username : e.visitor ? 'Visitor ' + e.visitor : e.type.indexOf('admin') === 0 ? 'Admin' : e.ip ? 'Network ' + e.ip : '—'; }
+  function who(e) { if (e.subAdmin) return 'Sub-admin @' + e.subAdmin; return /^admin/.test(e.type) ? 'Admin' : e.student ? e.student + (e.username ? ' (@' + e.username + ')' : '') : e.username ? '@' + e.username : e.visitor ? 'Visitor ' + e.visitor : e.type.indexOf('admin') === 0 ? 'Admin' : e.ip ? 'Network ' + e.ip : '—'; }
   function details(e) {
     var bits = [];
     var design = e.name || e.by || e.folder;
@@ -554,14 +564,30 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
   function drawAccounts() {
     if (!accs.length) { $('account-list').innerHTML = '<p class="empty">No student accounts yet. Students sign up in ChiActive Studio.</p>'; return; }
     $('account-list').innerHTML = accs.map(function (a, i) {
-      return '<article class="design" data-a="' + i + '"><div><h3>' + esc(a.name) + ' <span class="dev">@' + esc(a.username) + '</span></h3>' +
-        '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + (a.editing && a.editing.length ? ' · editor of ' + a.editing.map(esc).join(', ') : '') + '</p></div>' +
-        '<div class="acts"><button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button><button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button></div></article>';
+      var locked = a.subAdmin && ROLE !== 'admin';   // only the main admin manages sub-admins
+      return '<article class="design" data-a="' + i + '"><div><h3>' + esc(a.name) + ' <span class="dev">@' + esc(a.username) + '</span>' + (a.subAdmin ? '<span class="tag sub">Sub-admin</span>' : '') + '</h3>' +
+        '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + (a.editing && a.editing.length ? ' · editor of ' + a.editing.map(esc).join(', ') : '') + '</p>' +
+        (a.subAdmin ? '<p class="dev">Can do everything an admin can. ' + (ROLE === 'admin' ? 'You can take this away at any time.' : 'Only the main admin can change this account.') + '</p>' : '') + '</div>' +
+        '<div class="acts">' + (ROLE === 'admin' ? (a.subAdmin ? '<button class="btn danger small" type="button" data-sub="0">Remove sub-admin</button>' : '<button class="btn ghost small" type="button" data-sub="1">Make sub-admin</button>') : '') +
+        '<button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button>' + (locked ? '' : '<button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button>') + '</div></article>';
     }).join('');
   }
   $('account-list').addEventListener('click', function (e) {
     var card = e.target.closest('.design'); if (!card) return;
     var a = accs[+card.getAttribute('data-a')];
+    var sb = e.target.closest('[data-sub]');
+    if (sb) {
+      var on = sb.getAttribute('data-sub') === '1';
+      if (on && !sb.classList.contains('confirm')) { sb.classList.add('confirm'); sb.textContent = 'Click again: give @' + a.username + ' full admin rights'; setTimeout(function () { if (sb.isConnected) { sb.classList.remove('confirm'); sb.textContent = 'Make sub-admin'; } }, 6000); return; }
+      sb.disabled = true;
+      api('/api/admin/subadmin', { body: { id: a.id, on: on } }).then(function (j) {
+        if (j.status === 401) return showLogin();
+        if (!j.ok) { sb.disabled = false; return rowError(card, j.error || 'That didn’t work.'); }
+        toast(on ? '@' + a.username + ' is now a sub-admin. They log in to Studio with their own account and can open this page.' : '@' + a.username + ' is no longer a sub-admin. Their admin access stopped right away.');
+        loadAccounts();
+      });
+      return;
+    }
     if (e.target.closest('[data-viewas]')) {
       var w = window.open('about:blank', '_blank');
       api('/api/admin/view-as', { body: { id: a.id } }).then(function (j) {
@@ -765,8 +791,15 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
   });
 
   /* ---------- start ---------- */
+  var ROLE = 'admin';
   function start() {
     $('login-view').hidden = true; $('app').hidden = false;
+    api('/api/admin/me').then(function (j) {
+      if (!j.ok) return;
+      ROLE = j.role;
+      $('role').innerHTML = j.role === 'sub-admin' ? 'Sub-admin <b>' + esc(j.name) + '</b> (@' + esc(j.username) + ')' : '';
+      if (!$('accounts').hidden) drawAccounts();
+    });
     var t = 'activity'; try { t = sessionStorage.getItem('ca-tab') || 'activity'; } catch (e) {}
     loadLogs().then(function () { if (!$('app').hidden) { tab(t); setAuto(); deleteFromGallery(); } });
   }

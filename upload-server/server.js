@@ -542,6 +542,7 @@ const logState = { buffer: [], recent: [], timer: null, timerAt: 0, chain: Promi
 function logEvent(type, data, req, who) {
   const e = { id: newId(), t: new Date().toISOString(), type };
   for (const [k, v] of Object.entries(data || {})) if (v !== undefined && v !== null && v !== '') e[k] = typeof v === 'string' ? cleanText(v, k === 'stack' ? 1500 : 500) : v;
+  if (req && req.caRole && req.caRole.sub && !req.caRole.full) e.subAdmin = req.caRole.sub.username;
   if (req) { e.ip = ipTag(req); e.device = device(req.headers['user-agent']); } else if (who) { e.ip = who.ip; e.device = who.device; }
   console.log('[event] ' + JSON.stringify(e));
   logState.recent.push(e); if (logState.recent.length > 6000) logState.recent.splice(0, 1000);
@@ -646,7 +647,19 @@ const hmac = (k, v) => crypto.createHmac('sha256', k).update(v).digest('hex');
 function cookies(req) { const out = {}; String(req.headers.cookie || '').split(';').forEach(c => { const i = c.indexOf('='); if (i > 0) { try { out[c.slice(0, i).trim()] = decodeURIComponent(c.slice(i + 1).trim()); } catch (e) { /* ignore */ } } }); return out; }
 // admin in the Studio, unless they switched to viewing it as a student
 function studioAdmin(req) { return isAdmin(req) && cookies(req).ca_as !== '1'; }
-function isAdmin(req) {
+// admin = the main admin (ADMIN_PASSWORD) or a sub-admin (a student account the main admin promoted).
+// The role is looked up once per request in resolveRole(), so removing a sub-admin works on their very next click.
+function isAdmin(req) { return fullAdmin(req) || !!(req.caRole && req.caRole.sub); }
+function subAdminOf(req) { return req.caRole && req.caRole.sub || null; }
+async function resolveRole(req) {
+  if (req.caRole) return req.caRole;
+  const r = { full: fullAdmin(req), sub: null }, c = cookies(req);
+  if (!r.full && USER_KEY && (c.ca_sub || c.ca_user)) {
+    try { const a = await accountFromCookie(c.ca_sub || c.ca_user); if (a && a.subAdmin) r.sub = a; } catch (e) { /* accounts not reachable: no sub-admin rights */ }
+  }
+  return (req.caRole = r);
+}
+function fullAdmin(req) {
   if (!SESSION_KEY) return false;
   const [exp, sig] = String(cookies(req).ca_admin || '').split('.');
   if (!exp || !sig || +exp < Date.now()) return false;
@@ -762,7 +775,18 @@ function userCookie(req, a, maxAge = 30 * 86400) {
 }
 async function currentUser(req) {
   if (!USER_KEY) return null;
-  const parts = String(cookies(req).ca_user || '').split('.');
+  const c = cookies(req);
+  // a sub-admin viewing Studio as a student: only while they are still a sub-admin
+  if (c.ca_sub && !fullAdmin(req)) { const s = await accountFromCookie(c.ca_sub); if (!s || !s.subAdmin) return null; }
+  return accountFromCookie(c.ca_user);
+}
+function subCookie(req, value) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : '';
+  return `ca_sub=${value || ''}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${value ? 12 * 3600 : 0}${secure}`;
+}
+async function accountFromCookie(value) {
+  if (!USER_KEY) return null;
+  const parts = String(value || '').split('.');
   if (parts.length !== 4 || +parts[2] < Date.now()) return null;
   const body = parts.slice(0, 3).join('.'), good = hmac(USER_KEY, body);
   if (parts[3].length !== good.length || !crypto.timingSafeEqual(Buffer.from(parts[3]), Buffer.from(good))) return null;
@@ -799,12 +823,13 @@ async function handleAccount(req, res, route) {
       if (!DATA_KEY) error = 'Student accounts aren’t switched on yet: the gallery admin needs to set ADMIN_PASSWORD in Render. Try again later.';
       let accounts = [];
       if (admin) { try { accounts = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name })); } catch (e) { /* not set up */ } }
-      return send(res, 200, { ok: true, admin, viewingAs, accounts, error, pages: PAGES_URL, user: user && { id: user.id, username: user.username, name: user.name, created: user.created },
+      const sub = subAdminOf(req);
+      return send(res, 200, { ok: true, admin, viewingAs, subAdmin: sub && !fullAdmin(req) ? { name: sub.name, username: sub.username } : null, accounts, error, pages: PAGES_URL, user: user && { id: user.id, username: user.username, name: user.name, created: user.created },
         designs: user || admin ? await myDesigns(admin ? null : user, admin) : [] });
     }
     if (req.method !== 'POST') return send(res, 404, { ok: false, error: 'Not found' });
     const body = await readJson(req, 16 * 1024);
-    if (route === '/api/account/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false)] });
+    if (route === '/api/account/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false), subCookie(req, '')] });
     if (route === '/api/account/signup') {
       if (signupLimited(clientIp(req))) throw userError(429, 'rate-limited', 'Too many new accounts from your network in the last hour. Try again later.');
       const username = String(body.username || '').trim().toLowerCase(), name = cleanName(body.name);
@@ -855,7 +880,7 @@ const editLocks = new Map();
 function folderLock(folder) { if (!editLocks.has(folder)) editLocks.set(folder, mutex()); return editLocks.get(folder); }
 const sha1 = s => crypto.createHash('sha1').update(s).digest('hex');
 async function canEdit(req, folder) {
-  if (studioAdmin(req)) return { admin: true, user: null };
+  if (studioAdmin(req)) return { admin: true, user: subAdminOf(req) };
   const user = await currentUser(req);
   if (!user) throw userError(401, 'login', 'Your login expired. Log in again to keep editing.');
   const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
@@ -1104,9 +1129,21 @@ async function adminSetEditors(req, body) {
   const added = accs.filter(a => !before.includes(a.id)), removed = before.filter(id => !ids.includes(id)).map(id => accounts.find(a => a.id === id)).filter(Boolean);
   logEvent('admin-editors', { folder, message: [added.length ? 'Added editor ' + added.map(a => `${a.name} (@${a.username})`).join(', ') : '', removed.length ? 'Removed editor ' + removed.map(a => `${a.name} (@${a.username})`).join(', ') : ''].filter(Boolean).join('; ') || 'Editors unchanged' }, req);
 }
+// only the main admin (who knows ADMIN_PASSWORD) makes or removes sub-admins, so admins can always take the role back
+async function adminSetSubAdmin(req, body) {
+  if (!fullAdmin(req)) throw userError(403, 'main-admin-only', 'Only the main admin (logged in with the admin password) can make or remove sub-admins.');
+  const id = String(body.id || ''), on = !!body.on;
+  const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist anymore. Reload the page.');
+  await changeAccounts(list => { const x = list.find(a => a.id === id); if (!x) throw userError(404, 'no-account', 'That account doesn’t exist anymore. Reload the page.'); if (on) { x.subAdmin = true; x.subAdminSince = new Date().toISOString(); } else { delete x.subAdmin; delete x.subAdminSince; } });
+  logEvent(on ? 'admin-subadmin-add' : 'admin-subadmin-remove', { username: acc.username, student: acc.name, message: on ? `${acc.name} (@${acc.username}) is now a sub-admin` : `${acc.name} (@${acc.username}) is no longer a sub-admin (effective immediately)` }, req);
+}
+function protectSubAdmins(req, acc, what) {
+  if (acc.subAdmin && !fullAdmin(req)) throw userError(403, 'main-admin-only', `Only the main admin can ${what} of a sub-admin.`);
+}
 async function adminResetPassword(req, body) {
   const id = String(body.id || '');
   const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
+  protectSubAdmins(req, acc, 'change the password');
   const pw = checkPassword(body.password, acc.username);
   const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(pw, salt)).toString('hex');
   await changeAccounts(list => { const x = list.find(a => a.id === id); x.salt = salt; x.hash = hash; x.pwv = (x.pwv || 0) + 1; });
@@ -1115,6 +1152,7 @@ async function adminResetPassword(req, body) {
 async function adminDeleteAccount(req, body) {
   const id = String(body.id || '');
   const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
+  protectSubAdmins(req, acc, 'delete the account');
   await changeAccounts(list => { list.splice(list.findIndex(a => a.id === id), 1); });
   // also take them off any design they could edit
   if ((await freshManifest(0)).some(d => d && Array.isArray(d.editors) && d.editors.includes(id))) {
@@ -1356,6 +1394,7 @@ const server = http.createServer(async (req, res) => {
       ref: res.caError && res.caError.ref, detail: res.caError && res.caError.code ? 'code: ' + res.caError.code : undefined, seconds: Math.round((Date.now() - t0) / 100) / 10 }, req);
   });
   try {
+    if (route.startsWith('/api/') || route === '/admin' || route.startsWith('/studio')) await resolveRole(req);
     if (req.method === 'OPTIONS') {
       res.writeHead(origin ? 204 : 403, origin ? { ...cors(origin), 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' } : {});
       return res.end();
@@ -1374,7 +1413,8 @@ const server = http.createServer(async (req, res) => {
     if (route.startsWith('/api/upload')) {
       if (origin) { req.resume(); return send(res, 410, { ok: false, code: 'old-page', error: 'Uploading moved to ChiActive Studio, where you log in first. Refresh the gallery page and click “Sign up or log in”.' }, origin); }
       if (!sameOrigin(req)) { req.resume(); return send(res, 403, { ok: false, code: 'origin', error: 'Uploads are only accepted from ChiActive Studio.' }); }
-      const user = studioAdmin(req) ? { id: 'admin', username: 'admin', name: 'Admin', isAdmin: true } : await currentUser(req).catch(() => null);
+      const sub = subAdminOf(req);
+      const user = studioAdmin(req) ? (sub ? { id: sub.id, username: sub.username, name: sub.name, isAdmin: true } : { id: 'admin', username: 'admin', name: 'Admin', isAdmin: true }) : await currentUser(req).catch(() => null);
       if (!user) { req.resume(); return send(res, 401, { ok: false, code: 'login', error: 'Your login expired. Log in again, then upload.' }); }
       if (req.method === 'POST' && route === '/api/upload/start') return await handleStart(req, res, null, user);
       if (req.method === 'POST' && route === '/api/upload/chunk') return await handleChunk(req, res, null, url, user);
@@ -1425,8 +1465,17 @@ const server = http.createServer(async (req, res) => {
         const exp = String(Date.now() + 12 * 3600e3);
         return send(res, 200, { ok: true }, null, { 'Set-Cookie': sessionCookie(req, `${exp}.${hmac(SESSION_KEY, exp)}`, 12 * 3600) });
       }
-      if (req.method === 'POST' && route === '/api/admin/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': sessionCookie(req, '', 0) });
+      if (req.method === 'POST' && route === '/api/admin/logout') return send(res, 200, { ok: true }, null, { 'Set-Cookie': subAdminOf(req) ? [sessionCookie(req, '', 0), userCookie(req, null), viewAsCookie(req, false), subCookie(req, '')] : sessionCookie(req, '', 0) });
       if (!isAdmin(req)) { req.resume(); return send(res, 401, { ok: false, error: 'Log in first.', needsPassword: !ADMIN_PASSWORD }); }
+      if (req.method === 'GET' && route === '/api/admin/me') {
+        const sub = subAdminOf(req);
+        return send(res, 200, { ok: true, role: fullAdmin(req) ? 'admin' : 'sub-admin', name: sub ? sub.name : 'Admin', username: sub ? sub.username : '' });
+      }
+      if (req.method === 'POST' && route === '/api/admin/subadmin') {
+        const body = await readJson(req, 4096);
+        try { await adminSetSubAdmin(req, body); return send(res, 200, { ok: true }); }
+        catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) }); }
+      }
       if (req.method === 'GET' && route === '/api/admin/logs') {
         const days = Math.min(Math.max(+url.searchParams.get('days') || 7, 1), 365);
         const data = await loadLogs(days);
@@ -1441,14 +1490,19 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && route === '/api/admin/accounts') {
         try {
           const manifest = await freshManifest(5e3);
-          const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name), editing: manifest.filter(d => d && Array.isArray(d.editors) && d.editors.includes(a.id)).map(d => d.name) }));
+          const list = (await loadAccounts()).map(a => ({ id: a.id, username: a.username, name: a.name, created: a.created, subAdmin: !!a.subAdmin, designs: manifest.filter(d => d && d.owner === a.id).map(d => d.name), editing: manifest.filter(d => d && Array.isArray(d.editors) && d.editors.includes(a.id)).map(d => d.name) }));
           return send(res, 200, { ok: true, accounts: list.sort((a, b) => String(b.created).localeCompare(String(a.created))) });
         } catch (e) { return send(res, 200, { ok: false, error: explain(e), accounts: [] }); }
       }
       if (req.method === 'POST' && route === '/api/admin/view-as') {
         const body = await readJson(req, 4096);
         try {
-          if (body.stop) { logEvent('admin-view-as', { message: 'Back to admin in Studio' }, req); return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false)] }); }
+          const sub = subAdminOf(req), own = sub && !fullAdmin(req) ? (cookies(req).ca_sub || cookies(req).ca_user) : '';
+          if (body.stop) {
+            logEvent('admin-view-as', { message: 'Back to admin in Studio' }, req);
+            if (own) return send(res, 200, { ok: true }, null, { 'Set-Cookie': [`ca_user=${own}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}${String(req.headers['x-forwarded-proto'] || '').startsWith('https') ? '; Secure' : ''}`, viewAsCookie(req, false), subCookie(req, '')] });
+            return send(res, 200, { ok: true }, null, { 'Set-Cookie': [userCookie(req, null), viewAsCookie(req, false)] });
+          }
           let acc;
           if (body.createTest) {
             const salt = crypto.randomBytes(16).toString('hex'), hash = (await scryptAsync(crypto.randomBytes(18).toString('base64'), salt)).toString('hex');
@@ -1462,7 +1516,7 @@ const server = http.createServer(async (req, res) => {
             if (!acc) throw userError(404, 'no-account', 'That student account doesn’t exist.');
           }
           logEvent('admin-view-as', { username: acc.username, student: acc.name, message: body.createTest ? 'Created a test student and opened Studio as them' : `Opened Studio as @${acc.username}` }, req);
-          return send(res, 200, { ok: true, user: { username: acc.username, name: acc.name } }, null, { 'Set-Cookie': [userCookie(req, acc, 12 * 3600), viewAsCookie(req, true)] });
+          return send(res, 200, { ok: true, user: { username: acc.username, name: acc.name } }, null, { 'Set-Cookie': [userCookie(req, acc, 12 * 3600), viewAsCookie(req, true), ...(own ? [subCookie(req, own)] : [])] });
         } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) }); }
       }
       // WordPress

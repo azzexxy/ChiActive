@@ -208,5 +208,29 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   r = await call('/api/upload/start', { replace: folder, files: v2.map(f => ({ path: f[0], size: 5 })) }, 'helper');
   check('others can’t upload a new version', r.status === 403, r.text);
 
+  // sub-admins: a student account the main admin promotes; removable at any time
+  r = await call('/api/account/signup', { name: 'Sub Admin', username: 'selftest-sub', password: 'violet-canoe-93' }, 'sub');
+  const subId = ((await call('/api/admin/accounts', undefined, 'admin')).json.accounts.find(a => a.username === 'selftest-sub') || {}).id;
+  r = await call('/api/admin/logs?days=1', undefined, 'sub'); check('a normal student is not an admin', r.status === 401, r.status);
+  r = await call('/api/admin/subadmin', { id: subId, on: true }, 'student'); check('students cannot make sub-admins', r.status === 401, r.status);
+  r = await call('/api/admin/subadmin', { id: subId, on: true }, 'admin'); check('admin can make a sub-admin', r.status === 200, r.text);
+  r = await call('/api/admin/me', undefined, 'sub'); check('sub-admin can open the admin page with their own login', r.json && r.json.role === 'sub-admin' && r.json.username === 'selftest-sub', r.text);
+  r = await call('/api/admin/accounts', undefined, 'sub'); check('sub-admin sees the account list', r.json && r.json.ok && r.json.accounts.find(a => a.id === subId).subAdmin === true, r.text.slice(0, 200));
+  r = await call('/api/account/me', undefined, 'sub'); check('sub-admin is an admin in Studio', r.json && r.json.admin && r.json.subAdmin && r.json.subAdmin.username === 'selftest-sub', r.text.slice(0, 200));
+  r = await call(`/api/edit/page?folder=${folder}&path=index.html`, undefined, 'sub'); check('sub-admin can edit every design', r.json && r.json.ok, r.status);
+  r = await call('/api/admin/subadmin', { id: helperId, on: true }, 'sub'); check('sub-admins cannot make other sub-admins', r.status === 403, r.text);
+  r = await call('/api/admin/subadmin', { id: subId, on: false }, 'sub'); check('sub-admins cannot change sub-admin roles', r.status === 403, r.text);
+  r = await call('/api/admin/account/delete', { id: subId }, 'sub'); check('sub-admins cannot delete a sub-admin account', r.status === 403, r.text);
+  r = await call('/api/admin/view-as', { id: helperId }, 'sub'); check('sub-admin can view Studio as a student', r.status === 200, r.text);
+  r = await call('/api/account/me', undefined, 'sub'); check('…and sees it as that student', r.json && r.json.viewingAs && r.json.user && r.json.user.username === 'selftest-helper', r.text.slice(0, 200));
+  r = await call('/api/admin/view-as', { stop: true }, 'sub');
+  r = await call('/api/account/me', undefined, 'sub'); check('back to sub-admin after viewing as a student', r.json && r.json.admin && r.json.subAdmin && !r.json.viewingAs, r.text.slice(0, 200));
+  r = await call('/api/admin/view-as', { id: helperId }, 'sub');
+  r = await call('/api/admin/subadmin', { id: subId, on: false }, 'admin'); check('admin can remove a sub-admin', r.status === 200, r.text);
+  r = await call('/api/admin/logs?days=1', undefined, 'sub'); check('removed sub-admin loses admin access immediately', r.status === 401, r.status);
+  r = await call('/api/account/me', undefined, 'sub'); check('removed sub-admin loses the student they were viewing as', r.json && !r.json.user && !r.json.admin, r.text.slice(0, 200));
+  r = await call('/api/admin/logs?days=1', undefined, 'admin');
+  check('sub-admin changes are in the log', r.json && r.json.events.some(e => e.type === 'admin-subadmin-remove') && r.json.events.some(e => e.subAdmin === 'selftest-sub'), r.text.slice(0, 200));
+
   finish();
 })();

@@ -470,14 +470,15 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
   /* ---------- home ---------- */
   function renderHome() {
     var u = ME.admin ? null : ME.user;
-    $('who').innerHTML = u ? (ME.viewingAs ? 'Viewing as ' : 'Logged in as ') + '<b>' + esc(u.name) + '</b> (@' + esc(u.username) + ')' : '<b>Admin</b>';
-    $('pw-btn').hidden = !u || ME.viewingAs;
+    var sa = ME.admin && !ME.viewingAs && ME.subAdmin;
+    $('who').innerHTML = u ? (ME.viewingAs ? 'Viewing as ' : 'Logged in as ') + '<b>' + esc(u.name) + '</b> (@' + esc(u.username) + ')' : sa ? 'Sub-admin <b>' + esc(sa.name) + '</b> (@' + esc(sa.username) + ')' : '<b>Admin</b>';
+    $('pw-btn').hidden = !(u || sa) || ME.viewingAs;
     $('viewas-btn').hidden = !ME.admin;
     $('logout-btn').hidden = !!ME.viewingAs;
     $('admin-banner').hidden = !ME.admin && !ME.viewingAs;
     $('admin-banner').innerHTML = ME.viewingAs
       ? '<b>Admin test mode:</b> you’re seeing ChiActive Studio exactly like @' + esc(u.username) + ' does, with only their designs and permissions. <button class="btn small" type="button" id="back-admin">Back to admin</button>'
-      : ME.admin ? 'Admin mode: you can upload designs and edit every design in the gallery. Use <b>View as student</b> to test the student experience.' : '';
+      : ME.admin ? (sa ? '<b>Sub-admin</b> · ' : '') + 'Admin mode: you can upload designs and edit every design in the gallery. Use <b>View as student</b> to test the student experience.' : '';
     var back = $('back-admin'); if (back) back.onclick = function () { api('/api/admin/view-as', { stop: true }).then(function (j) { if (!j.ok) return toast(j.error, true); toast('Back in admin mode.'); drop.innerHTML = ''; route(); }); };
     $('upload-area').hidden = !u && !ME.admin;
     $('designs-title').textContent = u && !ME.admin ? 'Your designs' : 'Designs';

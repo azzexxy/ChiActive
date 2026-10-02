@@ -33,6 +33,11 @@ Every design is treated the same, including the original ChiActive store (`desig
 - **Student accounts:** see every account and its designs, set a new password for a student who forgot theirs, delete an account (its designs stay, without an owner).
 - The log and the accounts file are encrypted on the repo branch `activity-log` (GitHub Pages only publishes `main`). The key comes from `ADMIN_PASSWORD` (or `LOG_KEY`/`DATA_KEY` if set). **If you ever change ADMIN_PASSWORD, first add `DATA_KEY` and `LOG_KEY` in Render with the OLD password**, or the accounts and older log entries can't be read.
 
+## Sub-admins (admin page → Student accounts)
+- The main admin (logged in with `ADMIN_PASSWORD`) clicks **Make sub-admin** on a student account. That student can then do everything an admin can (admin page, every design in Studio, WordPress, AI fixes) using their own Studio login, so the admin password is never shared.
+- Only the main admin can make or remove sub-admins, and only the main admin can reset the password of, or delete, a sub-admin account. **Remove sub-admin** works immediately: the role is checked on every request.
+- Everything a sub-admin does shows as “Sub-admin @username” in the Activity log.
+
 ## AI fixer (admin page → AI fixes)
 When the server or Studio hits a real bug, the upload server asks Claude what went wrong, gets a small code fix, **tests it** on a full copy of the server (`upload-server/test/selftest.js`: start-up, sign up, login, upload, preview, text edit/delete, admin pages), and if every test passes commits it to `main`, so Render redeploys by itself. Everything (the error, Claude's diagnosis, the exact code change, the test results, the commit) is listed under **AI fixes**, with **Approve** and **Undo** buttons.
 - **Switch it on:** Render → `chiactive-uploads` → **Environment** → add `ANTHROPIC_API_KEY` (your Claude API key from console.anthropic.com) → Save. The key lives only in Render's encrypted settings; the server removes it from its environment at start-up and never logs it, shows it or writes it to GitHub. Setting a monthly spend limit in the Anthropic console is a good idea.
