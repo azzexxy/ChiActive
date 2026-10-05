@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop | ChiActive</title>
+<meta name="description" content="Every ChiActive piece — jackets, pants, footwear, and accessories built for the four-season city.">
+<link rel="icon" href="images/logo-badge.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-root="">
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker__track">
+    <div class="ticker__group">
+      <span>Free shipping over $75</span><span>15% student discount</span><span>Built for the four-season city</span><span>Winter sale &mdash; up to 41% off</span>
+    </div>
+    <div class="ticker__group">
+      <span>Free shipping over $75</span><span>15% student discount</span><span>Built for the four-season city</span><span>Winter sale &mdash; up to 41% off</span>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="index.html">
+      <img src="images/logo-badge.png" alt="ChiActive" width="26" height="26">
+      <span>Chi<i>Active</i></span>
+    </a>
+    <nav class="nav" id="siteNav" aria-label="Primary">
+      <a href="shop.html" aria-current="page">Shop</a>
+      <a href="jackets/index.html">Jackets</a>
+      <a href="pants/index.html">Pants</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="about.html">About</a>
+    </nav>
+    <button class="cart-trigger" type="button" data-cart-open aria-haspopup="dialog" aria-controls="cartDrawer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+      <span class="cart-trigger__label">Cart</span>
+      <span class="cart-count" data-cart-count data-empty="true">0</span>
+    </button>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <p class="breadcrumb"><a href="index.html">Home</a> / Shop</p>
+    <h1>Everything we make</h1>
+    <p class="lede">Built for the walk between buildings in February, the lakefront run in July, and every unpredictable forecast in between.</p>
+  </div>
+
+  <div class="wrap" style="margin-top:26px;">
+    <div class="strip">
+      <strong>Winter sale</strong>
+      <span>Up to 41% off cold-weather layers &mdash; while sizes last.</span>
+      <a href="#catalog" class="ad__link" style="margin:0;">Shop the sale &rarr;</a>
+    </div>
+  </div>
+
+  <div class="wrap" style="margin-top:26px;">
+    <div class="chips">
+      <a class="chip chip--active" href="#catalog">All</a>
+      <a class="chip" href="jackets/index.html">Jackets</a>
+      <a class="chip chip--cyan" href="pants/index.html">Pants</a>
+      <a class="chip" href="#catalog">Footwear</a>
+      <a class="chip" href="#catalog">Accessories</a>
+      <a class="chip chip--red" href="#catalog">On sale</a>
+    </div>
+  </div>
+
+  <section id="catalog" class="wrap" style="margin-top:34px;">
+    <div class="grid">
+
+      <article class="card">
+        <a class="card__media" href="pants/chiactive-trail-cargo-pants.html">
+          <span class="tag-new">New</span>
+          <img src="images/d8fe858e-eb62-4d03-a595-571e5113690c.png" alt="ChiActive Trail Cargo Pants" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="pants/chiactive-trail-cargo-pants.html">ChiActive Trail Cargo Pants</a></h3>
+          <ul class="card__tags"><li class="hot">Water-resistant</li><li>Relaxed fit</li></ul>
+          <p class="price">$25.00</p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="trail-cargo-pants" data-name="ChiActive Trail Cargo Pants"
+                    data-price="25.00" data-image="images/d8fe858e-eb62-4d03-a595-571e5113690c.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="jackets/index.html">
+          <span class="tag-sale">Sale</span>
+          <img src="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg" alt="Green Winter Jacket" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="jackets/index.html">Green Winter Jacket</a></h3>
+          <ul class="card__tags"><li class="hot">Wind-resistant</li><li>Insulated</li></ul>
+          <p class="price"><s>$89.00</s>$64.00 <span class="save">Save 28%</span></p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="green-winter-jacket" data-name="Green Winter Jacket"
+                    data-price="64.00" data-image="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="jackets/index.html">
+          <span class="tag-sale">Sale</span>
+          <img src="images/Screenshot-2026-09-16-at-8.30.52-AM.png" alt="Chi Town Puffer Winter Jacket" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="jackets/index.html">Chi Town Puffer Winter Jacket</a></h3>
+          <ul class="card__tags"><li class="hot">Water-resistant</li><li>Insulated</li></ul>
+          <p class="price"><s>$200.00</s>$185.00 <span class="save">Save 8%</span></p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="chi-town-puffer" data-name="Chi Town Puffer Winter Jacket"
+                    data-price="185.00" data-image="images/Screenshot-2026-09-16-at-8.30.52-AM.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="jackets/index.html">
+          <span class="tag-sale">Sale</span>
+          <img src="images/Skarmavbild-2026-09-16-kl.-08.30.03.png" alt="Always Effortless Jacket women" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="jackets/index.html">Always Effortless Jacket women</a></h3>
+          <ul class="card__tags"><li>Lightweight</li><li>Packable</li></ul>
+          <p class="price"><s>$148.00</s>$118.40 <span class="save">Save 20%</span></p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="always-effortless-jacket" data-name="Always Effortless Jacket women"
+                    data-price="118.40" data-image="images/Skarmavbild-2026-09-16-kl.-08.30.03.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="jackets/index.html">
+          <span class="tag-sale">Sale</span>
+          <img src="images/Screenshot-2026-09-16-at-08.26.32.png" alt="ZW Collection Short High-Collar Trench Coat" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="jackets/index.html">ZW Collection Short High-Collar Trench Coat</a></h3>
+          <ul class="card__tags"><li class="hot">Water-resistant</li><li>Wind-resistant</li></ul>
+          <p class="price"><s>$129.00</s>$110.00 <span class="save">Save 15%</span></p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="zw-trench-coat" data-name="ZW Collection Short High-Collar Trench Coat"
+                    data-price="110.00" data-image="images/Screenshot-2026-09-16-at-08.26.32.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="shop.html">
+          <span class="tag-sale">Sale</span>
+          <img src="images/Screenshot-2026-09-16-at-8.33.54-AM.png" alt="ChiActive Snow Boots" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="shop.html">ChiActive Snow Boots</a></h3>
+          <ul class="card__tags"><li class="hot">Waterproof</li><li>Ice grip</li></ul>
+          <p class="price"><s>$159.99</s>$94.99 <span class="save">Save 41%</span></p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="snow-boots" data-name="ChiActive Snow Boots"
+                    data-price="94.99" data-image="images/Screenshot-2026-09-16-at-8.33.54-AM.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <a class="card__media" href="shop.html">
+          <img src="images/chi-active-aviator-hat-2.png" alt="ChiActive Faux-Fur Aviator Hat" loading="lazy">
+        </a>
+        <div class="card__body">
+          <h3 class="card__title"><a href="shop.html">ChiActive Faux-Fur Aviator Hat</a></h3>
+          <ul class="card__tags"><li>Fleece lined</li></ul>
+          <p class="price">$52.00</p>
+          <div class="card__actions">
+            <button class="add-btn" type="button" data-add-to-cart
+                    data-id="aviator-hat" data-name="ChiActive Faux-Fur Aviator Hat"
+                    data-price="52.00" data-image="images/chi-active-aviator-hat-2.png">Add to cart</button>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="section wrap section--plain" style="padding-top:clamp(40px,6vw,72px);">
+    <div class="promo">
+      <div>
+        <p class="eyebrow">Bundle &amp; save</p>
+        <h2>Layer up for less.</h2>
+        <p>Add any jacket to a pair of Trail Cargo Pants and we'll take another 10% off at checkout &mdash; one kit for class, commute, and the trailhead.</p>
+        <div class="promo__actions">
+          <a class="btn btn--cyan" href="pants/chiactive-trail-cargo-pants.html">Build your kit</a>
+          <a class="btn" href="about.html" style="border-color:rgba(255,255,255,.4);color:#fff;">How it works</a>
+        </div>
+      </div>
+      <div class="promo__media">
+        <img src="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg" alt="Layered ChiActive winter outfit">
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo-v1.png" alt="ChiActive">
+        <p>&ldquo;The lake wind doesn't care about your plans. Your jacket should.&rdquo;</p>
+      </div>
+      <div class="footer-col">
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="shop.html">All products</a></li>
+          <li><a href="jackets/index.html">Jackets</a></li>
+          <li><a href="pants/index.html">Pants</a></li>
+          <li><a href="shop.html">Accessories</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="blog/index.html">Field notes</a></li>
+          <li><a href="about.html">Our story</a></li>
+          <li><a href="blog/chiactive-urban-campus-backpack.html">Gear guides</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="#">Shipping &amp; returns</a></li>
+          <li><a href="#">Size guide</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2026 ChiActive &middot; Student design activity, not a live store.</div>
+      <nav aria-label="Footer">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Accessibility</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<div class="cart-backdrop" id="cartBackdrop"></div>
+<aside class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true">
+  <div class="cart-drawer__head">
+    <h2 id="cartTitle">Your cart</h2>
+    <button class="cart-close" id="cartClose" type="button" aria-label="Close cart">&times;</button>
+  </div>
+  <ul class="cart-items" id="cartItems"></ul>
+  <div class="cart-drawer__foot" id="cartFoot" hidden>
+    <div class="cart-subtotal"><span>Subtotal</span><strong id="cartSubtotal">$0.00</strong></div>
+    <p class="cart-note" id="cartShippingNote"></p>
+    <button class="btn btn--solid btn--block" id="cartCheckout" type="button">Checkout (demo)</button>
+  </div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="cart.js" defer></script>
+
+</body>
+</html>
