@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChiActive Website Design — Student Instructions</title>
+  <style>
+    :root {
+      --primary: #41B6E6;
+      --secondary: #2F3F53;
+      --accent: #E4022B;
+      --accent-light: #F5E7BE;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #1E293B;
+      --muted: #526175;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    a { color: #12638c; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .container { max-width: 1000px; margin: auto; padding: 2rem 1rem 4rem; }
+    header {
+      background: linear-gradient(135deg, var(--secondary), #1A2533);
+      border-bottom: 4px solid var(--primary);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(47, 63, 83, .15);
+      color: white;
+      padding: 2.25rem 2rem;
+    }
+    .tag {
+      display: inline-block;
+      margin-bottom: .65rem;
+      padding: .25rem .6rem;
+      border-radius: 6px;
+      background: rgba(65, 182, 230, .2);
+      color: var(--primary);
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0 0 .45rem; font-size: clamp(1.65rem, 4vw, 2.1rem); line-height: 1.2; }
+    header p { max-width: 730px; margin: 0; color: #D9E3EC; }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .nav a, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: .62rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--secondary);
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav a[aria-current="page"], .button.primary {
+      border-color: var(--secondary);
+      background: var(--secondary);
+      color: white;
+    }
+    .nav a:hover, .button:hover { box-shadow: 0 2px 8px rgba(47, 63, 83, .14); }
+    .intro, .step, .checklist {
+      margin: 1rem 0;
+      padding: 1.4rem 1.6rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .03);
+    }
+    .intro { border-left: 5px solid var(--primary); }
+    .intro p, .step p { margin: .45rem 0 0; }
+    h2 { margin: 0 0 .5rem; color: var(--secondary); font-size: 1.22rem; line-height: 1.3; }
+    h3 { margin: 1.1rem 0 .3rem; color: var(--secondary); font-size: 1rem; }
+    .step-title { display: flex; align-items: flex-start; gap: .7rem; }
+    .number {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 1.8rem;
+      height: 1.8rem;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #10283a;
+      font-weight: 800;
+    }
+    .step-content { margin-left: 2.5rem; }
+    ul, ol { padding-left: 1.25rem; margin: .55rem 0; }
+    li + li { margin-top: .35rem; }
+    code, .prompt {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    code {
+      padding: .1rem .25rem;
+      border-radius: 4px;
+      background: #EFF3F7;
+      overflow-wrap: anywhere;
+    }
+    .note {
+      margin-top: .9rem;
+      padding: .8rem 1rem;
+      border-left: 4px solid var(--primary);
+      border-radius: 5px;
+      background: #EFF6FF;
+    }
+    .prompt {
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #F1F5F9;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.55;
+    }
+    .design-list { margin-top: .9rem; }
+    .design-list > li { padding: .35rem 0 .75rem .2rem; }
+    .design-list > li + li { border-top: 1px solid var(--border); padding-top: .9rem; }
+    .design-list h3 { display: inline; margin: 0; }
+    .design-list p { margin: .25rem 0 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: .75rem; }
+    .checklist { border-top: 4px solid var(--primary); }
+    footer { margin-top: 2rem; color: var(--muted); text-align: center; font-size: .9rem; }
+    @media (max-width: 600px) {
+      .container { padding-top: 1rem; }
+      header { padding: 1.5rem 1.2rem; }
+      .intro, .step, .checklist { padding: 1.15rem; }
+      .step-content { margin-left: 0; }
+      .nav a { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="tag">Intro to Interactive Marketing</span>
+      <h1>ChiActive website design activity</h1>
+      <p>Use the brand your class created to redesign a practice storefront with an AI coding assistant. You will work on files on your own computer.</p>
+    </header>
+
+    <nav class="nav" aria-label="Activity pages">
+      <a href="instructions.html" aria-current="page">1. Instructions</a>
+      <a href="api-keys.html">2. Find your API key</a>
+      <a href="gemini-api-key.html">3. Free Google Gemini Key</a>
+      <a href="starter-site/index.html">4. View starter site</a>
+    </nav>
+
+    <section class="intro" aria-labelledby="goal-heading">
+      <h2 id="goal-heading">What you are making</h2>
+      <p>Use the brand in <code>brand-guidelines.md</code> to turn <code>starter-site/</code> into your own effective shopping experience. You can change layouts, navigation, and content and add new pages. Your changes stay in this practice copy; they do not edit the live store.</p>
+    </section>
+
+    <section class="intro" aria-labelledby="model-choice-heading">
+      <h2 id="model-choice-heading">Before you begin: choose a model to try</h2>
+      <p>You have two ways to use Goose for this activity. You can start with either one, and you can try both.</p>
+      <ul>
+        <li><strong>Class key:</strong> <a href="api-keys.html">Find your OpenRouter key</a> and use one of the class models shown there, including Flash-Lite. This key has a $1 limit and expires after 24 hours.</li>
+        <li><strong>Your own Google key:</strong> Follow the <a href="gemini-api-key.html">Google AI Studio guide</a> to create a key and try <code>gemini-3.8-flash</code>. This uses a separate Google free-tier quota, which also has rate limits.</li>
+      </ul>
+      <p>For a useful comparison, give both models the same small design request, review the changes each makes, and decide which result helps you more.</p>
+    </section>
+
+    <main>
+      <section class="step" aria-labelledby="step-one">
+        <div class="step-title"><span class="number">1</span><h2 id="step-one">Get your files ready</h2></div>
+        <div class="step-content">
+          <p>Download the <strong>Website Design ZIP</strong> from your class site, then unzip it. Open the resulting <strong>Website Design</strong> folder. Keep everything inside that folder together.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-two">
+        <div class="step-title"><span class="number">2</span><h2 id="step-two">Set up an AI coding assistant</h2></div>
+        <div class="step-content">
+          <p>If you already use an AI coding tool, you can use it for this project. Open the whole <strong>Website Design</strong> folder in that tool.</p>
+          <p>If you need one, <a href="https://goose-docs.ai/docs/getting-started/installation/">download Goose Desktop</a> for macOS or Windows and open it. Use the desktop version; no terminal setup is needed.</p>
+          <div class="note">You need an AI coding tool that can read and edit files in the folder. An ordinary chat window that cannot access your local files will not be able to make the site changes for you.</div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-three">
+        <div class="step-title"><span class="number">3</span><h2 id="step-three">Set up the key you chose</h2></div>
+        <div class="step-content">
+          <h3>Option A: Use the class OpenRouter key</h3>
+          <ol>
+            <li><a href="api-keys.html">Open the API key page</a>.</li>
+            <li>Search for your name or student ID and click <strong>Copy Key</strong>.</li>
+            <li>In Goose Desktop, choose <strong>Other Providers → OpenRouter</strong> on first launch and paste the supplied key. If Goose is already set up, use <strong>Settings → Models → Configure providers → OpenRouter</strong>.</li>
+            <li>Choose one of the class models listed on the key page. If it is not in the list, choose the option to enter a custom model name.</li>
+          </ol>
+          <div class="note">Use your <strong>class key</strong> instead of Goose's automatic OpenRouter sign-in, which is for a personal OpenRouter account. Each class key has a $1 limit and lasts 24 hours; the key page shows its expiration time.</div>
+          <h3>Option B: Use your own Google AI Studio key</h3>
+          <p>Open the <a href="gemini-api-key.html">Google key guide</a> and follow its steps to create a key, configure <strong>Google Gemini</strong> in Goose, and select <code>gemini-3.8-flash</code>. Check that the Google project is on the free tier. Its usage limits are separate from the class key.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-four">
+        <div class="step-title"><span class="number">4</span><h2 id="step-four">Start the redesign</h2></div>
+        <div class="step-content">
+          <p>Open <strong>Website Design</strong> as the assistant's working folder. Paste this prompt into your AI coding tool:</p>
+          <div class="prompt" id="starter-prompt">Read `README.md` and `brand-guidelines.md`, then inspect the pages and assets in `starter-site/`, including the logo in `starter-site/images/` and local fonts in `starter-site/fonts/`. Start by applying the ChiActive colors, fonts, logo, and direct, encouraging, outdoorsy voice to the homepage and shared styles. Edit only inside `starter-site/`. You may redesign layouts, change navigation and content, and add pages as long as the site still works. Show me your first changes and tell me how to preview them.</div>
+          <div class="actions"><button class="button primary" id="copy-prompt" type="button">Copy starter prompt</button></div>
+          <p>Review the first result, then work through the design ideas below one at a time. Give the assistant specific follow-up requests in your own words.</p>
+          <div class="note">All website changes belong inside <code>starter-site/</code>. You may create new pages and reorganize the site; update its links when you do.</div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-five">
+        <div class="step-title"><span class="number">5</span><h2 id="step-five">Build out your version of ChiActive</h2></div>
+        <div class="step-content">
+          <p>These are starting points, not a limit on what you can do. Preview the site after each round and decide what to improve next.</p>
+          <ol class="design-list">
+            <li><h3>Compare the models.</h3><p>Ask Flash-Lite with your class key and Gemini 3.8 Flash with your Google key to tackle the same small task, such as improving a product card. Compare the page in your browser, the quality of the code, and how much follow-up help each model needs. Use separate copies or undo the first change before running the second so you can compare fairly.</p></li>
+            <li><h3>Apply the colors and fonts.</h3><p>Use the class color palette, fonts, logo, and brand voice throughout the site. The logo and font files are already in <code>starter-site/images/</code> and <code>starter-site/fonts/</code>.</p></li>
+            <li><h3>Add images and useful icons.</h3><p>Find free-to-use stock images online or make images with an AI image tool. Save new images in <code>starter-site/images/</code> and ask your coding assistant to place them where they help tell the brand story. Add a consistent set of icons where they make actions or categories clearer.</p></li>
+            <li><h3>Build a shopping cart.</h3><p>Ask your coding assistant to make a working cart for this static practice site. Visitors should be able to add products, change quantities, remove items, and see totals. The cart can save its contents in the browser between refreshes. It is a demonstration cart, so no real payment processing is needed.</p></li>
+            <li><h3>Write and refine content.</h3><p>Use other AI tools to brainstorm or draft homepage, product, About, or blog content. Review the wording and product claims yourself. Then ask your coding assistant to insert and refine the copy so it fits ChiActive's voice.</p></li>
+            <li><h3>Rethink the homepage and navigation.</h3><p>Improve the current homepage layout or replace it entirely. Change the featured content and main navigation if you think a different structure would work better. You can add as many helpful pages as you want; connect them with working links.</p></li>
+            <li><h3>Keep exploring.</h3><p>Make any other changes that would help visitors understand the brand, find products, and feel confident using the site. Be ready to explain the choices you made.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-six">
+        <div class="step-title"><span class="number">6</span><h2 id="step-six">Preview and review your work</h2></div>
+        <div class="step-content">
+          <p>On a Mac, double-click <code>start-server-mac.command</code>. On Windows, double-click <code>start-server-windows.bat</code>. Keep the window that opens running, and view the site at <a href="http://localhost:8000">http://localhost:8000</a>. Refresh the browser after each change.</p>
+          <p>If the launcher does not work, use your editor's local preview feature or ask your AI tool to start a local web server for <code>starter-site/</code>.</p>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="step-seven">
+        <div class="step-title"><span class="number">7</span><h2 id="step-seven">Package and submit your work</h2></div>
+        <div class="step-content">
+          <p>When you are satisfied with your storefront redesign, package your work into a single ZIP file to ensure all your pages, styles, images, and fonts are preserved together without missing files:</p>
+          <ol>
+            <li><strong>Compress your folder into a ZIP file:</strong>
+              <ul>
+                <li><strong>On macOS:</strong> Right-click (or Control-click) your <code>Website Design</code> folder in Finder and choose <strong>Compress "Website Design"</strong>. Rename the resulting zip to include your name (e.g. <code>ChiActive-YourName.zip</code>).</li>
+                <li><strong>On Windows:</strong> Right-click your <code>Website Design</code> folder in File Explorer, choose <strong>Compress to ZIP file</strong> (or <strong>Send to &rarr; Compressed (zipped) folder</strong>), and rename it with your name.</li>
+              </ul>
+            </li>
+            <li><strong>Upload to your student folder on Google Drive:</strong>
+              <p>Your instructor has created a dedicated Google Drive folder organized with individual subfolders for each student:</p>
+              <div class="actions" style="margin: 0.75rem 0 0.9rem;">
+                <a href="https://drive.google.com/open?id=1BFuXhjcSGYPq9PKoQ8ssXkxPrzjJeB9o&usp=drive_fs" target="_blank" rel="noopener noreferrer" class="button primary" style="background:#2F3F53; color:white;">Open Class Google Drive Submissions ↗</a>
+              </div>
+              <p>Locate the subfolder labeled with your name and upload your finished <code>.zip</code> file there.</p>
+            </li>
+          </ol>
+          <div class="note"><strong>Why submit as a ZIP?</strong> Uploading individual uncompressed files or folders through a web browser often misses nested subdirectories (such as <code>starter-site/images/</code> or <code>fonts/</code>) or breaks relative file paths. A ZIP file ensures your entire project stays complete and intact.</div>
+        </div>
+      </section>
+
+      <section class="checklist" aria-labelledby="check-heading">
+        <h2 id="check-heading">Before you finish</h2>
+        <ul>
+          <li>Check the homepage, shopping pages, cart, and any pages you added.</li>
+          <li>Make sure images and icons load, navigation links work, and the cart responds as expected.</li>
+          <li>Read the content aloud and confirm that it fits ChiActive's voice and makes accurate claims.</li>
+          <li>Compress your folder into a ZIP file and upload it into your designated personal folder in Google Drive.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>ChiActive Website Design Project · <a href="instructions.html">Instructions</a> · <a href="api-keys.html">Class API Keys</a> · <a href="gemini-api-key.html">Free Google Gemini Key</a></footer>
+  </div>
+  <script>
+    document.getElementById('copy-prompt').addEventListener('click', async function () {
+      const value = document.getElementById('starter-prompt').textContent;
+      try {
+        await navigator.clipboard.writeText(value);
+      } catch (_) {
+        const field = document.createElement('textarea');
+        field.value = value;
+        document.body.appendChild(field);
+        field.select();
+        const copied = document.execCommand('copy');
+        field.remove();
+        if (!copied) {
+          this.textContent = 'Select the prompt above and copy it';
+          return;
+        }
+      }
+      this.textContent = 'Copied!';
+      setTimeout(() => { this.textContent = 'Copy starter prompt'; }, 2000);
+    });
+  </script>
+</body>
+</html>
