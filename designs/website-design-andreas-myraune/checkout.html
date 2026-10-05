@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout | ChiActive</title>
+<meta name="description" content="Demo checkout.">
+<link rel="icon" href="images/logo-badge-160.png">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChiActive">
+<meta property="og:title" content="Checkout | ChiActive">
+<meta property="og:description" content="Demo checkout.">
+<meta property="og:image" content="https://myraune.github.io/chiactive/images/ai/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="styles.css?v=c49">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="site-top">
+<header class="e-hdr">
+  <nav class="hdr-nav" aria-label="Main"><button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button><a href="shop.html#shells">Shells</a><a href="shop.html#insulated">Insulated</a><a href="shop.html#layers">Layers</a></nav>
+  <a class="e-logo e-badge" href="index.html" aria-label="ChiActive home"><img src="images/logo-badge-160.png" alt="" width="46" height="46"></a>
+  <div class="e-tools"><button type="button" data-open-search>Search</button><button type="button" data-open-cart aria-label="Open cart">Cart <span class="cart-count" aria-live="polite">0</span></button></div>
+</header>
+</div>
+<div class="menu" id="menu" hidden><nav aria-label="Menu"><a href="shop.html">Shop</a><a href="shop.html#shells">Shells</a><a href="shop.html#insulated">Insulated</a><a href="shop.html#layers">Layers</a><a href="blog/index.html">Journal</a><a href="about.html">About</a></nav><div class="menu-sub"><a class="link" href="checkout.html">Checkout</a></div></div>
+
+<main id="main" class="co">
+  <div class="page-bar"><h1>Checkout</h1><span></span><a class="count" href="shop.html">Continue shopping</a></div>
+  <div class="checkout" data-checkout>
+    <form class="form" data-checkout-form>
+      <fieldset><legend><span>01</span>Contact</legend><div class="field full"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required></div></fieldset>
+      <fieldset><legend><span>02</span>Shipping</legend>
+        <div class="field"><label for="first">First name</label><input id="first" name="first" autocomplete="given-name" required></div>
+        <div class="field"><label for="last">Last name</label><input id="last" name="last" autocomplete="family-name" required></div>
+        <div class="field full"><label for="address">Address</label><input id="address" name="address" autocomplete="street-address" required></div>
+        <div class="field"><label for="city">City</label><input id="city" name="city" autocomplete="address-level2" value="Chicago" required></div>
+        <div class="field"><label for="zip">ZIP code</label><input id="zip" name="zip" autocomplete="postal-code" inputmode="numeric" required></div>
+      </fieldset>
+      <button class="btn btn-block" type="submit">Place demo order</button>
+      <p class="demo-note">Demo checkout for a class project. Nothing you enter leaves this page, and no payment is taken.</p>
+    </form>
+    <aside class="summary" aria-labelledby="sum"><h2 id="sum" class="small">Your order</h2><div class="sum-lines" data-sum-lines></div>
+      <div class="totals"><div><span>Subtotal</span><span data-sum-subtotal>$0.00</span></div><div><span>Shipping</span><span data-sum-shipping>Free</span></div><div class="grand"><span>Total</span><span data-sum-total>$0.00</span></div></div><p class="ship-note" data-sum-note></p></aside>
+  </div>
+  <div class="done" data-done hidden><p class="small muted">Order <span data-order-no></span></p><h2>Thanks, you're all set.</h2><p class="muted">This was a demo order, so nothing will ship. Your cart has been cleared.</p><a class="btn" href="shop.html">Keep shopping</a></div>
+</main>
+<footer class="ftr">
+  <div><p class="ftr-tag">Built for the four-season city.</p><p class="ftr-note">ChiActive Collection 01. Six jackets designed for Chicago college students. A class project for Intro to Interactive Marketing: nothing is for sale and no payment is taken.</p></div>
+  <div><h2>Shop</h2><ul><li><a href="shop.html#shells">Shells</a></li><li><a href="shop.html#insulated">Insulated</a></li><li><a href="shop.html#layers">Layers</a></li><li><a href="shop.html">All jackets</a></li></ul></div>
+  <div><h2>ChiActive</h2><ul><li><a href="about.html">About</a></li><li><a href="blog/index.html">Journal</a></li><li><a href="checkout.html">Checkout</a></li></ul></div>
+  <p class="ftr-word" aria-hidden="true" data-split="chars">CHIACTIVE</p>
+</footer>
+<script src="js/products.js?v=c49"></script>
+<script src="js/main.js?v=c49"></script>
+<script src="js/motion.js?v=c49"></script>
+</body>
+</html>
