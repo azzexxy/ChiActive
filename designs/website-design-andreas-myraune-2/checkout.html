@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-root="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout | ChiActive</title>
+<meta name="description" content="Demo checkout.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChiActive">
+<meta property="og:title" content="Checkout | ChiActive">
+<meta property="og:description" content="Demo checkout.">
+<meta property="og:image" content="https://myraune.github.io/chiactive/images/ai/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="images/logo-badge-160.png">
+<link rel="stylesheet" href="site.css?v=m4">
+</head>
+<body class="checkout">
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="ChiActive, home"><svg viewBox="-1 -1 2 2" aria-hidden="true"><polygon points="0.000,-1.000 0.250,-0.433 0.866,-0.500 0.500,0.000 0.866,0.500 0.250,0.433 0.000,1.000 -0.250,0.433 -0.866,0.500 -0.500,0.000 -0.866,-0.500 -0.250,-0.433"/></svg>ChiActive</a>
+  <nav class="nav" aria-label="Main"><a href="shop.html">Shop</a><a href="blog/index.html">Journal</a><a href="about.html">About</a><button type="button" data-open-search>Search</button></nav>
+  <div class="tools"><button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button><button type="button" data-open-cart>Cart <span class="cart-count">0</span></button></div>
+</header>
+<div class="menu" id="menu" hidden><nav aria-label="Menu"><a href="shop.html">Shop</a><a href="blog/index.html">Journal</a><a href="about.html">About</a><button type="button" data-open-search>Search</button></nav></div>
+
+<main id="main" class="page wide">
+  <div class="co" data-checkout>
+    <form class="co-form" data-checkout-form novalidate>
+      <h1>Checkout</h1>
+      <fieldset><legend>Contact</legend><div class="field full"><label for="email">Email</label><input id="email" name="email" autocomplete="email" type="email" required></div></fieldset>
+      <fieldset><legend>Shipping</legend><div class="field"><label for="first">First name</label><input id="first" name="first" autocomplete="given-name" required></div><div class="field"><label for="last">Last name</label><input id="last" name="last" autocomplete="family-name" required></div><div class="field full"><label for="address">Address</label><input id="address" name="address" autocomplete="street-address" required></div><div class="field"><label for="city">City</label><input id="city" name="city" autocomplete="address-level2" value="Chicago" required></div><div class="field"><label for="zip">ZIP code</label><input id="zip" name="zip" autocomplete="postal-code" inputmode="numeric" required></div></fieldset>
+      <button class="btn" type="submit">Place demo order</button>
+      <p class="quiet">This is a demo checkout for a class project. Nothing you type leaves this page, and no payment is taken.</p>
+    </form>
+    <aside class="co-sum" aria-labelledby="sum-h">
+      <h2 id="sum-h">Your order</h2>
+      <div data-sum-lines></div>
+      <dl class="totals"><dt>Subtotal</dt><dd data-sum-subtotal>$0.00</dd><dt>Shipping</dt><dd data-sum-shipping>Free</dd><dt class="grand">Total</dt><dd class="grand" data-sum-total>$0.00</dd></dl>
+      <p class="quiet" data-sum-note></p>
+    </aside>
+  </div>
+  <div class="done" data-done hidden><p class="quiet">Order <span data-order-no></span></p><h1>Thanks, you're all set.</h1><p>This was a demo order, so nothing will ship. Your cart is empty again.</p><a class="go" href="shop.html">Keep shopping</a></div>
+</main>
+<footer class="foot">
+  <p>ChiActive, Chicago. Built for the four-season city.</p>
+  <nav aria-label="Footer"><a href="shop.html">Shop</a><a href="blog/index.html">Journal</a><a href="about.html">About</a><a href="checkout.html">Checkout</a></nav>
+  <p class="quiet">A class project for Intro to Interactive Marketing. Nothing here is for sale.</p>
+</footer>
+<script src="js/products.js?v=m4"></script>
+<script src="js/main.js?v=m4"></script>
+</body>
+</html>
