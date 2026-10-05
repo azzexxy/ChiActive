@@ -1,0 +1,10 @@
+/* ChiActive site-wide 3D layer (pairs with fx.js) */
+.fx-tilt { transform-style: preserve-3d; will-change: transform; position: relative; }
+.fx-tilt::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.38), rgba(255,255,255,0) 55%);
+  opacity: 0; transition: opacity .25s ease; mix-blend-mode: soft-light; }
+.fx-tilt.fx-on::before { opacity: 1; }
+.product-card.fx-tilt .media, .tile.fx-tilt img { transform: translateZ(14px); }
+.idcard.fx-tilt::before { display: none; }
+.gallery-main.fx-tilt, .product-detail .gallery > img.fx-tilt { transition: box-shadow .3s ease; }
+.gallery-main.fx-tilt.fx-on { box-shadow: 0 30px 60px -25px rgba(31,43,58,.45); }
