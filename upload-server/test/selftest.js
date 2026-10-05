@@ -159,9 +159,10 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
     const idx = await zz.file('Website design - Self Test/index.html').async('string');
     check('the .zip holds every file, with the latest edits', names.includes('Website design - Self Test/s.css') && names.includes('Website design - Self Test/pic.png') && idx.includes('Edited by the helper'), names.join(', '));
   } catch (e) { check('the .zip can be opened', false, e.message); }
-  z = await dl('helper'); check('a non-editor cannot download it', z.status === 403, z.status);
+  z = await dl('helper'); check('any student can download any design', z.status === 200 && z.buf.length > 100, z.status);
   z = await dl('admin'); check('admin can download any design', z.status === 200 && z.buf.length > 100, z.status);
-  z = await dl('nobody'); check('logged-out visitors cannot download', z.status === 401, z.status);
+  z = await dl('nobody'); check('gallery visitors can download any design', z.status === 200 && /zip/.test(z.type), z.status);
+  z = await (async () => { const r = await fetch(A + '/api/download?folder=no-such-design'); return { status: r.status }; })(); check('unknown designs give a clear error', z.status === 404, z.status);
 
   // code editor: files, save, conflicts, new files, upload, rename, delete, history, restore
   r = await call(`/api/edit/files?folder=${folder}`); check('editor lists every file', r.json && r.json.ok && r.json.files.some(x => x.path === 's.css' && x.kind === 'text') && r.json.files.some(x => x.path === 'pic.png' && x.kind === 'image'), r.text.slice(0, 200));

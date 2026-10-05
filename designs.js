@@ -110,7 +110,8 @@
       '<div class="stage"><div class="browser"><div class="bar"><i></i><i></i><i></i><span>' + esc('designs / ' + d.folder) + '</span></div>' + stage + '</div></div>' +
       '<div class="body"><div class="name-row"><h2 class="name">' + esc(d.name) + '</h2>' + tag + '</div>' +
       (meta ? '<p class="meta-line">' + meta + '</p>' : '') +
-      '<div class="card-actions">' + (d.publishing ? '' : '<a class="btn" href="' + esc(view) + '">Open design <span>&rarr;</span></a>') + '</div></div></article>';
+      '<div class="card-actions">' + (d.publishing ? '' : '<a class="btn" href="' + esc(view) + '">Open design <span>&rarr;</span></a>' +
+        (API ? '<a class="btn btn-ghost btn-dl" href="' + esc(API + '/api/download?folder=' + encodeURIComponent(d.folder)) + '" download title="Download every file of this design as a .zip" aria-label="Download ' + esc(d.name) + ' as a .zip">&#11015; Download .zip</a>' : '')) + '</div></div></article>';
   }
   function scaleFrames() { list.querySelectorAll('.frame').forEach(function (fr) { fr.style.setProperty('--s', (fr.clientWidth / 1200).toFixed(4)); }); }
   var ro = 'ResizeObserver' in window ? new ResizeObserver(scaleFrames) : null;

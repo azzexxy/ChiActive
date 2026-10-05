@@ -1190,20 +1190,21 @@ async function designTree(folder) {
   const t = await gh('GET', `/repos/${REPO}/git/trees/${dir.sha}?recursive=1`, null, { retries: 2 });
   return (t.tree || []).filter(x => x.type === 'blob').map(x => ({ path: x.path, size: x.size || 0, sha: x.sha })).sort((a, b) => a.path.localeCompare(b.path));
 }
+// every design in the gallery can be downloaded by anyone (its files are public on GitHub Pages anyway)
+const downloadLimited = limiter(30, 600e3); let downloadsRunning = 0;
 async function handleDownload(req, res, url) {
   const folder = String(url.searchParams.get('folder') || '');
   const page = (status, msg) => {
     const safe = String(msg).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download | ChiActive</title><link rel="icon" href="/favicon.png"><body style="margin:0;font:16px/1.5 system-ui,sans-serif;background:#16202C;color:#E6ECF2;padding:48px 20px"><div style="max-width:560px;margin:auto"><h1 style="color:#F5E7BE;margin:0 0 12px">Download didn’t work</h1><p>${safe}</p><p><a style="color:#41B6E6;font-weight:700" href="/studio">← Back to ChiActive Studio</a></p></div>`);
+    res.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download | ChiActive</title><link rel="icon" href="/favicon.png"><body style="margin:0;font:16px/1.5 system-ui,sans-serif;background:#16202C;color:#E6ECF2;padding:48px 20px"><div style="max-width:560px;margin:auto"><h1 style="color:#F5E7BE;margin:0 0 12px">Download didn’t work</h1><p>${safe}</p><p><a style="color:#41B6E6;font-weight:700" href="${PAGES_URL}">← Back to the class gallery</a> &nbsp; <a style="color:#41B6E6;font-weight:700" href="/studio">ChiActive Studio</a></p></div>`);
   };
   if (!/^[a-z0-9-]+$/.test(folder)) return page(400, 'That design isn’t valid.');
-  const admin = isAdmin(req);   // admins can download every design, also while viewing as a student
-  let user = null;
-  if (!admin) { user = await currentUser(req).catch(() => null); if (!user) return page(401, 'Log in to ChiActive Studio first, then click Download again.'); }
+  const admin = isAdmin(req), user = admin ? null : await currentUser(req).catch(() => null);
+  if (!admin && downloadLimited(clientIp(req))) return page(429, 'That’s a lot of downloads in a short time (the limit is 30 per 10 minutes). Wait a few minutes and try again.');
   const d = (await freshManifest(3e3)).find(x => x && x.folder === folder);
   if (!d) return page(404, 'That design isn’t in the gallery (anymore).');
-  if (!admin && !mayEdit(d, user.id)) return page(403, 'You can only download your own designs, or designs your teacher made you an editor of.');
+  if (downloadsRunning >= 6) return page(503, 'A lot of people are downloading designs right now. Wait a minute and try again.');
   let files;
   try { files = await designTree(folder); } catch (e) { return page(502, explain(e)); }
   if (!files || !files.length) return page(404, 'The files of this design aren’t on GitHub yet. If it was just uploaded, wait a minute and try again.');
@@ -1212,6 +1213,7 @@ async function handleDownload(req, res, url) {
   res.writeHead(200, { 'Content-Type': 'application/zip', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
     'Content-Disposition': `attachment; filename="${ascii}.zip"; filename*=UTF-8''${encodeURIComponent(name + '.zip')}` });
   const zip = new ZipWriter(res), missing = [];
+  downloadsRunning++;
   try {
     for (const f of files) {
       const buf = await repoFile(folder, f.path, 120e3);
@@ -1220,13 +1222,13 @@ async function handleDownload(req, res, url) {
     if (missing.length) await zip.add(`${name}/MISSING FILES.txt`, Buffer.from(`These files couldn't be downloaded from GitHub just now. Download the design again in a few minutes:\n\n${missing.join('\n')}\n`));
     await zip.finish();
     res.end();
-    logEvent('design-download', { folder, name: d.name, student: admin ? undefined : user.name, username: admin ? undefined : user.username, files: files.length - missing.length,
-      size: files.reduce((n, f) => n + f.size, 0), message: (admin ? 'Admin downloaded' : 'Downloaded') + ` “${d.name || folder}” as a .zip` + (missing.length ? ` (${missing.length} files missing)` : '') }, req);
+    logEvent('design-download', { folder, name: d.name, student: user ? user.name : undefined, username: user ? user.username : undefined, visitor: cleanText(url.searchParams.get('visitor'), 20) || undefined, files: files.length - missing.length,
+      size: files.reduce((n, f) => n + f.size, 0), message: (admin ? 'Admin downloaded' : user ? 'Downloaded' : 'A gallery visitor downloaded') + ` “${d.name || folder}” as a .zip` + (missing.length ? ` (${missing.length} files missing)` : '') }, req);
   } catch (e) {
     console.error('Download failed:', e.message);
     logEvent('download-failed', { folder, error: explain(e), detail: cleanText(e.message, 200) }, req);
     res.destroy();
-  }
+  } finally { downloadsRunning--; }
 }
 /* ---------- WordPress: the winning design is published to the class's WordPress site ---------- */
 const WP_PATH = 'wordpress/settings.enc';
