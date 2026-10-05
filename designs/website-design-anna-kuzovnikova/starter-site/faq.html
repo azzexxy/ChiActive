@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FAQ — Student Questions & Answers | ChiActive</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .faq-hero {
+      background: linear-gradient(135deg, var(--secondary) 0%, #1a2533 100%);
+      color: #fff;
+      padding: 60px 0 50px;
+      text-align: center;
+      border-bottom: 4px solid var(--primary);
+    }
+    .faq-hero h1 {
+      color: #fff;
+      margin-bottom: 12px;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+    }
+    .faq-hero p {
+      color: #cbd5e1;
+      font-size: 1.15rem;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    .faq-wrapper {
+      max-width: 860px;
+      margin: 48px auto;
+    }
+    .faq-category {
+      margin-bottom: 48px;
+    }
+    .faq-category-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.4rem;
+      color: var(--secondary);
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    .faq-category-title span {
+      font-size: 1.5rem;
+    }
+    .faq-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+    .faq-item:hover {
+      border-color: var(--primary);
+    }
+    .faq-item[open] {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+    }
+    .faq-question {
+      padding: 18px 24px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--secondary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+      user-select: none;
+      background: var(--surface);
+      transition: var(--transition);
+    }
+    .faq-question::-webkit-details-marker {
+      display: none;
+    }
+    .faq-question:hover {
+      color: var(--primary);
+      background: #fafcfe;
+    }
+    .faq-chevron {
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
+      font-weight: 800;
+      transition: transform 0.25s ease;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+    }
+    .faq-item[open] .faq-chevron {
+      transform: rotate(90deg);
+    }
+    .faq-answer {
+      padding: 0 24px 20px 24px;
+      color: var(--text);
+      font-size: 0.98rem;
+      line-height: 1.7;
+      border-top: 1px dashed var(--border);
+      padding-top: 16px;
+      background: var(--bg);
+    }
+    .faq-help-box {
+      background: var(--accent-cream-light);
+      border: 2px solid var(--accent-cream);
+      border-radius: var(--radius-lg);
+      padding: 36px 30px;
+      text-align: center;
+      margin: 64px 0 20px;
+    }
+    .faq-help-box h3 {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+    .faq-help-box p {
+      color: var(--text);
+      max-width: 580px;
+      margin: 0 auto 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="index.html">
+        <img src="images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop All</a>
+        <a href="jackets/index.html">Jackets</a>
+        <a href="pants/index.html">Pants</a>
+        <a href="faq.html" class="active">FAQ</a>
+        <a href="blog/index.html">Blog</a>
+        <a href="about.html">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- FAQ Hero -->
+  <section class="faq-hero">
+    <div class="container">
+      <span class="tag" style="background:rgba(65,182,230,0.2); color:var(--primary); font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:4px 12px; border-radius:999px; font-size:0.8rem; display:inline-block; margin-bottom:12px;">Student Knowledge Base</span>
+      <h1>Frequently Asked Questions</h1>
+      <p>Everything you need to know about student discounts, sizing for Chicago layering, dorm shipping, and lakefront weatherproofing.</p>
+    </div>
+  </section>
+
+  <!-- FAQ Content Wrapper -->
+  <main class="container">
+    <div class="faq-wrapper">
+
+      <!-- Category 1: Student Discounts & Dorm Delivery -->
+      <section class="faq-category">
+        <h2 class="faq-category-title">
+          <span>🎓</span> Student Discounts &amp; Dorm Delivery
+        </h2>
+        <div class="faq-accordion">
+          
+          <details class="faq-item" open>
+            <summary class="faq-question">
+              <span>How do I claim my 15% student discount?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              It’s instant and hassle-free! Simply checkout with any valid university or community college email address ending in <strong>.edu</strong> (such as DePaul, UIC, Loyola, Columbia College Chicago, Northwestern, or UChicago). The 15% discount automatically applies to your entire gear bag. You can also flash your active student ID card at our seasonal campus popups.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>Do you deliver directly to campus dorms and student mailrooms?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              Yes! We offer <strong>free 2-day Chicago local courier delivery</strong> on all student orders over $50. Just provide your residence hall name, room/mailbox number, and campus quad address at checkout. Our couriers deliver directly to university package desks across the city.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>Can my student organization or club get custom bulk orders?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              Absolutely. Whether it's an outdoor hiking club, running crew, or collegiate athletic team, we offer special student club pricing and custom embroidered ChiActive patches. Reach out to our campus team at <strong>clubs@chiactive-chicago.com</strong>.
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Category 2: Weatherproofing & Lake Michigan Cold -->
+      <section class="faq-category">
+        <h2 class="faq-category-title">
+          <span>🌬️</span> Weatherproofing &amp; Chicago Winter Survival
+        </h2>
+        <div class="faq-accordion">
+          
+          <details class="faq-item" open>
+            <summary class="faq-question">
+              <span>Are ChiActive jackets actually warm enough for sub-zero wind chills?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              Yes! Our outerwear is specifically tested along the Lake Michigan shoreline in mid-January. Models like the <em>Green Winter Expedition Jacket</em> and <em>Chi Town Puffer</em> feature high-density thermal insulation and wind-blocking baffle stitching calibrated to stop 35+ MPH lakefront gusts dead in their tracks.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>What is DWR water repellency on the Trail Cargo Pants?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              DWR stands for <strong>Durable Water Repellent</strong>. It’s a microscopic coating applied to our stretch nylon ripstop fabric that causes sudden Chicago sleet, freezing rain, and melted slush to bead up and roll right off without soaking through your pants on your walk to class.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>Will my laptop stay safe inside the Urban Campus Backpack during rain?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              Yes. The backpack is engineered from water-resistant recycled polyester and features an elevated, padded laptop cradle that keeps laptops up to 15.6" suspended above the bottom of the bag, protecting your tech from sudden storms and wet bus seats alike.
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Category 3: Sizing, Layering & Returns -->
+      <section class="faq-category">
+        <h2 class="faq-category-title">
+          <span>📏</span> Sizing, Layering &amp; Student Returns
+        </h2>
+        <div class="faq-accordion">
+          
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>How do ChiActive clothes fit? Should I size up for heavy layers?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              All ChiActive apparel is designed with an <strong>athletic streetwear silhouette</strong> that fits true to size while intentionally leaving subtle room for base thermal layers or hoodies underneath. If you prefer an oversized skate/streetwear fit, feel free to size up one tier!
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>What is your return and exchange policy?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              We offer a stress-free <strong>30-day student return window</strong>. Items must be unwashed with tags intact. Plus, we offer free size exchanges during midterms and finals week so you don't have to stress about ill-fitting gear while studying.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary class="faq-question">
+              <span>How should I wash and care for water-resistant gear?</span>
+              <span class="faq-chevron">&rsaquo;</span>
+            </summary>
+            <div class="faq-answer">
+              Machine wash cold on gentle cycle with mild detergent. Avoid fabric softeners (which break down the DWR coating), and tumble dry on low heat for 15 minutes to reactivate the water-repellent finish. Easy to do in any dorm laundry room!
+            </div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Need More Help Box -->
+      <div class="faq-help-box">
+        <h3>Still got questions? We're on campus every week.</h3>
+        <p>Can’t find what you’re looking for? Hit up our student ambassadors or shoot us an email. We respond faster than an 'L' train turnaround.</p>
+        <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+          <a href="mailto:support@chiactive-chicago.com" class="btn btn-secondary">Email Student Support</a>
+          <a href="about.html" class="btn btn-primary">Read Our Story</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="shop.html">Shop All</a></li>
+            <li><a href="jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="pants/index.html">Trail Pants</a></li>
+            <li><a href="faq.html">Student FAQ</a></li>
+            <li><a href="blog/index.html">Campus Journal</a></li>
+            <li><a href="about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="faq.html">Student Discount (15%)</a></li>
+            <li><a href="faq.html">Dorm Delivery Guide</a></li>
+            <li><a href="faq.html">Returns & Exchanges</a></li>
+            <li><a href="about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="cart.js"></script>
+</body>
+</html>

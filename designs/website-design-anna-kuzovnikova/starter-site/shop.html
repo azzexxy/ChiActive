@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop All Gear | ChiActive</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="index.html">
+        <img src="images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html" class="active">Shop All</a>
+        <a href="jackets/index.html">Jackets</a>
+        <a href="pants/index.html">Pants</a>
+        <a href="faq.html">FAQ</a>
+        <a href="blog/index.html">Blog</a>
+        <a href="about.html">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="breadcrumb"><a href="index.html">Home</a> / Shop All</p>
+    
+    <div style="margin: 24px 0 32px;">
+      <h1>Full Collection</h1>
+      <p class="page-intro">
+        Explore every piece engineered for campus transit, loop lectures, and unpredictable Chicago weather.
+        Filter by category below or browse our complete lineup.
+      </p>
+    </div>
+
+    <!-- Category Tiles Quick Filter -->
+    <div class="tiles" style="margin-bottom: 40px;">
+      <a class="tile" href="jackets/index.html">
+        <span class="tile-icon">🧥</span>
+        <span>Jackets & Coats</span>
+      </a>
+      <a class="tile" href="pants/index.html">
+        <span class="tile-icon">👖</span>
+        <span>Trail & Cargo Pants</span>
+      </a>
+      <a class="tile" href="blog/chiactive-urban-campus-backpack.html">
+        <span class="tile-icon">🎒</span>
+        <span>Backpacks & Bags</span>
+      </a>
+      <a class="tile" href="#all-gear">
+        <span class="tile-icon">❄️</span>
+        <span>Winter Accessories</span>
+      </a>
+    </div>
+
+    <div class="section-header" id="all-gear">
+      <h2>All Activewear & Equipment</h2>
+      <span style="color:var(--text-muted); font-size:0.9rem;">7 items available</span>
+    </div>
+
+    <div class="product-grid">
+      <!-- Product 1 -->
+      <div class="product-card">
+        <div class="card-media">
+          <a href="pants/chiactive-trail-cargo-pants.html">
+            <img src="images/d8fe858e-eb62-4d03-a595-571e5113690c.png" alt="ChiActive Trail Cargo Pants">
+          </a>
+          <span class="badge-weather">💧 Water-Repellent</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Pants & Bottoms</span>
+          <h3><a href="pants/chiactive-trail-cargo-pants.html">ChiActive Trail Cargo Pants</a></h3>
+          <div class="price-row">
+            <span class="price">$25.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'trail-cargo-pants', name: 'ChiActive Trail Cargo Pants', price: 25.00, image: 'images/d8fe858e-eb62-4d03-a595-571e5113690c.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 2 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale &bull; Save $25</span>
+          <a href="jackets/index.html">
+            <img src="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg" alt="Green Winter Expedition Jacket">
+          </a>
+          <span class="badge-weather">❄️ Sub-Zero Rated</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Outerwear</span>
+          <h3><a href="jackets/index.html">Green Winter Expedition Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$64.00</span>
+            <span class="price-old">$89.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'green-winter-jacket', name: 'Green Winter Expedition Jacket', price: 64.00, image: 'images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 3 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <a href="jackets/index.html">
+            <img src="images/Screenshot-2026-09-16-at-8.30.52-AM.png" alt="Chi Town Puffer Winter Jacket">
+          </a>
+          <span class="badge-weather">🌬️ Windstopper</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Outerwear</span>
+          <h3><a href="jackets/index.html">Chi Town Puffer Winter Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$185.00</span>
+            <span class="price-old">$200.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'chi-town-puffer', name: 'Chi Town Puffer Winter Jacket', price: 185.00, image: 'images/Screenshot-2026-09-16-at-8.30.52-AM.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 4 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Save 40%</span>
+          <a href="shop.html">
+            <img src="images/Screenshot-2026-09-16-at-8.33.54-AM.png" alt="ChiActive Snow Boots">
+          </a>
+          <span class="badge-weather">🧊 Ice Grip Sole</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Footwear</span>
+          <h3><a href="shop.html">ChiActive All-Terrain Snow Boots</a></h3>
+          <div class="price-row">
+            <span class="price">$94.99</span>
+            <span class="price-old">$159.99</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'snow-boots', name: 'ChiActive All-Terrain Snow Boots', price: 94.99, image: 'images/Screenshot-2026-09-16-at-8.33.54-AM.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 5 -->
+      <div class="product-card">
+        <div class="card-media">
+          <a href="shop.html">
+            <img src="images/chi-active-aviator-hat-2.png" alt="ChiActive Faux-Fur Aviator Hat">
+          </a>
+          <span class="badge-weather">🔥 Thermal Fleece</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Headwear</span>
+          <h3><a href="shop.html">ChiActive Faux-Fur Aviator Hat</a></h3>
+          <div class="price-row">
+            <span class="price">$52.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'aviator-hat', name: 'ChiActive Faux-Fur Aviator Hat', price: 52.00, image: 'images/chi-active-aviator-hat-2.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 6 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <a href="jackets/index.html">
+            <img src="images/Skarmavbild-2026-09-16-kl.-08.30.03.png" alt="Always Effortless Jacket Women">
+          </a>
+          <span class="badge-weather">🌧️ Storm Ready</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Women's Outerwear</span>
+          <h3><a href="jackets/index.html">Always Effortless Commuter Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$118.40</span>
+            <span class="price-old">$148.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'effortless-jacket', name: 'Always Effortless Commuter Jacket', price: 118.40, image: 'images/Skarmavbild-2026-09-16-kl.-08.30.03.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 7 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <a href="jackets/index.html">
+            <img src="images/Screenshot-2026-09-16-at-08.26.32.png" alt="ZW Collection Short High-Collar Trench Coat">
+          </a>
+          <span class="badge-weather">🏙️ City Commute</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Urban Outerwear</span>
+          <h3><a href="jackets/index.html">ZW High-Collar Transit Trench Coat</a></h3>
+          <div class="price-row">
+            <span class="price">$110.00</span>
+            <span class="price-old">$129.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'transit-trench', name: 'ZW High-Collar Transit Trench Coat', price: 110.00, image: 'images/Screenshot-2026-09-16-at-08.26.32.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="shop.html">Shop All</a></li>
+            <li><a href="jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="pants/index.html">Trail Pants</a></li>
+            <li><a href="blog/index.html">Campus Journal</a></li>
+            <li><a href="about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="about.html">Student Discount (15%)</a></li>
+            <li><a href="about.html">Shipping & Campus Pickup</a></li>
+            <li><a href="about.html">Size Guide</a></li>
+            <li><a href="about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="cart.js"></script>
+</body>
+</html>

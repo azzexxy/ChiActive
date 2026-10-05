@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChiActive Trail Cargo Pants | ChiActive</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="../index.html">
+        <img src="../images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="../index.html">Home</a>
+        <a href="../shop.html">Shop All</a>
+        <a href="../jackets/index.html">Jackets</a>
+        <a href="index.html" class="active">Pants</a>
+        <a href="../blog/index.html">Blog</a>
+        <a href="../about.html">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="breadcrumb"><a href="../index.html">Home</a> / <a href="../shop.html">Shop</a> / <a href="index.html">Pants</a> / ChiActive Trail Cargo Pants</p>
+
+    <div class="product-detail">
+
+      <!-- Gallery -->
+      <div class="gallery">
+        <div style="background:#f1f5f9; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border);">
+          <img id="main-product-img" src="../images/d8fe858e-eb62-4d03-a595-571e5113690c.png" alt="ChiActive Trail Cargo Pants" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
+        </div>
+        <div class="thumbs" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:12px;">
+          <img src="../images/d8fe858e-eb62-4d03-a595-571e5113690c.png" alt="Black" onclick="document.getElementById('main-product-img').src=this.src" style="cursor:pointer; border-radius:var(--radius-sm); border:2px solid var(--primary); aspect-ratio:1/1; object-fit:cover;">
+          <img src="../images/gray.png" alt="Gray" onclick="document.getElementById('main-product-img').src=this.src" style="cursor:pointer; border-radius:var(--radius-sm); border:1px solid var(--border); aspect-ratio:1/1; object-fit:cover;">
+          <img src="../images/forest-green.png" alt="Forest green" onclick="document.getElementById('main-product-img').src=this.src" style="cursor:pointer; border-radius:var(--radius-sm); border:1px solid var(--border); aspect-ratio:1/1; object-fit:cover;">
+          <img src="../images/dark-brown.png" alt="Dark brown" onclick="document.getElementById('main-product-img').src=this.src" style="cursor:pointer; border-radius:var(--radius-sm); border:1px solid var(--border); aspect-ratio:1/1; object-fit:cover;">
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-muted); text-align:center; margin-top:6px;">Click swatches above to preview color variants.</p>
+      </div>
+
+      <!-- Buy Box -->
+      <div class="buybox">
+        <span class="card-category">All-Weather Bottoms</span>
+        <h1 style="margin-top:4px; font-size:2rem;">ChiActive Trail Cargo Pants</h1>
+        <div class="price-row" style="margin-bottom:12px;">
+          <span class="price" style="font-size:1.6rem; color:var(--secondary);">$25.00</span>
+          <span style="background:var(--accent-cream); color:var(--secondary); font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:4px;">In Stock &bull; Campus Best-Seller</span>
+        </div>
+        <p style="font-size:1rem; color:var(--text); line-height:1.6; margin-bottom:20px;">
+          Lightweight, versatile cargo pants built for everyday campus life and outdoor adventures. Designed with a relaxed streetwear silhouette, water-resistant stretch ripstop, and plenty of secure pocket storage for life on the move.
+        </p>
+
+        <form id="product-form" onsubmit="event.preventDefault();" style="background:var(--surface); border:1px solid var(--border); padding:20px; border-radius:var(--radius-md);">
+          <div style="margin-bottom:16px;">
+            <label for="size" style="display:block; font-weight:700; margin-bottom:6px; font-size:0.9rem;">Select Size</label>
+            <select id="size" name="size" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.95rem;">
+              <option value="S">Small (S)</option>
+              <option value="M" selected>Medium (M) — Recommended</option>
+              <option value="L">Large (L)</option>
+              <option value="XL">Extra Large (XL)</option>
+              <option value="XXL">2X Large (XXL)</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <label for="qty" style="display:block; font-weight:700; margin-bottom:6px; font-size:0.9rem;">Quantity</label>
+            <input id="qty" type="number" value="1" min="1" max="10" style="width:80px; padding:8px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:1rem;">
+          </div>
+
+          <button class="btn btn-secondary" type="button" style="width:100%; font-size:1rem; padding:14px;" onclick="addCurrentProduct()">
+            🛒 Add to Gear Bag &bull; $25.00
+          </button>
+        </form>
+
+        <p class="product-meta" style="margin-top:20px; font-size:0.85rem; color:var(--text-muted); line-height:1.6;">
+          <strong>Category:</strong> <a href="index.html" style="color:var(--primary);">Pants</a><br>
+          <strong>Tags:</strong> ActiveWear, Cargos, Chicago, Water-Resistant, Campus Life<br>
+          <strong>Brand:</strong> ChiActive &bull; "Built for the four-season city."
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Product Details Section -->
+    <section class="tab-section" style="margin-top:48px; border-top:1px solid var(--border); padding-top:24px;">
+      <h2>Product Description & Field Notes</h2>
+      <p style="font-size:1rem; line-height:1.7; color:var(--text);">
+        ChiActive Trail Cargo Pants are engineered for college students who need apparel that seamlessly bridges morning lectures, brisk lakefront bike rides, and weekend trail hiking. The technical fabric repels sudden sleet and rain showers while the articulated knees provide complete range of motion.
+      </p>
+    </section>
+
+    <section class="tab-section" style="margin-top:32px;">
+      <h2>Technical Specifications</h2>
+      <table class="specs" style="width:100%; max-width:600px; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Available Sizes</td><td style="padding:10px 16px;">S, M, L, XL, XXL</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Colorways</td><td style="padding:10px 16px;">Midnight Black, Heather Gray, Forest Green, Espresso Brown</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Fabric Composition</td><td style="padding:10px 16px;">90% Durable Nylon Ripstop, 10% Flex Spandex</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Fit Profile</td><td style="padding:10px 16px;">Relaxed athletic cargo with adjustable ankle cuffs</td></tr>
+        <tr><td style="padding:10px 16px; font-weight:700;">Weather Resistance</td><td style="padding:10px 16px;">DWR (Durable Water Repellent) wind-resistant coating</td></tr>
+      </table>
+    </section>
+
+    <h2 style="margin-top:56px;">Complete Your Kit</h2>
+    <div class="product-grid">
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <img src="../images/Skarmavbild-2026-09-16-kl.-08.30.03.png" alt="Always Effortless Jacket women">
+        </div>
+        <div class="card-body">
+          <span class="card-category">Outerwear</span>
+          <h3>Always Effortless Jacket</h3>
+          <div class="price-row"><span class="price">$118.40</span><span class="price-old">$148.00</span></div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id:'effortless-jacket', name:'Always Effortless Commuter Jacket', price:118.40, image:'../images/Skarmavbild-2026-09-16-kl.-08.30.03.png'})">Add to Bag</button>
+          </div>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="card-media">
+          <img src="../images/chi-active-aviator-hat-2.png" alt="ChiActive Faux-Fur Aviator Hat">
+        </div>
+        <div class="card-body">
+          <span class="card-category">Headwear</span>
+          <h3>ChiActive Aviator Hat</h3>
+          <div class="price-row"><span class="price">$52.00</span></div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id:'aviator-hat', name:'ChiActive Faux-Fur Aviator Hat', price:52.00, image:'../images/chi-active-aviator-hat-2.png'})">Add to Bag</button>
+          </div>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <img src="../images/Screenshot-2026-09-16-at-8.33.54-AM.png" alt="ChiActive Snow Boots">
+        </div>
+        <div class="card-body">
+          <span class="card-category">Footwear</span>
+          <h3>ChiActive Snow Boots</h3>
+          <div class="price-row"><span class="price">$94.99</span><span class="price-old">$159.99</span></div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id:'snow-boots', name:'ChiActive All-Terrain Snow Boots', price:94.99, image:'../images/Screenshot-2026-09-16-at-8.33.54-AM.png'})">Add to Bag</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="../images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="../shop.html">Shop All</a></li>
+            <li><a href="../jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="index.html">Trail Pants</a></li>
+            <li><a href="../blog/index.html">Campus Journal</a></li>
+            <li><a href="../about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="../about.html">Student Discount (15%)</a></li>
+            <li><a href="../about.html">Shipping & Campus Pickup</a></li>
+            <li><a href="../about.html">Size Guide</a></li>
+            <li><a href="../about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../cart.js"></script>
+  <script>
+    function addCurrentProduct() {
+      const size = document.getElementById('size').value;
+      const qty = parseInt(document.getElementById('qty').value, 10) || 1;
+      for (let i = 0; i < qty; i++) {
+        addToCart({
+          id: 'trail-cargo-pants-' + size.toLowerCase(),
+          name: 'ChiActive Trail Cargo Pants (' + size + ')',
+          price: 25.00,
+          image: '../images/d8fe858e-eb62-4d03-a595-571e5113690c.png'
+        });
+      }
+    }
+  </script>
+</body>
+</html>

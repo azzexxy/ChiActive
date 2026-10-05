@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChiActive — Built for the Four-Season City</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="index.html">
+        <img src="images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="index.html" class="active">Home</a>
+        <a href="shop.html">Shop All</a>
+        <a href="jackets/index.html">Jackets</a>
+        <a href="pants/index.html">Pants</a>
+        <a href="faq.html">FAQ</a>
+        <a href="blog/index.html">Blog</a>
+        <a href="about.html">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Branded Hero Section with Live Weather Particle Canvas -->
+  <section class="hero">
+    <canvas id="weather-canvas" class="weather-canvas"></canvas>
+    <div class="container">
+      <div class="hero-content">
+        <!-- Live Chicago Weather Scanner & Mode Switcher -->
+        <div class="weather-live-widget">
+          <div class="weather-badge-info">
+            <span>📍 Chicago, IL</span>
+            <span id="weather-temp-display" style="font-weight:800; color:var(--primary);">54°F</span>
+            <span>&bull;</span>
+            <span id="weather-date-display">Mon, Oct 5</span>
+            <span>&bull;</span>
+            <span id="weather-status-text" style="color:#e2e8f0;">Golden Campus Leaf Fall</span>
+          </div>
+
+          <!-- Season Selector Tabs -->
+          <div class="season-tabs-container">
+            <span class="season-picker-label">Season:</span>
+            <div class="season-tabs" role="tablist" aria-label="Select Season">
+              <button class="season-tab-btn" data-season="winter" role="tab" aria-selected="false">
+                <span>❄️</span> Winter
+              </button>
+              <button class="season-tab-btn" data-season="spring" role="tab" aria-selected="false">
+                <span>🌸</span> Spring
+              </button>
+              <button class="season-tab-btn" data-season="summer" role="tab" aria-selected="false">
+                <span>☀️</span> Summer
+              </button>
+              <button class="season-tab-btn active" data-season="fall" role="tab" aria-selected="true">
+                <span>🍂</span> Fall
+              </button>
+            </div>
+          </div>
+
+          <!-- Categorized Weather Pill Switchers by Season -->
+          <div class="season-weathers-wrap">
+            <!-- Winter Group -->
+            <div class="season-weather-group" data-season-group="winter" style="display:none;">
+              <button class="weather-pill-btn" data-weather="snow" title="Lake Effect Blizzard">❄️ Blizzard</button>
+              <button class="weather-pill-btn" data-weather="vortex" title="Polar Vortex -15°F">🧊 Polar Vortex</button>
+              <button class="weather-pill-btn" data-weather="sleet" title="Freezing Rain & Slush">🌧️ Freezing Rain</button>
+              <button class="weather-pill-btn" data-weather="hail" title="Lakefront Hail & Ice Pellets">🌨️ Hail</button>
+              <button class="weather-pill-btn" data-weather="wind" title="35mph Lake Gale Gusts">🌬️ Lake Gale</button>
+            </div>
+
+            <!-- Spring Group -->
+            <div class="season-weather-group" data-season-group="spring" style="display:none;">
+              <button class="weather-pill-btn" data-weather="springrain" title="Fresh Spring Drizzle">🌦️ Spring Drizzle</button>
+              <button class="weather-pill-btn" data-weather="storm" title="Spring Lake Squall & Thunder">⚡ Lake Squall</button>
+              <button class="weather-pill-btn" data-weather="fog" title="Lakefront Morning Mist">🌫️ Morning Mist</button>
+              <button class="weather-pill-btn" data-weather="sun" title="Crisp Spring Thaw & Sun">☀️ Crisp Thaw</button>
+              <button class="weather-pill-btn" data-weather="rainbow" title="Rainbow After Squall">🌈 Double Rainbow</button>
+            </div>
+
+            <!-- Summer Group -->
+            <div class="season-weather-group" data-season-group="summer" style="display:none;">
+              <button class="weather-pill-btn" data-weather="summerrain" title="Warm Summer Rain">🌦️ Summer Rain</button>
+              <button class="weather-pill-btn" data-weather="heat" title="Summer Asphalt Heatwave">🔥 Heatwave 94°F</button>
+              <button class="weather-pill-btn" data-weather="summersun" title="Beach Sunshine">☀️ Beach Sun</button>
+              <button class="weather-pill-btn" data-weather="tornado" title="Midwest Tornado Siren">🌪️ Tornado Warning</button>
+            </div>
+
+            <!-- Fall Group -->
+            <div class="season-weather-group active" data-season-group="fall">
+              <button class="weather-pill-btn active" data-weather="leaves" title="Golden Campus Leaf Fall">🍂 Leaf Fall</button>
+              <button class="weather-pill-btn" data-weather="fallrain" title="Chilly Autumn Drizzle">🌧️ Autumn Drizzle</button>
+              <button class="weather-pill-btn" data-weather="overcast" title="Moody Gray Chicago Skies">☁️ Moody Overcast</button>
+              <button class="weather-pill-btn" data-weather="autumnstorm" title="October Lakefront Squall">⚡ Autumn Squall</button>
+              <button class="weather-pill-btn" data-weather="midnight" title="Midnight Starlit Library Chill">🌙 Midnight Chill</button>
+            </div>
+          </div>
+        </div>
+
+        <span class="hero-tag" id="hero-tag">Chicago Outdoor & Campus Wear</span>
+        <h1 id="hero-title">The lake wind doesn't care about your plans. <span>Your jacket should.</span></h1>
+        <p id="hero-desc">Technical, comfortable apparel designed for college students conquering lecture halls, 'L' train commutes, and Lake Michigan blizzards.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="shop.html">Shop All Gear</a>
+          <a class="btn btn-secondary" id="hero-cta-jackets" href="jackets/index.html">Explore Jackets</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Highlights -->
+  <section class="features-bar">
+    <div class="container">
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">🌬️</div>
+          <div class="feature-text">
+            <h4>Lake-Tested Tech</h4>
+            <p>Thermal insulation and windproofing calibrated for Chicago winters.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🎒</div>
+          <div class="feature-text">
+            <h4>Campus & Commute Ready</h4>
+            <p>Ergonomic pockets for laptops, transit passes, and gym gear.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-text">
+            <h4>Four-Season Adaptability</h4>
+            <p>Smart layering pieces ready for morning chills and afternoon sun.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🏙️</div>
+          <div class="feature-text">
+            <h4>Authentic Chicago Style</h4>
+            <p>Athletic silhouettes with clean, modern streetwear aesthetics.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Categories -->
+    <div class="section-header">
+      <h2>Explore by Category</h2>
+      <a href="shop.html">View all categories &rarr;</a>
+    </div>
+    <div class="tiles">
+      <a class="tile" href="jackets/index.html">
+        <span class="tile-icon">🧥</span>
+        <span>Jackets & Outerwear</span>
+      </a>
+      <a class="tile" href="pants/index.html">
+        <span class="tile-icon">👖</span>
+        <span>Trail & Cargo Pants</span>
+      </a>
+      <a class="tile" href="shop.html">
+        <span class="tile-icon">🥾</span>
+        <span>All-Weather Footwear</span>
+      </a>
+      <a class="tile" href="shop.html">
+        <span class="tile-icon">🧢</span>
+        <span>Hats & Accessories</span>
+      </a>
+      <a class="tile" href="blog/chiactive-urban-campus-backpack.html">
+        <span class="tile-icon">🎒</span>
+        <span>Campus Backpacks</span>
+      </a>
+      <a class="tile" href="shop.html">
+        <span class="tile-icon">🏔️</span>
+        <span>Fleece & Layers</span>
+      </a>
+    </div>
+
+    <!-- Featured Products -->
+    <div class="section-header">
+      <h2>Student Favorites & Best Sellers</h2>
+      <a href="shop.html">Browse full catalog &rarr;</a>
+    </div>
+
+    <div class="product-grid">
+      <!-- Product 1 -->
+      <div class="product-card">
+        <div class="card-media">
+          <a href="pants/chiactive-trail-cargo-pants.html">
+            <img src="images/d8fe858e-eb62-4d03-a595-571e5113690c.png" alt="ChiActive Trail Cargo Pants">
+          </a>
+          <span class="badge-weather">💧 Water-Repellent</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Pants & Bottoms</span>
+          <h3><a href="pants/chiactive-trail-cargo-pants.html">ChiActive Trail Cargo Pants</a></h3>
+          <div class="price-row">
+            <span class="price">$25.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'trail-cargo-pants', name: 'ChiActive Trail Cargo Pants', price: 25.00, image: 'images/d8fe858e-eb62-4d03-a595-571e5113690c.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 2 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale &bull; Save $25</span>
+          <a href="jackets/index.html">
+            <img src="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg" alt="Green Winter Jacket">
+          </a>
+          <span class="badge-weather">❄️ Sub-Zero Rated</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Outerwear</span>
+          <h3><a href="jackets/index.html">Green Winter Expedition Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$64.00</span>
+            <span class="price-old">$89.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'green-winter-jacket', name: 'Green Winter Expedition Jacket', price: 64.00, image: 'images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 3 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <a href="jackets/index.html">
+            <img src="images/Screenshot-2026-09-16-at-8.30.52-AM.png" alt="Chi Town Puffer Winter Jacket">
+          </a>
+          <span class="badge-weather">🌬️ Windstopper</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Outerwear</span>
+          <h3><a href="jackets/index.html">Chi Town Puffer Winter Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$185.00</span>
+            <span class="price-old">$200.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'chi-town-puffer', name: 'Chi Town Puffer Winter Jacket', price: 185.00, image: 'images/Screenshot-2026-09-16-at-8.30.52-AM.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 4 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Save 40%</span>
+          <a href="shop.html">
+            <img src="images/Screenshot-2026-09-16-at-8.33.54-AM.png" alt="ChiActive Snow Boots">
+          </a>
+          <span class="badge-weather">🧊 Ice Grip Sole</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Footwear</span>
+          <h3><a href="shop.html">ChiActive All-Terrain Snow Boots</a></h3>
+          <div class="price-row">
+            <span class="price">$94.99</span>
+            <span class="price-old">$159.99</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'snow-boots', name: 'ChiActive All-Terrain Snow Boots', price: 94.99, image: 'images/Screenshot-2026-09-16-at-8.33.54-AM.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 5 -->
+      <div class="product-card">
+        <div class="card-media">
+          <a href="shop.html">
+            <img src="images/chi-active-aviator-hat-2.png" alt="ChiActive Faux-Fur Aviator Hat">
+          </a>
+          <span class="badge-weather">🔥 Thermal Fleece</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Headwear</span>
+          <h3><a href="shop.html">ChiActive Faux-Fur Aviator Hat</a></h3>
+          <div class="price-row">
+            <span class="price">$52.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'aviator-hat', name: 'ChiActive Faux-Fur Aviator Hat', price: 52.00, image: 'images/chi-active-aviator-hat-2.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product 6 -->
+      <div class="product-card">
+        <div class="card-media">
+          <span class="badge-sale">Sale</span>
+          <a href="jackets/index.html">
+            <img src="images/Skarmavbild-2026-09-16-kl.-08.30.03.png" alt="Always Effortless Jacket Women">
+          </a>
+          <span class="badge-weather">🌧️ Storm Ready</span>
+        </div>
+        <div class="card-body">
+          <span class="card-category">Women's Outerwear</span>
+          <h3><a href="jackets/index.html">Always Effortless Commuter Jacket</a></h3>
+          <div class="price-row">
+            <span class="price">$118.40</span>
+            <span class="price-old">$148.00</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-secondary btn-small" type="button" onclick="addToCart({id: 'effortless-jacket', name: 'Always Effortless Commuter Jacket', price: 118.40, image: 'images/Skarmavbild-2026-09-16-kl.-08.30.03.png'})">
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Brand Story Showcase -->
+    <section class="brand-callout">
+      <div>
+        <span class="hero-tag" style="background:#fff; border-color:var(--secondary);">Our Philosophy</span>
+        <h2>Built for the four-season city.</h2>
+        <p>ChiActive is made for Chicago college students who balance packed lecture schedules, rush-hour train commutes, and weekend trail exploration across the Midwest.</p>
+        <p class="quote-highlight">"The lake wind doesn't care about your plans. Your jacket should."</p>
+        <p>We blend rugged weatherproofing with clean, modern city style so you never have to choose between looking sharp and staying warm.</p>
+        <a href="about.html" class="btn btn-secondary" style="margin-top: 12px;">Read Our Story</a>
+      </div>
+      <div>
+        <img src="images/young-hipster-man-hiking-mountains-winter-vacation-traveling-scaled.jpg" alt="Student wearing ChiActive jacket in winter" class="brand-callout-img">
+      </div>
+    </section>
+
+    <!-- Student Testimonials Section -->
+    <section class="testimonials-section">
+      <div class="testimonials-header">
+        <span class="tag">Campus Voices &bull; Real Reviews</span>
+        <h2>Tested on Campus. Approved by Chicago Students.</h2>
+        <p>From frozen bridge walks to crowded CTA commutes, here's how ChiActive gear performs in the real four-season city.</p>
+      </div>
+
+      <div class="testimonials-grid">
+        <!-- Testimonial 1: DePaul -->
+        <div class="testimonial-card">
+          <div class="card-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "Walking across the Chicago River bridge in mid-January used to freeze me to the bone. The Green Expedition Jacket completely blocks the lake gusts during my commute from Lincoln Park to the Loop campus. Best student investment yet."
+          </p>
+          <div class="student-profile">
+            <div class="student-avatar">MR</div>
+            <div class="student-meta">
+              <h4>Maya R.</h4>
+              <div class="uni-name">DePaul University</div>
+              <div class="major">PR &amp; Advertising &bull; Class of '27</div>
+            </div>
+          </div>
+          <span class="gear-badge">🧥 Green Winter Expedition Jacket</span>
+        </div>
+
+        <!-- Testimonial 2: UIC -->
+        <div class="testimonial-card">
+          <div class="card-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "The Urban Campus Backpack is unmatched. Got caught in a sudden downpour near University Hall, and my 15.6-inch laptop stayed completely bone-dry. Fits my chargers, notebook, and gym gear without killing my shoulders on the Blue Line."
+          </p>
+          <div class="student-profile">
+            <div class="student-avatar" style="background:#001e44; border-color:#d50032;">MT</div>
+            <div class="student-meta">
+              <h4>Marcus T.</h4>
+              <div class="uni-name">UIC (Univ. of Illinois Chicago)</div>
+              <div class="major">Computer Science &bull; Class of '26</div>
+            </div>
+          </div>
+          <span class="gear-badge">🎒 Urban Campus Backpack</span>
+        </div>
+
+        <!-- Testimonial 3: Loyola -->
+        <div class="testimonial-card">
+          <div class="card-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "Our campus sits directly on Lake Michigan, so the lake effect gusts hit us first. These Trail Cargo Pants are the only reason I survive my 8 AM lab walk in November. Stretchy, water-repellent, and the 15% student discount helped a lot!"
+          </p>
+          <div class="student-profile">
+            <div class="student-avatar" style="background:#580000; border-color:#f5e7be;">ES</div>
+            <div class="student-meta">
+              <h4>Elena S.</h4>
+              <div class="uni-name">Loyola University Chicago</div>
+              <div class="major">Biology &bull; Class of '28</div>
+            </div>
+          </div>
+          <span class="gear-badge">👖 ChiActive Trail Cargo Pants</span>
+        </div>
+
+        <!-- Testimonial 4: Columbia College Chicago -->
+        <div class="testimonial-card">
+          <div class="card-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "Most heavy winter coats look like bulky sleeping bags. ChiActive nails the balance—it actually looks great with streetwear fits while keeping me warm waiting on elevated 'L' train platforms. Clean aesthetics, real warmth."
+          </p>
+          <div class="student-profile">
+            <div class="student-avatar" style="background:#2F3F53; border-color:#E4022B;">JK</div>
+            <div class="student-meta">
+              <h4>Jordan K.</h4>
+              <div class="uni-name">Columbia College Chicago</div>
+              <div class="major">Graphic Design &bull; Class of '26</div>
+            </div>
+          </div>
+          <span class="gear-badge">🧥 Chi Town Puffer Winter Jacket</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Blog & Community -->
+    <div class="section-header">
+      <h2>The ChiActive Campus Journal</h2>
+      <a href="blog/index.html">View all articles &rarr;</a>
+    </div>
+
+    <div class="post-list">
+      <article class="post-card">
+        <span class="post-meta">Gear Deep Dive &bull; Sept 23, 2026</span>
+        <h3><a href="blog/chiactive-urban-campus-backpack.html">ChiActive Urban Campus Backpack: Laptop Protection Meets Stormproof Tech</a></h3>
+        <p>From downtown Loop classrooms to lakeside study sessions, discover why students are raving about waterproof compartments and commuter ergonomics.</p>
+        <a href="blog/chiactive-urban-campus-backpack.html" class="read-more">Read full story &rarr;</a>
+      </article>
+
+      <article class="post-card">
+        <span class="post-meta">Chicago Survival &bull; Sept 21, 2026</span>
+        <h3><a href="blog/index.html">Layering 101: Why You Should Never Leave Dorms Without Thermal Fleece</a></h3>
+        <p>When the temperature drops 20 degrees between morning coffee and evening lab, smart layering makes all the difference.</p>
+        <a href="blog/index.html" class="read-more">Read full story &rarr;</a>
+      </article>
+
+      <article class="post-card">
+        <span class="post-meta">Footwear Guide &bull; Sept 20, 2026</span>
+        <h3><a href="blog/index.html">Why Chicago Students Need Winter Grip Boots Before the First Freeze</a></h3>
+        <p>Navigating icy sidewalks between campus buildings and slippery 'L' stairs requires serious traction. Here's what to look for.</p>
+        <a href="blog/index.html" class="read-more">Read full story &rarr;</a>
+      </article>
+    </div>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="shop.html">Shop All</a></li>
+            <li><a href="jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="pants/index.html">Trail Pants</a></li>
+            <li><a href="faq.html">Student FAQ</a></li>
+            <li><a href="blog/index.html">Campus Journal</a></li>
+            <li><a href="about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="about.html">Student Discount (15%)</a></li>
+            <li><a href="about.html">Shipping & Campus Pickup</a></li>
+            <li><a href="about.html">Size Guide</a></li>
+            <li><a href="about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Shopping Cart & Weather Particle Scripts -->
+  <script src="cart.js"></script>
+  <script src="weather.js"></script>
+</body>
+</html>

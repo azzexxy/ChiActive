@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About ChiActive — Our Chicago Story</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="index.html">
+        <img src="images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop All</a>
+        <a href="jackets/index.html">Jackets</a>
+        <a href="pants/index.html">Pants</a>
+        <a href="faq.html">FAQ</a>
+        <a href="blog/index.html">Blog</a>
+        <a href="about.html" class="active">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 840px; margin-top: 32px;">
+    <p class="breadcrumb"><a href="index.html">Home</a> / About Us</p>
+    
+    <div style="margin: 24px 0 32px;">
+      <h1>About ChiActive</h1>
+      <p class="page-intro" style="font-size:1.25rem; color:var(--secondary); font-weight:600;">
+        Built for the four-season city.
+      </p>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:36px; box-shadow:var(--shadow-sm); margin-bottom:48px;">
+      <h2 style="margin-top:0;">Our Story</h2>
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:20px;">
+        ChiActive was born out of a real problem every Chicago student knows too well: you step out of your morning class in mild sunshine, and by the time you're catching the train home, the temperature has plunged 25 degrees and the wind off Lake Michigan feels like liquid ice.
+      </p>
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:24px;">
+        Most outdoor gear on the market felt either too technical and clunky for university life, or cheap streetwear that soaked through in the first November rain. We set out to bridge the gap: apparel engineered with technical mountain-grade weatherproofing, shaped for student mobility, comfort, and the unmistakable energy of Chicago.
+      </p>
+
+      <blockquote style="border-left:4px solid var(--primary); background:var(--primary-light); padding:16px 20px; border-radius:4px; font-weight:700; color:var(--secondary); margin:28px 0; font-size:1.15rem;">
+        “The lake wind doesn't care about your plans. Your jacket should.”
+      </blockquote>
+
+      <h2>Who We Make Gear For</h2>
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:20px;">
+        ChiActive is designed for college students who want clothing and gear that can keep up with fast-paced city life and outdoor activities. Since students are often balancing class schedules, cross-town commutes, library study sessions, and weekend adventures outside the city, ChiActive focuses on a style that feels practical, youthful, and authentically connected to Chicago.
+      </p>
+
+      <h2>Our Core Design Pillars</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:20px; margin:24px 0 32px;">
+        <div style="background:var(--bg); padding:20px; border-radius:var(--radius-md); border-left:3px solid var(--primary);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Four-Season Versatility</h4>
+          <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Lightweight layering systems that transition effortlessly from 60° autumn days to sub-zero polar plunges.</p>
+        </div>
+        <div style="background:var(--bg); padding:20px; border-radius:var(--radius-md); border-left:3px solid var(--accent-red);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Student Durability</h4>
+          <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Reinforced seams, water-repellent coatings, and padded laptop compartments that withstand daily abuse.</p>
+        </div>
+        <div style="background:var(--bg); padding:20px; border-radius:var(--radius-md); border-left:3px solid var(--secondary);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Fair Student Pricing</h4>
+          <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">High-performance outerwear shouldn't cost a semester's worth of textbooks. Plus 15% off for all .edu students.</p>
+        </div>
+      </div>
+
+      <h2>Get in Touch & Campus Pickup</h2>
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:16px;">
+        Have a question about sizing, custom student club gear, or pickup locations? We're on campus every week.
+      </p>
+      <ul style="padding-left:24px; font-size:1rem; line-height:1.8; color:var(--text);">
+        <li><strong>Email:</strong> <a href="mailto:hello@chiactive-chicago.com" style="color:var(--primary); font-weight:600;">hello@chiactive-chicago.com</a></li>
+        <li><strong>HQ:</strong> Michigan Avenue & Loop Campuses, Chicago, IL</li>
+        <li><strong>Student Ambassador Hotline:</strong> Available Mon–Fri 9 AM – 6 PM CST</li>
+      </ul>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="shop.html">Shop All</a></li>
+            <li><a href="jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="pants/index.html">Trail Pants</a></li>
+            <li><a href="blog/index.html">Campus Journal</a></li>
+            <li><a href="about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="about.html">Student Discount (15%)</a></li>
+            <li><a href="about.html">Shipping & Campus Pickup</a></li>
+            <li><a href="about.html">Size Guide</a></li>
+            <li><a href="about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="cart.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChiActive Urban Campus Backpack | ChiActive</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-bar">
+    <div class="container">
+      🌬️ <strong>ChiActive Campus Perks:</strong> 15% student discount with any .edu email &bull; Free Chicago local delivery on orders $50+
+    </div>
+  </div>
+
+  <!-- Branded Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <a class="site-brand" href="../index.html">
+        <img src="../images/logo-v1.png" alt="ChiActive Logo" class="site-logo">
+        <div class="site-name-wrap">
+          <span class="site-name">ChiActive</span>
+          <span class="site-subname">Est. Chicago</span>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="../index.html">Home</a>
+        <a href="../shop.html">Shop All</a>
+        <a href="../jackets/index.html">Jackets</a>
+        <a href="../pants/index.html">Pants</a>
+        <a href="index.html" class="active">Blog</a>
+        <a href="../about.html">About</a>
+      </nav>
+      <button class="cart-btn" onclick="openCartDrawer()" type="button" aria-label="Open Shopping Cart">
+        <span>🛒 Bag</span>
+        <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" style="max-width: 860px; margin-top: 32px;">
+    <p class="breadcrumb"><a href="../index.html">Home</a> / <a href="index.html">Campus Journal</a> / Urban Campus Backpack</p>
+    
+    <div style="margin: 24px 0 24px;">
+      <h1>ChiActive Urban Campus Backpack</h1>
+      <p class="post-meta">Written by Vaidehi Chavda &bull; September 23, 2026 &bull; Gear Deep Dive</p>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:32px; box-shadow:var(--shadow-sm); margin-bottom:48px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:center; margin-bottom:32px;">
+        <div style="border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border); background:#f1f5f9;">
+          <img src="../images/WhatsApp-Image-2026-09-20-at-11.32.42-PM-819x1024.jpeg" alt="ChiActive Urban Campus Backpack" style="width:100%; max-height:420px; object-fit:cover;">
+        </div>
+        <div>
+          <span class="card-category">Bags & Commuter Equipment</span>
+          <h2 style="margin:4px 0 12px; font-size:1.8rem;">Built for Campus. Ready for Chicago.</h2>
+          <div class="price-row" style="margin-bottom:16px;">
+            <span class="price" style="font-size:1.8rem;">$59.99</span>
+            <span style="background:var(--accent-cream); color:var(--secondary); font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:4px;">Official Student Gear</span>
+          </div>
+          <p style="font-size:0.95rem; color:var(--text); line-height:1.6; margin-bottom:20px;">
+            The ChiActive Urban Campus Backpack is designed for college students who need a reliable backpack for classes, commuting, biking, studying outdoors, and exploring Chicago.
+          </p>
+          <button class="btn btn-secondary" type="button" style="width:100%; padding:14px; font-size:1rem;" onclick="addToCart({id: 'urban-backpack', name: 'ChiActive Urban Campus Backpack', price: 59.99, image: '../images/WhatsApp-Image-2026-09-20-at-11.32.42-PM-819x1024.jpeg'})">
+            🛒 Add Backpack to Bag &bull; $59.99
+          </button>
+        </div>
+      </div>
+
+      <p style="font-size:1.05rem; line-height:1.7; margin-bottom:24px;">
+        Chicago weather can change quickly. From sudden rains along Michigan Avenue to cramped CTA train rides and sprints between campus quad buildings, students need gear that won't let them down. The ChiActive Urban Campus Backpack combines extreme durability, ergonomic comfort, organized compartments, and weather protection into one sleek package.
+      </p>
+
+      <h2>Key Technical Features</h2>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin:24px 0 32px;">
+        <div style="background:var(--bg); padding:18px; border-radius:var(--radius-md); border-left:3px solid var(--primary);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Weather-Resistant Exterior</h4>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin:0;">Constructed from water-resistant recycled polyester to protect laptops, electronics, and notebooks from wet weather.</p>
+        </div>
+        <div style="background:var(--bg); padding:18px; border-radius:var(--radius-md); border-left:3px solid var(--accent-red);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Padded Laptop Sleeve</h4>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin:0;">Dedicated suspended compartment fits laptops up to 15.6" with shock-absorbing foam lining.</p>
+        </div>
+        <div style="background:var(--bg); padding:18px; border-radius:var(--radius-md); border-left:3px solid var(--secondary);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">25-Liter Storage Capacity</h4>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin:0;">Generous main compartment easily swallows textbooks, gym layers, chargers, and lunch boxes.</p>
+        </div>
+        <div style="background:var(--bg); padding:18px; border-radius:var(--radius-md); border-left:3px solid var(--primary);">
+          <h4 style="margin-bottom:6px; color:var(--secondary);">Dual Bottle Pockets</h4>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin:0;">Elastic reinforced mesh pockets secure large thermal water bottles and folding umbrellas.</p>
+        </div>
+      </div>
+
+      <h2>Product Specifications</h2>
+      <table class="specs" style="width:100%; border-collapse:collapse; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); margin:20px 0 32px;">
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Brand</td><td style="padding:10px 16px;">ChiActive</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Model</td><td style="padding:10px 16px;">Urban Campus Backpack (25L)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Price</td><td style="padding:10px 16px;">$59.99</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Color</td><td style="padding:10px 16px;">Obsidian Black with Matte Accent</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Dimensions</td><td style="padding:10px 16px;">18&Prime; H &times; 12&Prime; W &times; 7&Prime; D</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Weight</td><td style="padding:10px 16px;">1.8 lbs (Ultra-lightweight)</td></tr>
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:10px 16px; font-weight:700;">Material</td><td style="padding:10px 16px;">Water-resistant recycled poly &bull; DWR coated</td></tr>
+        <tr><td style="padding:10px 16px; font-weight:700;">Laptop Fit</td><td style="padding:10px 16px;">Up to 15.6&Prime; MacBook / PC</td></tr>
+      </table>
+
+      <blockquote style="border-left:4px solid var(--primary); background:var(--primary-light); padding:16px 20px; border-radius:4px; font-weight:700; color:var(--secondary); margin:28px 0; font-size:1.1rem;">
+        Study. Commute. Explore. Stay ChiActive.
+      </blockquote>
+
+      <div style="text-align:center; margin-top:32px;">
+        <button class="btn btn-primary" type="button" style="padding:14px 32px; font-size:1.05rem;" onclick="addToCart({id: 'urban-backpack', name: 'ChiActive Urban Campus Backpack', price: 59.99, image: '../images/WhatsApp-Image-2026-09-20-at-11.32.42-PM-819x1024.jpeg'})">
+          🛒 Add ChiActive Backpack to Bag ($59.99)
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <img src="../images/logo-v1.png" alt="ChiActive" style="width:36px; height:36px; display:inline-block; vertical-align:middle;">
+            ChiActive
+          </h3>
+          <p>Authentic Chicago athletic apparel and outdoor gear engineered for students balancing class, commute, and city exploration.</p>
+          <p style="font-size:0.85rem; color:var(--primary); font-weight:600;">Tagline: "Built for the four-season city."</p>
+        </div>
+        <div class="footer-column">
+          <h4>Explore</h4>
+          <ul class="footer-links">
+            <li><a href="../shop.html">Shop All</a></li>
+            <li><a href="../jackets/index.html">Jackets & Outerwear</a></li>
+            <li><a href="../pants/index.html">Trail Pants</a></li>
+            <li><a href="index.html">Campus Journal</a></li>
+            <li><a href="../about.html">About ChiActive</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>Customer Care</h4>
+          <ul class="footer-links">
+            <li><a href="../about.html">Student Discount (15%)</a></li>
+            <li><a href="../about.html">Shipping & Campus Pickup</a></li>
+            <li><a href="../about.html">Size Guide</a></li>
+            <li><a href="../about.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-student-box">
+          <h4>🎓 15% Student Discount</h4>
+          <p>Verify with any valid university or college .edu email address at checkout for instant savings on all gear.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>&copy; 2026 ChiActive &bull; Created for Intro to Interactive Marketing</div>
+        <div>Chicago, Illinois &bull; Est. 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../cart.js"></script>
+</body>
+</html>

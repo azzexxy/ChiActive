@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get a Free Google Gemini API Key — ChiActive Website Design</title>
+  <style>
+    :root {
+      --primary: #41B6E6;
+      --secondary: #2F3F53;
+      --accent: #E4022B;
+      --accent-light: #F5E7BE;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #1E293B;
+      --muted: #526175;
+      --text-muted: #64748B;
+      --success: #10B981;
+      --warning-bg: #FFFBEB;
+      --warning-border: #FCD34D;
+      --warning-text: #92400E;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    a { color: #12638c; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .container { max-width: 1000px; margin: auto; padding: 2rem 1rem 4rem; }
+    header {
+      background: linear-gradient(135deg, var(--secondary), #1A2533);
+      border-bottom: 4px solid var(--primary);
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(47, 63, 83, .15);
+      color: white;
+      padding: 2.25rem 2rem;
+    }
+    .tag {
+      display: inline-block;
+      margin-bottom: .65rem;
+      padding: .25rem .6rem;
+      border-radius: 6px;
+      background: rgba(65, 182, 230, .2);
+      color: var(--primary);
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0 0 .45rem; font-size: clamp(1.65rem, 4vw, 2.1rem); line-height: 1.2; }
+    header p { max-width: 760px; margin: 0; color: #D9E3EC; }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .nav a, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: .62rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--secondary);
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav a[aria-current="page"], .button.primary {
+      border-color: var(--secondary);
+      background: var(--secondary);
+      color: white;
+    }
+    .nav a:hover, .button:hover { box-shadow: 0 2px 8px rgba(47, 63, 83, .14); }
+    .button.primary:hover { background: #1A2533; }
+    .button.accent {
+      background: var(--primary);
+      color: #0F283C;
+      border-color: var(--primary);
+      font-weight: 800;
+    }
+    .button.accent:hover {
+      background: #33a5d6;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .info-card h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin: 0 0 0.35rem;
+    }
+    .info-card .val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+    .info-card .sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .intro, .step, .checklist, .faq-box {
+      margin: 1.2rem 0;
+      padding: 1.4rem 1.6rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .03);
+    }
+    .intro { border-left: 5px solid var(--primary); }
+    .intro p, .step p { margin: .45rem 0 0; }
+    h2 { margin: 0 0 .5rem; color: var(--secondary); font-size: 1.25rem; line-height: 1.3; }
+    h3 { margin: 1.1rem 0 .3rem; color: var(--secondary); font-size: 1.05rem; }
+    .step-title { display: flex; align-items: flex-start; gap: .7rem; }
+    .number {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #10283a;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .step-content { margin-left: 2.55rem; }
+    ul, ol { padding-left: 1.25rem; margin: .55rem 0; }
+    li + li { margin-top: .4rem; }
+    code, .code-snippet {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    code {
+      padding: .15rem .35rem;
+      border-radius: 4px;
+      background: #EFF3F7;
+      color: #0F172A;
+      font-size: 0.9em;
+      overflow-wrap: anywhere;
+    }
+    .model-badge {
+      display: inline-block;
+      background: #0F172A;
+      color: #38BDF8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .note {
+      margin-top: .9rem;
+      padding: .85rem 1.1rem;
+      border-left: 4px solid var(--primary);
+      border-radius: 5px;
+      background: #EFF6FF;
+      color: #1E3A8A;
+      font-size: 0.95rem;
+    }
+    .note strong { color: #1E293B; }
+    .note-warning {
+      border-left-color: var(--accent);
+      background: #FEF2F2;
+      color: #7F1D1D;
+    }
+    .note-success {
+      border-left-color: var(--success);
+      background: #ECFDF5;
+      color: #065F46;
+    }
+
+    .key-callout {
+      background: #F1F5F9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 0.85rem 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .key-callout .url {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0F172A;
+    }
+
+    .btn-copy {
+      background: var(--secondary);
+      color: white;
+      border: none;
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: background-color 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-copy:hover { background: #1E293B; }
+    .btn-copy:active { transform: scale(0.97); }
+    .btn-copy.copied { background: var(--success); }
+
+    .faq-item {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .faq-item:first-of-type {
+      margin-top: 0.5rem;
+      padding-top: 0;
+      border-top: none;
+    }
+    .faq-item h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      color: var(--secondary);
+    }
+    .faq-item p { margin: 0; font-size: 0.95rem; }
+
+    footer { margin-top: 2.5rem; color: var(--muted); text-align: center; font-size: .9rem; }
+    footer a { color: var(--secondary); font-weight: 600; }
+
+    @media (max-width: 600px) {
+      .container { padding-top: 1rem; }
+      header { padding: 1.5rem 1.2rem; }
+      .intro, .step, .checklist, .faq-box { padding: 1.15rem; }
+      .step-content { margin-left: 0; }
+      .nav a { flex: 1 1 auto; }
+      .key-callout { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="tag">Intro to Interactive Marketing · Bonus Guide</span>
+      <h1>Get a Free Google Gemini API Key</h1>
+      <p>Follow this step-by-step guide to get your own free API key from Google AI Studio and configure Gemini 3.8 Flash as your primary coding model in Goose Desktop or your favorite AI coding tool.</p>
+    </header>
+
+    <nav class="nav" aria-label="Activity pages">
+      <a href="instructions.html">1. Instructions</a>
+      <a href="api-keys.html">2. Find your API key</a>
+      <a href="gemini-api-key.html" aria-current="page">3. Free Google Gemini Key</a>
+      <a href="starter-site/index.html">4. View starter site</a>
+    </nav>
+
+    <!-- Overview Highlights Grid -->
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Primary Model</h3>
+        <div class="val">Gemini 3.8 Flash</div>
+        <div class="sub">Superior tool calling &amp; context retention</div>
+      </div>
+      <div class="info-card">
+        <h3>Backup Model</h3>
+        <div class="val">Flash-Lite</div>
+        <div class="sub">High RPM throughput for heavy sprints</div>
+      </div>
+      <div class="info-card">
+        <h3>Cost &amp; Billing</h3>
+        <div class="val">Free tier available</div>
+        <div class="sub">Check that your project's Plan says Free</div>
+      </div>
+      <div class="info-card">
+        <h3>Usage Limits</h3>
+        <div class="val">Check AI Studio</div>
+        <div class="sub">Your Google key has separate rate limits</div>
+      </div>
+    </div>
+
+    <!-- Privacy Warning Notice -->
+    <div class="note note-warning" style="margin: 1.25rem 0; padding: 1.15rem 1.4rem; border-left: 5px solid var(--accent); background: #FEF2F2;">
+      <h3 style="margin: 0 0 0.35rem; color: #991B1B; font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem;">
+        Privacy of free-tier requests
+      </h3>
+      <p style="margin: 0; color: #7F1D1D; font-size: 0.95rem; line-height: 1.55;">
+        Google's <a href="https://ai.google.dev/gemini-api/terms">unpaid-service terms</a> say submitted content and responses may be used to improve its products. Use only class-approved practice files. Do not send passwords, personal credentials, student information, or confidential material.
+      </p>
+    </div>
+
+    <!-- Intro Box -->
+    <section class="intro" aria-labelledby="why-heading">
+      <h2 id="why-heading">Why get a Google Gemini API key?</h2>
+      <p>Your class OpenRouter key has a $1 limit and a 24-hour lifetime. A key from your own Google AI Studio account gives you another way to try the activity:</p>
+      <ul>
+        <li><strong>Separate usage:</strong> If your class key runs out or expires, you can try a Google free-tier key. Google has its own <a href="https://ai.google.dev/gemini-api/docs/rate-limits">rate limits</a>, so this does not provide unlimited use.</li>
+        <li><strong>Compare models:</strong> Try the same small design task with Gemini 3.8 Flash and a class model such as Flash-Lite. Compare the browser result and the follow-up each needs.</li>
+        <li><strong>Free-tier option:</strong> Google's <a href="https://ai.google.dev/gemini-api/docs/pricing">pricing page</a> lists Gemini 3.8 Flash on the free tier. Check that your project's Plan says <strong>Free</strong> and do not turn on billing for this exercise.</li>
+      </ul>
+    </section>
+
+    <main>
+      <!-- Step 1 -->
+      <section class="step" aria-labelledby="step-one">
+        <div class="step-title">
+          <span class="number">1</span>
+          <h2 id="step-one">Visit Google AI Studio</h2>
+        </div>
+        <div class="step-content">
+          <p>Google AI Studio is Google's web portal for developers and students to access Gemini AI models directly.</p>
+          <div class="key-callout">
+            <span class="url">https://aistudio.google.com/api-keys</span>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn-copy" id="copy-url-btn" type="button" data-copy="https://aistudio.google.com/api-keys">Copy Link</button>
+              <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" class="button accent" style="min-height: 36px; padding: 0.4rem 0.9rem; font-size: 0.85rem;">Open AI Studio ↗</a>
+            </div>
+          </div>
+          <ol>
+            <li>Click the link above to open Google AI Studio in a new tab.</li>
+            <li>Sign in with your standard Google Account (you can use your university email or your personal Google account).</li>
+            <li>If this is your first visit, review and accept the Terms of Service to continue to the dashboard.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Step 2 -->
+      <section class="step" aria-labelledby="step-two">
+        <div class="step-title">
+          <span class="number">2</span>
+          <h2 id="step-two">Create your free API key</h2>
+        </div>
+        <div class="step-content">
+          <p>Once you are on the <strong>API Keys</strong> page in Google AI Studio:</p>
+          <ol>
+            <li>If Google has already created a key for your account, you may use it if its project's Plan says <strong>Free</strong>. Otherwise, click <strong>Create API key</strong> and follow Google's prompts for a new project.
+              <div class="note note-success" style="margin-top: 0.5rem;">
+                <strong>Stay on the Free plan:</strong> Check the Plan column for the project linked to your key. Do not select <strong>Set up billing</strong> for this class activity.
+              </div>
+            </li>
+            <li>Copy the key from the API Keys page. It usually begins with <code>AIza</code>.</li>
+          </ol>
+          <div class="note note-warning">
+            <strong>Security tip:</strong> Your API key is your personal credential. Keep it private, never share it with others, and never paste it into public websites or commit it to GitHub.
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3 -->
+      <section class="step" aria-labelledby="step-three">
+        <div class="step-title">
+          <span class="number">3</span>
+          <h2 id="step-three">Put your key into Goose Desktop</h2>
+        </div>
+        <div class="step-content">
+          <p>Now configure Goose Desktop to use Google Gemini with your newly created API key:</p>
+          <ol>
+            <li>Open the <strong>Goose Desktop</strong> application on your computer.</li>
+            <li>Navigate to <strong>Settings</strong> (click the gear icon or select Settings from the sidebar menu).</li>
+            <li>Go to the <strong>Models</strong> tab.</li>
+            <li>Click <strong>Configure Providers</strong>.</li>
+            <li>Select <strong>Google Gemini</strong> from the list of available model providers.</li>
+            <li>In the <strong>API Key</strong> input box, paste your Google AI Studio API key.</li>
+            <li>Save or submit the configuration.</li>
+          </ol>
+
+          <div class="note">
+            <strong>Using another AI tool?</strong>
+            <ul>
+              <li><strong>Goose CLI:</strong> Run <code>goose configure</code>, select <strong>Configure Providers</strong> &rarr; <strong>Google Gemini</strong>, and paste your key. Goose also recognizes the <code>GOOGLE_API_KEY</code> environment variable.</li>
+              <li><strong>Another coding tool:</strong> Check whether that tool supports a personal Google Gemini API key, then follow its own provider setup instructions.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 4 -->
+      <section class="step" aria-labelledby="step-four">
+        <div class="step-title">
+          <span class="number">4</span>
+          <h2 id="step-four">Set your primary model: Default to Gemini 3.8 Flash</h2>
+        </div>
+        <div class="step-content">
+          <p>In Goose Desktop (under <strong>Settings &rarr; Models</strong>) or your AI coding assistant, set your default model to:</p>
+          <div style="margin: 0.75rem 0; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span class="model-badge" id="model-name">gemini-3.8-flash</span>
+            <button class="btn-copy" id="copy-model-btn" type="button" data-copy="gemini-3.8-flash">Copy Default Model Name</button>
+          </div>
+
+          <!-- Why try 3.8 Flash -->
+          <div class="note" style="border-left-color: var(--secondary); background: #F8FAFC; color: var(--text); margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem; color: var(--secondary); font-size: 1rem;">Why try Gemini 3.8 Flash?</h3>
+            <ul style="margin: 0.25rem 0 0 1.25rem;">
+              <li>Google describes it as a Flash model built for complex software and agent tasks. Try it on a design change that involves more than one page.</li>
+              <li>Compare its output with the class Flash-Lite model on the same small request. Judge the visible result and how much correction each needs.</li>
+            </ul>
+          </div>
+
+          <h3 style="margin-top: 1.25rem; font-size: 1.05rem; color: var(--secondary);">If you reach a Google rate limit</h3>
+          <p>Pause and check your active limits in Google AI Studio. You can also switch back to a class model while your class key remains valid. Available limits depend on your account and model.</p>
+
+          <!-- Agent Hygiene /clear -->
+          <div class="note" style="border-left-color: var(--primary); background: #EFF6FF; color: #1E3A8A; margin-top: 1.15rem;">
+            <h3 style="margin: 0 0 0.35rem; color: #1E3A8A; font-size: 1rem;">Start a fresh session for a new task</h3>
+            <p style="margin: 0; font-size: 0.95rem;">
+              Long coding sessions can use more of your model's context and token allowance. Save your work and start a fresh Goose session when you move to a different task.
+            </p>
+            <p style="margin: 0.4rem 0 0; font-size: 0.95rem;">
+              In the Goose CLI, <code>/clear</code> clears the current chat history. In Goose Desktop, start a new session for the next task.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 5 -->
+      <section class="step" aria-labelledby="step-five">
+        <div class="step-title">
+          <span class="number">5</span>
+          <h2 id="step-five">Test your setup and compare models</h2>
+        </div>
+        <div class="step-content">
+          <p>Open the <strong>Website Design</strong> workspace folder in Goose. Try this same small task with Gemini 3.8 Flash and the class Flash-Lite model. Use separate copies of the site or undo the first model's changes before trying the second.</p>
+
+          <div style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin: 0.85rem 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.95rem; white-space: pre-wrap; line-height: 1.5;" id="test-prompt">Read `brand-guidelines.md`. Improve one product card in `starter-site/jackets/index.html` using ChiActive's colors and clearer spacing. Edit only files inside `starter-site/`, then tell me what you changed.</div>
+
+          <div style="margin-top: 0.5rem;">
+            <button class="btn-copy" id="copy-test-btn" type="button" data-copy="Read `brand-guidelines.md`. Improve one product card in `starter-site/jackets/index.html` using ChiActive's colors and clearer spacing. Edit only files inside `starter-site/`, then tell me what you changed.">Copy Test Prompt</button>
+          </div>
+
+          <h3>Things to notice when comparing models:</h3>
+          <ul>
+            <li><strong>Visible result:</strong> Which product card is easier to scan and fits ChiActive's colors?</li>
+            <li><strong>Working code:</strong> Do images, links, and the layout still work when you refresh the page?</li>
+            <li><strong>Follow-up effort:</strong> Which model needed fewer corrections to reach a result you like?</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- FAQ Section -->
+      <section class="faq-box" aria-labelledby="faq-heading">
+        <h2 id="faq-heading">Frequently Asked Questions</h2>
+
+        <div class="faq-item">
+          <h3>Is anything I send through Google AI Studio private?</h3>
+          <p>Google's <a href="https://ai.google.dev/gemini-api/terms">terms for unpaid services</a> allow submitted content and responses to be used to improve its products. Use class-approved practice material, and do not submit sensitive personal information, passwords, personal API keys, or confidential files.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Does Google AI Studio ever charge me?</h3>
+          <p>Google offers a free tier for Gemini 3.8 Flash. Check that the project linked to your key shows <strong>Free</strong> in AI Studio, and do not enable billing for this exercise. A key linked to a paid project can incur charges. Free-tier requests still have rate limits.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>What should I do if I see a "429 RESOURCE_EXHAUSTED" error?</h3>
+          <p>Pause and check your active rate limits in Google AI Studio. You can continue with an available class model while that key is valid, or return to the Google model after its limit resets.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Can I switch back and forth between my class key and Gemini?</h3>
+          <p>Yes! In Goose Desktop, you can easily switch active models and providers under <strong>Settings &rarr; Models</strong> at any time. This makes it easy to compare how different models perform on the exact same design task.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Where can I view my site after making changes?</h3>
+          <p>Run your local preview server using <code>start-server-mac.command</code> (Mac) or <code>start-server-windows.bat</code> (Windows) and open <a href="http://localhost:8000" target="_blank">http://localhost:8000</a> in your browser. Refresh after each AI change to see your new storefront live.</p>
+        </div>
+      </section>
+
+      <!-- Checklist -->
+      <section class="checklist" aria-labelledby="check-heading">
+        <h2 id="check-heading">Ready to get coding?</h2>
+        <ul>
+          <li>Obtain your API key from <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.</li>
+          <li>Check that the project's Plan is <strong>Free</strong>, then configure <strong>Google Gemini</strong> in Goose Desktop with your key.</li>
+          <li>Select <code>gemini-3.8-flash</code> and try the same small design task with your class Flash-Lite model.</li>
+          <li>Compare the visible result, working links, and follow-up effort before choosing a model for the next task.</li>
+          <li>Head over to the <a href="instructions.html">Class Instructions</a> to start styling your ChiActive store!</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      ChiActive Website Design Activity &bull; 
+      <a href="instructions.html">Instructions</a> &bull; 
+      <a href="api-keys.html">Class OpenRouter Keys</a> &bull; 
+      <a href="gemini-api-key.html">Google Gemini Free Key</a> &bull; 
+      <a href="starter-site/index.html">Starter Site</a>
+    </footer>
+  </div>
+
+  <script>
+    // Generic button copy handler
+    document.querySelectorAll('.btn-copy').forEach(button => {
+      button.addEventListener('click', async function () {
+        const textToCopy = this.getAttribute('data-copy');
+        if (!textToCopy) return;
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+        } catch (_) {
+          const tempArea = document.createElement('textarea');
+          tempArea.value = textToCopy;
+          document.body.appendChild(tempArea);
+          tempArea.select();
+          document.execCommand('copy');
+          tempArea.remove();
+        }
+        const originalText = this.textContent;
+        this.textContent = 'Copied!';
+        this.classList.add('copied');
+        setTimeout(() => {
+          this.textContent = originalText;
+          this.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>
