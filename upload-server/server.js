@@ -299,8 +299,13 @@ function plan(files) {
   let list = files.map((f, i) => ({ i, path: String((f && f.path) || '').replace(/\\/g, '/').replace(/^\/+/, ''), size: Math.max(0, +(f && f.size) || 0) })).filter(f => f.path && !JUNK.test(f.path));
   const tops = new Set(list.map(f => f.path.split('/')[0]));
   if (tops.size === 1 && list.every(f => f.path.includes('/'))) { const t = [...tops][0] + '/'; list = list.map(f => ({ ...f, path: f.path.slice(t.length) })); }
-  const skipped = [], keep = [], seen = new Set();
-  for (const f of list) { const p = safePath(f.path); if (!p || seen.has(p)) { skipped.push(f.path); continue; } seen.add(p); keep.push({ ...f, path: p }); }
+  const skipped = [], keep = [], seen = new Set(), removed = [];
+  for (const f of list) {
+    const why = secretsLib.forbiddenName(f.path);   // .env, private keys, credential files: never uploaded at all
+    if (why) { removed.push({ path: f.path.slice(0, 200), reason: `it is ${why}` }); continue; }
+    const p = safePath(f.path); if (!p || seen.has(p)) { skipped.push(f.path); continue; } seen.add(p); keep.push({ ...f, path: p });
+  }
+  if (!keep.length && removed.length) throw userError(400, 'only-secrets', `Every file in this upload is a file with passwords or keys (for example “${removed[0].path}”), so nothing can be published. Upload the folder with your web pages instead.`);
   if (!keep.length) throw userError(400, 'no-usable-files', 'None of the files can be published (only web files like .html, .css, .js, images, fonts, audio and video are allowed). Upload the folder that contains your web pages.');
   if (keep.length > MAX_FILES) throw userError(400, 'too-many-files', `That design has ${keep.length} files. The gallery takes up to ${MAX_FILES} files per design. Leave out files your site doesn’t use.`);
   const big = keep.filter(f => f.size > MAX_FILE);
@@ -312,25 +317,35 @@ function plan(files) {
   const depth = p => p.split('/').length;
   const idx = html.filter(f => /(^|\/)index\.html?$/i.test(f.path)).sort((a, b) => depth(a.path) - depth(b.path));
   const entry = (idx[0] || html.slice().sort((a, b) => depth(a.path) - depth(b.path) || a.path.localeCompare(b.path))[0]).path;
-  return { files: keep, skipped, total, entry };
+  return { files: keep, skipped, total, entry, removed };
+}
+
+/* Scan every received file before anything is shown or saved. Files that GitHub refuses (secret keys, .env files,
+ * private keys, credential files) are left out completely; a web page with a key keeps working with the key blanked out. */
+async function scanUpload(s) {
+  s.secrets = s.secrets || []; s.removed = s.removed || [];
+  const keep = [];
+  for (const f of s.files) {
+    let text = null;
+    if (secretsLib.isTextPath(f.path) && f.size <= 20 * MB) { const buf = await fsp.readFile(f.file); if (isUtf8(buf)) text = buf.toString('utf8'); }
+    const r = secretsLib.checkFile(f.path, text);
+    if (r.action === 'remove') { s.removed.push({ path: f.path, reason: r.reason }); s.total -= f.size; fsp.rm(f.file, { force: true }).catch(() => {}); continue; }
+    if (r.action === 'clean') { await fsp.writeFile(f.file, r.text); s.total += Buffer.byteLength(r.text) - f.size; f.size = Buffer.byteLength(r.text); r.found.forEach(x => s.secrets.push({ path: f.path, kind: x.kind, line: x.line })); }
+    keep.push(f);
+  }
+  s.files = keep;
+  if (s.removed.length) logEvent('upload-removed', { ref: s.id, student: s.student, folder: s.folder,
+    message: `Left out ${s.removed.length} file${s.removed.length === 1 ? '' : 's'} GitHub doesn’t allow: ` + s.removed.slice(0, 8).map(x => `${x.path} (${x.reason})`).join('; ') }, null, s.who);
+  if (s.secrets.length) logEvent('upload-secrets', { ref: s.id, student: s.student, folder: s.folder,
+    message: `Blanked out ${s.secrets.length} secret key${s.secrets.length === 1 ? '' : 's'} in web pages: ` + s.secrets.slice(0, 8).map(x => `${x.kind} in ${x.path} line ${x.line}`).join('; ') }, null, s.who);
+  if (!s.files.some(f => /\.html?$/i.test(f.path))) throw userError(400, 'only-secrets', 'After leaving out the files with secret keys, no web page is left to publish. Remove the keys from your files and upload again.');
+  if (!s.files.some(f => f.path === s.entry)) s.entry = s.files.filter(f => /\.html?$/i.test(f.path)).sort((a, b) => a.path.split('/').length - b.path.split('/').length)[0].path;
 }
 
 async function saveToGitHub(s) {
   const note = n => { s.note = n; };
   s.stage = 'files'; s.done = 0;
-  // GitHub refuses any save that contains a secret key (API key, token, private key), so blank those out first
-  s.secrets = [];
-  for (const f of s.files) {
-    if (!TEXT_EXT.has(extOf(f.path)) || f.size > 5 * MB) continue;
-    const buf = await fsp.readFile(f.file);
-    if (!isUtf8(buf)) continue;
-    const r = secretsLib.scrub(buf.toString('utf8'));
-    if (!r.found.length) continue;
-    await fsp.writeFile(f.file, r.text); f.size = Buffer.byteLength(r.text);
-    r.found.forEach(x => s.secrets.push({ path: f.path, kind: x.kind, line: x.line }));
-  }
-  if (s.secrets.length) logEvent('upload-secrets', { ref: s.id, student: s.student, folder: s.folder,
-    message: `Removed ${s.secrets.length} secret key${s.secrets.length === 1 ? '' : 's'} before saving: ` + s.secrets.slice(0, 8).map(x => `${x.kind} in ${x.path} line ${x.line}`).join('; ') }, null, s.who);
+  // (secret keys and forbidden files were already taken out by scanUpload, before the preview went live)
   const inline = [], blobs = []; let inlineBytes = 0;
   for (const f of s.files) {
     if (TEXT_EXT.has(extOf(f.path)) && f.size <= MB && inlineBytes + f.size <= 8 * MB) {
@@ -360,7 +375,7 @@ async function saveToGitHub(s) {
 
 function publicStatus(s) {
   return { ok: true, id: s.id, ref: s.id, status: s.status, stage: s.stage, done: s.done || 0, steps: s.steps || 0, note: s.note || '',
-    error: s.error || '', secrets: (s.secrets || []).slice(0, 20), folder: s.folder, name: s.name, entry: s.entry, commit: s.commit || '',
+    error: s.error || '', secrets: (s.secrets || []).slice(0, 20), removed: (s.removed || []).slice(0, 50), folder: s.folder, name: s.name, entry: s.entry, commit: s.commit || '',
     url: `${PAGES_URL}${DIR}/${s.folder}/${s.entry.split('/').map(encodeURIComponent).join('/')}` };
 }
 function dropUpload(s, keepPreviewMs) {
@@ -407,13 +422,13 @@ async function handleStart(req, res, origin, user) {
     } else ({ folder, name } = await chooseFolder(student));   // also checks the GitHub connection before anything is sent
     const id = newId(), dir = path.join(TMP, id);
     await fsp.mkdir(dir, { recursive: true });
-    const s = { id, dir, student: replace ? (replace.by || student) : student, owner, replace: !!replace, actor: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped,
+    const s = { id, dir, student: replace ? (replace.by || student) : student, owner, replace: !!replace, actor: user.id, username: user.username, visitor: cleanText(body.visitor, 20), folder, name, entry: p.entry, total: p.total, skipped: p.skipped, removed: p.removed.slice(),
       files: p.files.map((f, k) => ({ i: f.i, path: f.path, size: f.size, got: 0, file: path.join(dir, String(k)) })),
       status: 'receiving', created: Date.now(), lastActive: Date.now(), who };
     await Promise.all(s.files.map(f => fsp.writeFile(f.file, '')));
     uploads.set(id, s);
-    logEvent('upload-start', { ref: id, student, username: user.username, visitor: s.visitor, folder, files: s.files.length, size: s.total, skipped: p.skipped.length || undefined }, req);
-    return send(res, 200, { ok: true, id, ref: id, folder, name, entry: p.entry, chunk: CHUNK, files: s.files.map(f => f.i), skipped: p.skipped.slice(0, 50) }, origin);
+    logEvent('upload-start', { ref: id, student, username: user.username, visitor: s.visitor, folder, files: s.files.length, size: s.total, skipped: p.skipped.length || undefined, message: p.removed.length ? `Left out before uploading: ${p.removed.slice(0, 6).map(x => x.path).join(', ')}` : undefined }, req);
+    return send(res, 200, { ok: true, id, ref: id, folder, name, entry: p.entry, chunk: CHUNK, files: s.files.map(f => f.i), skipped: p.skipped.slice(0, 50), removed: p.removed.slice(0, 50) }, origin);
   } catch (e) {
     if (body && body.replace && !(e.code === 'busy') && ![...uploads.values()].some(u => u.folder === String(body.replace))) reserved.delete(String(body.replace));
     const msg = explain(e), ref = newId();
@@ -458,7 +473,15 @@ async function handleFinish(req, res, origin, user) {
   if (s.status !== 'receiving') return send(res, 200, publicStatus(s), origin);
   const missing = s.files.filter(f => f.got !== f.size);
   if (missing.length) return send(res, 400, { ok: false, code: 'incomplete', ref: s.id, error: `${missing.length} file${missing.length === 1 ? '' : 's'} didn’t arrive completely (for example “${missing[0].path}”). Try again.` }, origin);
-  s.status = 'saving'; s.stage = 'files'; s.savingSince = Date.now();
+  s.status = 'saving'; s.stage = 'scan'; s.savingSince = Date.now();
+  try { await scanUpload(s); }
+  catch (e) {
+    s.status = 'failed'; s.error = explain(e);
+    logEvent('upload-failed', { ref: s.id, stage: 'scanning for secret keys', student: s.student, folder: s.folder, files: s.files.length, error: s.error, detail: e.user ? undefined : cleanText(e.message, 300) }, req);
+    reserved.delete(s.folder); setTimeout(() => dropUpload(s), 10 * 60e3).unref();
+    return send(res, e.user && e.status ? e.status : 500, { ok: false, code: e.code, ref: s.id, error: s.error }, origin);
+  }
+  s.stage = 'files';
   live.set(s.folder, s);   // the instant preview works from this moment
   logEvent('upload-received', { ref: s.id, student: s.student, visitor: s.visitor, folder: s.folder, files: s.files.length, size: s.total, seconds: Math.round((Date.now() - s.created) / 1000) }, req);
   send(res, 202, publicStatus(s), origin);
@@ -1447,6 +1470,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (route === '/apple-touch-icon.png' || route === '/apple-touch-icon-precomposed.png')) return staticFile(res, 'apple-touch-icon.png', 'image/png');
     if (req.method === 'GET' && route === '/vendor/codemirror.min.js') return staticFile(res, 'vendor/codemirror.min.js', 'text/javascript; charset=utf-8');
     if (req.method === 'GET' && route === '/vendor/codemirror.css') return staticFile(res, 'vendor/codemirror.css', 'text/css; charset=utf-8');
+    if (req.method === 'GET' && route === '/vendor/secrets.js') return staticFile(res, 'secrets.js', 'text/javascript; charset=utf-8');
     if (req.method === 'GET' && route === '/vendor/jszip.min.js') return staticFile(res, 'vendor/jszip.min.js', 'text/javascript; charset=utf-8');
     if (route.startsWith('/api/account/')) return await handleAccount(req, res, route);
     if (route.startsWith('/api/edit/')) return await handleEdit(req, res, route, url);

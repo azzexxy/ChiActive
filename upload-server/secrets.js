@@ -1,6 +1,7 @@
 /* Finds secret keys (API keys, tokens, private keys) in uploaded text files and blanks them out.
  * GitHub refuses ("push protection": "Repository rule violations found / Secret detected in content")
  * any commit that contains one, and a public website must never show them anyway. */
+(function (root) {
 'use strict';
 const PLACEHOLDER = 'REMOVED_SECRET_KEY';
 const PATTERNS = [
@@ -51,4 +52,38 @@ function scrub(text) {
   }
   return { text: out, found };
 }
-module.exports = { scrub, PLACEHOLDER };
+
+// files that must never be published, whatever is inside them (checked on the file name)
+const FORBIDDEN_FILES = [
+  ['an environment file (.env) with passwords or keys', /(^|\/)\.env(\.[^/]*)?$|(^|\/)[^/]+\.env$/i],
+  ['a private key or certificate file', /\.(pem|key|p12|pfx|jks|keystore|ppk|kdbx|gpg|asc)$/i],
+  ['an SSH key', /(^|\/)id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$/i],
+  ['a file with login details', /(^|\/)(\.npmrc|\.pypirc|\.netrc|\.htpasswd|\.git-credentials|\.dockercfg|\.s3cfg|\.boto|wp-config\.php)$/i],
+  ['a credentials file', /(^|\/)(credentials?|client[-_]?secrets?[^/]*|service[-_]?account[^/]*|[^/]*firebase-adminsdk[^/]*|secrets?|api[-_ ]?keys?|private[-_]?keys?)\.(json|js|mjs|txt|html?|md|csv|xml|ya?ml|ini|cfg|conf)$/i],
+  ['a folder with keys or logins', /(^|\/)(\.aws|\.ssh|\.gnupg|\.docker|\.git)\//i],
+];
+const TEXT_EXT = /\.(html?|css|js|mjs|cjs|jsx|ts|json|map|txt|md|xml|csv|svg|webmanifest|ya?ml|ini|cfg|conf|env|php|py|rb)$/i;
+function forbiddenName(path) {
+  for (const [why, re] of FORBIDDEN_FILES) if (re.test(String(path || ''))) return why;
+  return '';
+}
+const isPage = path => /\.html?$/i.test(String(path || ''));
+/* One check for every uploaded file, used by Studio (in the browser, before anything is sent) and by the upload server
+ * (again, before anything is saved to GitHub).
+ * returns { action: 'keep' | 'remove' | 'clean', reason, found, text }
+ *  - remove: forbidden file name, or a non-page file that contains a secret key: the file is left out completely
+ *  - clean:  a web page (.html) that contains a secret key: the key is blanked out so the page itself still works */
+function checkFile(path, text) {
+  const why = forbiddenName(path);
+  if (why) return { action: 'remove', reason: `it is ${why}`, found: [] };
+  if (typeof text !== 'string' || !TEXT_EXT.test(String(path))) return { action: 'keep', found: [] };
+  const r = scrub(text);
+  if (!r.found.length) return { action: 'keep', found: [] };
+  const kinds = [...new Set(r.found.map(x => x.kind))].join(', ');
+  const lines = r.found.map(x => x.line).slice(0, 5).join(', ');
+  if (isPage(path)) return { action: 'clean', reason: `it contains ${r.found.length === 1 ? 'a secret key' : r.found.length + ' secret keys'} (${kinds}, line ${lines}); the key${r.found.length === 1 ? ' was' : 's were'} blanked out and the page kept`, found: r.found, text: r.text };
+  return { action: 'remove', reason: `it contains ${r.found.length === 1 ? 'a secret key' : r.found.length + ' secret keys'} (${kinds}, line ${lines})`, found: r.found };
+}
+const api = { scrub, checkFile, forbiddenName, isTextPath: p => TEXT_EXT.test(String(p || '')), PLACEHOLDER };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.CASecrets = api;
+})(this);

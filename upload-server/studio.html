@@ -184,6 +184,9 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
 
 @media (max-width: 860px) { .auth { grid-template-columns: 1fr; gap: 28px; padding-top: 16px; } .ebar .name { max-width: 16ch; } }
 @media (max-width: 560px) { .help { display: none; } .ebar select { max-width: 150px; } }
+.scan-ok { color: #7ee2a5; font-size: .9rem; margin: 10px 0 0; }
+.scan-warn { margin: 12px auto 0; max-width: 620px; text-align: left; background: rgba(242,179,61,.1); border: 1px solid rgba(242,179,61,.35); border-radius: 10px; padding: 10px 14px; color: #ffd27a; font-size: .9rem; }
+.scan-warn p { margin: 4px 0; } .scan-warn ul { margin: 4px 0 6px; padding-left: 20px; color: var(--text, #E6ECF2); } .scan-warn code { color: #ffd27a; word-break: break-all; }
 .warn-note { display: inline-block; margin-top: 8px; color: #ffd27a; font-size: .9rem; }
 </style>
 </head>
@@ -294,6 +297,7 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
 <div class="toast" id="toast" role="status"></div>
 
 <script src="/vendor/jszip.min.js"></script>
+<script src="/vendor/secrets.js"></script>
 <script>
 (function () {
   'use strict';
@@ -547,11 +551,47 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
     if (size > MAX_TOTAL) throw new Error('That design is ' + fmtBytes(size) + '. The gallery takes designs up to 1 GB (the most GitHub Pages publishes). Compress large videos and images.');
     return { files: files, entry: entry, size: size };
   }
+  /* Scan every file in the browser before anything is sent: files GitHub refuses (secret keys, .env files, private keys,
+   * credential files) are left out; a web page with a key keeps working with the key blanked out. The server checks again. */
+  function scanFiles(files) {
+    var S = window.CASecrets, removed = [], cleaned = [], keep = [], n = 0;
+    if (!S) return Promise.resolve({ files: files, removed: removed, cleaned: cleaned });
+    return files.reduce(function (pr, f) {
+      return pr.then(function () {
+        if (++n % 25 === 0) status('Checking for secret keys: ' + n + ' of ' + files.length + ' files', 0.3 + 0.1 * n / files.length);
+        if (S.forbiddenName(f.path)) { removed.push({ path: f.path, reason: S.checkFile(f.path, null).reason }); return; }
+        if (!S.isTextPath(f.path) || (f.blob.size || 0) > 20 * 1048576) { keep.push(f); return; }
+        return f.blob.text().then(function (text) {
+          var r = S.checkFile(f.path, text);
+          if (r.action === 'remove') removed.push({ path: f.path, reason: r.reason });
+          else if (r.action === 'clean') { cleaned.push({ path: f.path, reason: r.reason }); keep.push({ path: f.path, blob: new Blob([r.text], { type: f.blob.type || 'text/html' }) }); }
+          else keep.push(f);
+        }, function () { keep.push(f); });
+      });
+    }, Promise.resolve()).then(function () { return { files: keep, removed: removed, cleaned: cleaned }; });
+  }
+  function scanReport(removed, cleaned) {
+    if (!removed.length && !cleaned.length) return '<p class="scan-ok">🔒 Checked for secret keys: nothing found.</p>';
+    var li = function (x) { return '<li><code>' + esc(x.path) + '</code>: ' + esc(x.reason) + '</li>'; };
+    return '<div class="scan-warn" role="status">' +
+      (removed.length ? '<p>🔒 <b>Left out ' + removed.length + ' file' + (removed.length === 1 ? '' : 's') + '</b> that GitHub doesn’t allow on a public website:</p><ul>' + removed.slice(0, 12).map(li).join('') + (removed.length > 12 ? '<li>…and ' + (removed.length - 12) + ' more</li>' : '') + '</ul>' : '') +
+      (cleaned.length ? '<p>🔒 <b>Blanked out keys in ' + cleaned.length + ' page' + (cleaned.length === 1 ? '' : 's') + '</b>:</p><ul>' + cleaned.slice(0, 8).map(li).join('') + '</ul>' : '') +
+      '<p class="fine">Anything that used those keys won’t work in the gallery. A key that was in your files should be replaced with a new one (in the website where you made it), because it isn’t secret anymore.</p></div>';
+  }
   function handle(p) {
     status('Reading the files…', 0.02);
+    var scan;
     p.then(function (files) {
-      var info = analyse(files); pending = info;
-      drop.innerHTML = ICON + '<h3>Ready to upload</h3><div class="found">Found <b>' + info.files.length + ' files</b> (' + fmtBytes(info.size) + '). Starts at <b>' + esc(info.entry) + '</b>.</div>' +
+      status('Checking for secret keys…', 0.3);
+      files = files.filter(function (f) { return f.path && !JUNK.test(f.path) && !/(^|\/)\._/.test(f.path); });
+      var tops = {}; files.forEach(function (f) { tops[f.path.replace(/^\/+/, '').split('/')[0]] = 1; });
+      var t = Object.keys(tops), pre = t.length === 1 && files.every(function (f) { return f.path.indexOf('/') > -1; }) ? t[0] + '/' : '';
+      return scanFiles(files).then(function (sc) { var short = function (x) { if (pre && x.path.indexOf(pre) === 0) x.path = x.path.slice(pre.length); }; sc.removed.forEach(short); sc.cleaned.forEach(short); return sc; });
+    }).then(function (sc) {
+      scan = sc;
+      if (!sc.files.length && sc.removed.length) throw new Error('Every file in this upload contains passwords or secret keys (for example “' + sc.removed[0].path + '”), so nothing can be published.');
+      var info = analyse(sc.files); info.removed = sc.removed; info.cleaned = sc.cleaned; pending = info;
+      drop.innerHTML = ICON + '<h3>Ready to upload</h3><div class="found">Found <b>' + info.files.length + ' files</b> (' + fmtBytes(info.size) + '). Starts at <b>' + esc(info.entry) + '</b>.</div>' + scanReport(sc.removed, sc.cleaned) +
         (REPLACE ? '<p>This replaces every file of <b>“' + esc(REPLACE.name) + '”</b>.</p>' : ME.admin
           ? '<form class="stack" id="admin-up" onsubmit="return false" style="width:min(460px,100%);text-align:left"><label>Name on the design <small>saved as “Website design - …”</small><input type="text" name="name" maxlength="60" value="Admin"></label>' +
             '<label>Owner <small>who can edit it in Studio</small><select name="owner" style="background:var(--bg);color:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit"><option value="">No owner (only admins can edit)</option>' +
@@ -634,13 +674,17 @@ pre.vtext { max-height: 50vh; overflow: auto; background: var(--bg); border: 1px
       function follow(st, misses) {
         if (st.status === 'done') {
           idle({ html: '“' + esc(st.name) + '” is saved and live in the gallery' + (s.skipped && s.skipped.length ? ' (skipped ' + s.skipped.length + ' file' + (s.skipped.length === 1 ? '' : 's') + ' a website can’t use)' : '') + '. <a href="/studio/edit/' + esc(st.folder) + '" data-route>Edit its text now →</a>' +
-            (st.secrets && st.secrets.length ? '<br><span class="warn-note">🔒 Your files contained ' + (st.secrets.length === 1 ? 'a secret key' : st.secrets.length + ' secret keys') + ' (' + st.secrets.slice(0, 4).map(function (x) { return esc(x.kind) + ' in ' + esc(x.path) + ' line ' + x.line; }).join(', ') + '). GitHub doesn’t allow those on a public website, so they were replaced with REMOVED_SECRET_KEY. Anything that used them won’t work in the gallery copy, and you should create a new key, because the old one was in your files.</span>' : '') });
+            (function () {
+              var left = (info.removed || []).concat(s.removed || [], st.removed || []), keys = (info.cleaned || []).length + (st.secrets || []).length;
+              if (!left.length && !keys) return '';
+              return '<br><span class="warn-note">🔒 ' + (left.length ? 'Left out ' + left.length + ' file' + (left.length === 1 ? '' : 's') + ' with secret keys or passwords (' + left.slice(0, 4).map(function (x) { return esc(x.path); }).join(', ') + (left.length > 4 ? ', …' : '') + ')' : '') + (left.length && keys ? ' and b' : 'B') + (keys ? 'lanked out ' + (keys === 1 ? 'a key' : keys + ' keys') + ' in your pages' : '') + '. GitHub doesn’t allow those on a public website. Anything that used them won’t work in the gallery, and you should replace those keys with new ones.</span>';
+            })() });
           loadMe().then(function () { renderHome(); });
           return;
         }
         if (st.status === 'failed') return fail(st.error || 'Saving to GitHub failed.', st.ref);
         var pct = st.steps ? st.done / st.steps : 0;
-        status(st.stage === 'commit' || st.steps <= 1 ? 'Publishing it…' : 'Saving images and media to GitHub: ' + st.done + ' of ' + (st.steps - 1), 0.82 + 0.18 * pct, st.note ? '<p class="fine">' + esc(st.note) + '</p>' : '');
+        status(st.stage === 'scan' ? 'Checking for secret keys…' : st.stage === 'commit' || st.steps <= 1 ? 'Publishing it…' : 'Saving images and media to GitHub: ' + st.done + ' of ' + (st.steps - 1), 0.82 + 0.18 * pct, st.note ? '<p class="fine">' + esc(st.note) + '</p>' : '');
         setTimeout(function () {
           request('GET', '/api/upload/status?id=' + encodeURIComponent(s.id)).then(function (r) {
             if (r.status === 200 && r.json && r.json.ok) return follow(r.json, 0);

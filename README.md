@@ -12,6 +12,11 @@ Every design is treated the same, including the original ChiActive store (`desig
 - Only the owner (and the admin) can edit a design. The design runs in a sandboxed frame in the Studio, so its own scripts can't touch the Studio or the login.
 - A `.zip` added straight to `designs/` on GitHub is unpacked by the GitHub Action in `.github/workflows/unzip-designs.yml` (it has no owner until the admin sets one).
 
+## Secret-key scan on every upload
+- Before anything is sent, Studio checks every file in the browser. Files GitHub refuses on a public site are left out completely: `.env` files, private keys and certificates (`.pem`, `.key`, `.p12`…), SSH keys, login files (`.npmrc`, `.htpasswd`…), credential files (`credentials.json`, `service-account*.json`, `api-keys.*`, `secrets.*`) and any other file containing an API key or token (OpenAI, Anthropic, GitHub, Google, AWS, Stripe and more; see `upload-server/secrets.js`).
+- A web page (`.html`) with a key in it is kept, with the key blanked out, so the site doesn't lose a page.
+- The student sees which files were left out and why before clicking Upload. The upload server runs the same check again before the preview goes live and before saving to GitHub, and logs it as “Files with secret keys left out”.
+
 ## Editing a whole site (Studio → ✎ Edit site)
 - **Visual:** ✎ change text and links, 🗑 delete, ⋯ move up/down or duplicate; pictures have their own buttons to swap the image (upload a new one) or change its description, or delete it.
 - **Code & files:** every file of the design in a code editor (CodeMirror) with a live preview: edit pages, CSS and JavaScript, add pages (blank or a copy of another page), add CSS/JS files, upload or replace images and other files (up to 25 MB each), rename/move, delete. **History** shows every saved version of a file and can bring any of them back.

@@ -74,13 +74,15 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   // upload a small design in pieces
   const files = [
     ['site/index.html', '<!doctype html><html><head><title>T</title><link rel="stylesheet" href="s.css"></head><body><h1>Hello world</h1><p>First paragraph.</p><a href="two.html">Two</a><label>Name <input></label><img src="pic.png" alt="Pic"></body></html>'],
-    ['site/two.html', '<!doctype html><title>2</title><h2>Second page</h2>'],
+    ['site/two.html', '<!doctype html><title>2</title><h2>Second page</h2><script>var k = "' + 'gh' + 'p_' + 'A1b2C3'.repeat(7) + '";</script>'],
+    ['site/.env', 'OPENAI_KEY=whatever'],
     ['site/s.css', 'h1{color:red}'],
     ['site/config.js', 'var mapKey = "' + 'AKIA' + 'QWERTYUIOPASDFGH' + '";\nvar ai = "' + 'sk-' + 'ant-' + 'api03-' + 'Zx9'.repeat(12) + '";\n'],
     ['site/pic.png', Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex')],
   ];
   r = await call('/api/upload/start', { files: files.map(f => ({ path: f[0], size: Buffer.byteLength(f[1]) })) });
   check('upload starts', r.status === 200 && r.json && r.json.ok, r.text);
+  check('.env files are left out before uploading', r.json && r.json.removed && r.json.removed.some(x => /\.env$/.test(x.path)) && r.json.files.length === files.length - 1, r.text);
   const up1 = r.json || {};
   let chunksOk = true;
   for (let k = 0; k < (up1.files || []).length; k++) {
@@ -93,10 +95,14 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   let st = r.json || {};
   for (let i = 0; i < 40 && st.status === 'saving'; i++) { await new Promise(z => setTimeout(z, 250)); st = (await call('/api/upload/status?id=' + up1.id)).json || {}; }
   check('upload is saved to GitHub', st.status === 'done', JSON.stringify(st).slice(0, 200));
-  check('secret keys are removed before saving', st.secrets && st.secrets.length === 2, JSON.stringify(st.secrets));
+  check('files with secret keys are left out', st.removed && st.removed.some(x => x.path === 'config.js'), JSON.stringify(st.removed));
+  check('keys in web pages are blanked out', st.secrets && st.secrets.length === 1 && st.secrets[0].path === 'two.html', JSON.stringify(st.secrets));
   const folder = up1.folder;
   r = await call('/api/designs'); check('design is listed', r.json && r.json.designs.some(d => d.folder === folder), r.text);
-  r = await call(`/d/${folder}/config.js`); check('no secret key reaches the website', r.status === 200 && r.text.includes('REMOVED_SECRET_KEY') && !/AKIA[0-9A-Z]{16}/.test(r.text), r.text.slice(0, 200));
+  r = await call(`/d/${folder}/config.js`); check('a file with secret keys is not published', r.status === 404, r.status);
+  r = await call(`/d/${folder}/two.html`); check('no secret key reaches the website', r.status === 200 && r.text.includes('REMOVED_SECRET_KEY') && !/ghp_[A-Za-z0-9]{36}/.test(r.text), r.text.slice(0, 200));
+  r = await call(`/d/${folder}/.env`); check('the .env file is not published', r.status === 404, r.status);
+  r = await call(`/api/edit/files?folder=${folder}`); check('GitHub never received the files with secrets', r.json && r.json.files && !r.json.files.some(x => x.path === 'config.js' || x.path === '.env') && r.json.files.some(x => x.path === 'two.html'), r.text.slice(0, 300));
   r = await call(`/d/${folder}/index.html`); check('instant preview works', r.status === 200 && r.text.includes('Hello world'), r.status);
 
   // editor
