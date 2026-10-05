@@ -215,6 +215,16 @@ process.on('unhandledRejection', e => finish('Test crashed: ' + (e && e.stack ||
   r = await call('/api/upload/start', { replace: folder, files: v2.map(f => ({ path: f[0], size: 5 })) }, 'helper');
   check('others can’t upload a new version', r.status === 403, r.text);
 
+  // the admin changes a student's name and username; designs follow, the login keeps working
+  const selfId = ((await call('/api/admin/accounts', undefined, 'admin')).json.accounts.find(a => a.username === 'selftest') || {}).id;
+  r = await call('/api/admin/account/rename', { id: selfId, name: 'Renamed Tester', username: 'selftest-renamed' }, 'admin');
+  check('admin can rename an account', r.json && r.json.ok && r.json.changed && r.json.designs >= 1, r.text);
+  r = await call('/api/account/me'); check('renamed student stays logged in with the new name', r.json && r.json.user && r.json.user.name === 'Renamed Tester' && r.json.user.username === 'selftest-renamed', r.text.slice(0, 200));
+  r = await call('/api/designs'); check('their design shows the new name', r.json && r.json.designs.some(d => d.folder === folder && d.name === 'Website design - Renamed Tester' && d.by === 'Renamed Tester'), r.text.slice(0, 300));
+  r = await call('/api/account/login', { username: 'selftest-renamed', password: 'lakefront-parka-77' }, 'relogin'); check('they can log in with the new username', r.status === 200, r.text);
+  r = await call('/api/admin/account/rename', { id: selfId, name: 'X Y', username: 'selftest-helper' }, 'admin'); check('a taken username is refused', r.status === 409, r.text);
+  r = await call('/api/admin/account/rename', { id: selfId, name: 'Hi', username: 'selftest-renamed' }, 'student'); check('students cannot rename accounts', r.status === 401, r.status);
+
   // sub-admins: a student account the main admin promotes; removable at any time
   r = await call('/api/account/signup', { name: 'Sub Admin', username: 'selftest-sub', password: 'violet-canoe-93' }, 'sub');
   const subId = ((await call('/api/admin/accounts', undefined, 'admin')).json.accounts.find(a => a.username === 'selftest-sub') || {}).id;

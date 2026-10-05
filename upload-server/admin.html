@@ -85,6 +85,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .design p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
 .design .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .design form { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; align-items: end; }
+.design form[data-kind=rename] { grid-template-columns: 1fr 1fr auto auto auto; }
+.design form label.check { display: flex; gap: 6px; align-items: center; font-weight: 600; color: var(--text); padding-bottom: 10px; }
 .design form label { display: grid; gap: 4px; font-size: .8rem; font-weight: 700; color: var(--sand); }
 .design .warn-line { grid-column: 1 / -1; color: #ffd27a; font-size: .88rem; margin: 0; }
 .design .row-err { grid-column: 1 / -1; color: #ff8095; font-weight: 700; margin: 0; }
@@ -287,7 +289,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     'account-signup': ['New student account', 'ok'], 'account-login': ['Student logged in', ''], 'account-login-failed': ['Wrong student password', 'warn'],
     'account-password': ['Student changed password', ''], 'account-error': ['Account problem', 'bad'],
     'edit-save': ['Edited text', 'ok'], 'edit-delete': ['Deleted text', 'warn'], 'edit-failed': ['Edit failed', 'bad'],
-    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-winner': ['Admin picked a winner', 'admin'], 'admin-wordpress': ['Admin changed WordPress settings', 'admin'], 'wordpress-publish': ['Published to WordPress', 'ok'], 'wordpress-failed': ['WordPress publish failed', 'bad'], 'wordpress-export': ['Exported a WordPress theme', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'], 'admin-subadmin-add': ['Admin made someone a sub-admin', 'admin'], 'admin-subadmin-remove': ['Admin removed a sub-admin', 'admin'],
+    'admin-owner': ['Admin changed an owner', 'admin'], 'admin-editors': ['Admin changed editors', 'admin'], 'admin-winner': ['Admin picked a winner', 'admin'], 'admin-wordpress': ['Admin changed WordPress settings', 'admin'], 'wordpress-publish': ['Published to WordPress', 'ok'], 'wordpress-failed': ['WordPress publish failed', 'bad'], 'wordpress-export': ['Exported a WordPress theme', 'admin'], 'design-download': ['Downloaded a design', 'view'], 'download-failed': ['Download failed', 'bad'], 'admin-view-as': ['Admin viewed Studio as a student', 'admin'], 'request-error': ['Request failed', 'bad'], 'admin-reset': ['Admin reset a password', 'admin'], 'admin-account-delete': ['Admin deleted an account', 'admin'], 'admin-account-rename': ['Admin renamed an account', 'admin'], 'admin-subadmin-add': ['Admin made someone a sub-admin', 'admin'], 'admin-subadmin-remove': ['Admin removed a sub-admin', 'admin'],
     'server-error': ['Server error', 'bad'], 'server-crash': ['Server crash', 'bad'], 'ai-fix': ['AI fixer', 'admin'], 'admin-report': ['Reported by admin', 'admin'], 'admin-ai': ['Admin used the AI fixer', 'admin']
   };
   var FILTERS = [['all', 'All'], ['uploads', 'Uploads'], ['edits', 'Edits'], ['accounts', 'Accounts'], ['errors', 'Errors'], ['ai', 'AI fixer'], ['views', 'Views'], ['visits', 'Gallery visits'], ['admin', 'Admin']];
@@ -296,7 +298,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     if (f === 'uploads') return /^upload/.test(e.type) || e.type === 'client-error';
     if (f === 'errors') return /failed|rejected|abandoned|error/.test(e.type);
     if (f === 'edits') return /^edit-/.test(e.type);
-    if (f === 'accounts') return /^account-/.test(e.type) || e.type === 'admin-reset' || e.type === 'admin-account-delete' || /^admin-subadmin/.test(e.type);
+    if (f === 'accounts') return /^account-/.test(e.type) || e.type === 'admin-reset' || e.type === 'admin-account-delete' || /^admin-subadmin/.test(e.type) || e.type === 'admin-account-rename';
     if (f === 'views') return e.type === 'view' || e.type === 'page';
     if (f === 'visits') return e.type === 'visit';
     if (f === 'ai') return /^ai-|admin-ai/.test(e.type);
@@ -569,7 +571,7 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
         '<p>Joined ' + esc(new Date(a.created).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ' · ' + (a.designs.length ? 'owns ' + a.designs.map(esc).join(', ') : 'no designs yet') + (a.editing && a.editing.length ? ' · editor of ' + a.editing.map(esc).join(', ') : '') + '</p>' +
         (a.subAdmin ? '<p class="dev">Can do everything an admin can. ' + (ROLE === 'admin' ? 'You can take this away at any time.' : 'Only the main admin can change this account.') + '</p>' : '') + '</div>' +
         '<div class="acts">' + (ROLE === 'admin' ? (a.subAdmin ? '<button class="btn danger small" type="button" data-sub="0">Remove sub-admin</button>' : '<button class="btn ghost small" type="button" data-sub="1">Make sub-admin</button>') : '') +
-        '<button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button>' + (locked ? '' : '<button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button>') + '</div></article>';
+        '<button class="btn ghost small" type="button" data-viewas>Open Studio as this student ↗</button>' + (locked ? '' : '<button class="btn ghost small" type="button" data-rename>✎ Change name</button><button class="btn ghost small" type="button" data-reset>Set new password</button><button class="btn danger small" type="button" data-adel>Delete account</button>') + '</div></article>';
     }).join('');
   }
   $('account-list').addEventListener('click', function (e) {
@@ -596,8 +598,16 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
       });
       return;
     }
+    if (e.target.closest('[data-rename]')) {
+      var open = card.querySelector('form'); if (open) { open.remove(); if (open.getAttribute('data-kind') === 'rename') return; }
+      card.insertAdjacentHTML('beforeend', '<form data-kind="rename"><label>Name <small>(shown on their designs)</small><input type="text" name="name" maxlength="60" required value="' + esc(a.name) + '"></label>' +
+        '<label>Username <small>(what they log in with)</small><input type="text" name="username" maxlength="24" required autocomplete="off" value="' + esc(a.username) + '"></label>' +
+        (a.designs.length ? '<label class="check"><input type="checkbox" name="designs" checked> Also update the name on their design' + (a.designs.length === 1 ? '' : 's') + '</label>' : '') +
+        '<button class="btn small" type="submit">Save</button><button class="btn ghost small" type="button" data-cancel>Cancel</button></form>');
+      card.querySelector('form input').select(); return;
+    }
     if (e.target.closest('[data-reset]')) {
-      if (card.querySelector('form')) return card.querySelector('form').remove();
+      var openf = card.querySelector('form'); if (openf) { openf.remove(); if (openf.getAttribute('data-kind') !== 'rename') return; }
       card.insertAdjacentHTML('beforeend', '<form><label>New password for @' + esc(a.username) + ' (at least 8 characters)<input type="text" name="pw" autocomplete="off" required></label><span></span><button class="btn small" type="submit">Save password</button><button class="btn ghost small" type="button" data-cancel>Cancel</button></form>');
       card.querySelector('form input').focus(); return;
     }
@@ -625,6 +635,16 @@ details summary { cursor: pointer; color: var(--sky); font-size: .88rem; margin-
     e.preventDefault();
     var f = e.target, card = f.closest('.design'), a = accs[+card.getAttribute('data-a')], b = f.querySelector('[type=submit]');
     b.disabled = true;
+    if (f.getAttribute('data-kind') === 'rename') {
+      api('/api/admin/account/rename', { body: { id: a.id, name: f.name.value.trim(), username: f.username.value.trim().toLowerCase(), designs: f.designs ? f.designs.checked : false } }).then(function (j) {
+        b.disabled = false;
+        if (j.status === 401) return showLogin();
+        if (!j.ok) return rowError(card, j.error || 'That didn’t work.');
+        toast(!j.changed ? 'Nothing changed.' : 'Saved.' + (j.designs ? ' Updated on ' + j.designs + ' design' + (j.designs === 1 ? '' : 's') + '.' : '') + (f.username.value.trim().toLowerCase() !== a.username ? ' Tell them their new username; their password stays the same.' : ''));
+        loadAccounts();
+      });
+      return;
+    }
     api('/api/admin/account/reset', { body: { id: a.id, password: f.pw.value } }).then(function (j) {
       b.disabled = false;
       if (j.status === 401) return showLogin();

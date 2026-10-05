@@ -1163,6 +1163,33 @@ async function adminSetSubAdmin(req, body) {
 function protectSubAdmins(req, acc, what) {
   if (acc.subAdmin && !fullAdmin(req)) throw userError(403, 'main-admin-only', `Only the main admin can ${what} of a sub-admin.`);
 }
+// change a student's name (shown on their designs) and/or username (what they log in with); they stay logged in
+async function adminRenameAccount(req, body) {
+  const id = String(body.id || '');
+  const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist anymore. Reload the page.');
+  protectSubAdmins(req, acc, 'rename the account');
+  const name = cleanName(body.name), username = String(body.username || acc.username).trim().toLowerCase();
+  if (name.length < 2) throw userError(400, 'bad-name', 'Enter a name of at least 2 characters.');
+  if (!USERNAME_RE.test(username)) throw userError(400, 'bad-username', 'Pick a username of 3 to 24 characters: letters, numbers, dots, dashes or underscores.');
+  if (name === acc.name && username === acc.username) return { changed: false };
+  await changeAccounts(list => {
+    if (username !== acc.username && list.some(a => a.username === username && a.id !== id)) throw userError(409, 'taken', `The username “${username}” is already taken. Pick another one.`);
+    const x = list.find(a => a.id === id); if (!x) throw userError(404, 'no-account', 'That account doesn’t exist anymore. Reload the page.');
+    x.name = name; x.username = username;
+  });
+  let designs = 0;
+  if (body.designs !== false && name !== acc.name && (await freshManifest(0)).some(d => d && d.owner === id)) {
+    const oldTitle = `Website design - ${acc.name}`;
+    await commitToMain(`Rename ${acc.name} to ${name} on their designs`, [], list => {
+      list.forEach(d => { if (!d || d.owner !== id) return; designs++; d.by = name; if (d.name === oldTitle) d.name = `Website design - ${name}`; else if (typeof d.name === 'string' && d.name.startsWith(oldTitle + ' ')) d.name = `Website design - ${name}` + d.name.slice(oldTitle.length); });
+      return list;
+    });
+    for (const sess of live.values()) if (sess.owner === id) { sess.student = name; if (sess.name === oldTitle) sess.name = `Website design - ${name}`; }
+    manifestCache.at = 0;
+  }
+  logEvent('admin-account-rename', { username, student: name, message: [name !== acc.name ? `Name “${acc.name}” → “${name}”` : '', username !== acc.username ? `username @${acc.username} → @${username}` : '', designs ? `updated on ${designs} design${designs === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ') }, req);
+  return { changed: true, designs };
+}
 async function adminResetPassword(req, body) {
   const id = String(body.id || '');
   const acc = (await loadAccounts()).find(a => a.id === id); if (!acc) throw userError(404, 'no-account', 'That account doesn’t exist.');
@@ -1574,6 +1601,14 @@ const server = http.createServer(async (req, res) => {
           } else return send(res, 404, { ok: false, error: 'Not found' });
           return send(res, 200, await fixer.adminView());
         } catch (e) { return send(res, e.user && e.status ? e.status : 502, { ok: false, error: e.user ? e.message : explain(e) }); }
+      }
+      if (req.method === 'POST' && route === '/api/admin/account/rename') {
+        const body = await readJson(req, 16 * 1024);
+        try { return send(res, 200, { ok: true, ...(await adminRenameAccount(req, body)) }); }
+        catch (e) {
+          if (!e.user) logEvent('admin-error', { stage: 'rename account', error: explain(e), detail: cleanText(e.message, 300), stack: stackOf(e) }, req);
+          return send(res, e.user && e.status ? e.status : 502, { ok: false, error: explain(e) });
+        }
       }
       if (req.method === 'POST' && ['/api/admin/owner', '/api/admin/editors', '/api/admin/account/reset', '/api/admin/account/delete'].includes(route)) {
         const body = await readJson(req, 16 * 1024);

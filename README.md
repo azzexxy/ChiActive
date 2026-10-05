@@ -39,6 +39,10 @@ Every design is treated the same, including the original ChiActive store (`desig
 - **Student accounts:** see every account and its designs, set a new password for a student who forgot theirs, delete an account (its designs stay, without an owner).
 - The log and the accounts file are encrypted on the repo branch `activity-log` (GitHub Pages only publishes `main`). The key comes from `ADMIN_PASSWORD` (or `LOG_KEY`/`DATA_KEY` if set). **If you ever change ADMIN_PASSWORD, first add `DATA_KEY` and `LOG_KEY` in Render with the OLD password**, or the accounts and older log entries can't be read.
 
+## Renaming student accounts (admin page → Student accounts → ✎ Change name)
+- Change a student's **name** (shown on their designs) and/or **username** (what they log in with). They stay logged in and keep their password.
+- “Also update the name on their designs” (on by default) changes “Website design - Old name” to the new name and the “by” credit on every design they own.
+
 ## Sub-admins (admin page → Student accounts)
 - The main admin (logged in with `ADMIN_PASSWORD`) clicks **Make sub-admin** on a student account. That student can then do everything an admin can (admin page, every design in Studio, WordPress, AI fixes) using their own Studio login, so the admin password is never shared.
 - Only the main admin can make or remove sub-admins, and only the main admin can reset the password of, or delete, a sub-admin account. **Remove sub-admin** works immediately: the role is checked on every request.
