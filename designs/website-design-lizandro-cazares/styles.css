@@ -1,0 +1,159 @@
+/* ChiActive starter styles: the CURRENT unbranded look.
+   Restyle this file (and the HTML if needed) to apply the brand in brand-guidelines.md. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+  color: #f4f7fc;
+  background: #0b1f3a;
+  line-height: 1.5;
+}
+
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* Header and navigation */
+.site-header { background: #013f7c; color: #fff; border-bottom: 1px solid #013f7c; }
+.site-header .container { display: flex; align-items: center; justify-content: space-between; padding-top: 20px; padding-bottom: 20px; }
+.site-title { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 1.4rem; font-weight: 700; text-decoration: none; }
+.site-logo { width: 44px; height: 44px; object-fit: contain; border-radius: 50%; }
+.site-nav a { margin-left: 24px; text-decoration: none; }
+.site-nav a:hover { text-decoration: underline; }
+
+/* Typography */
+h1, h2, h3 { line-height: 1.2; }
+h1 { font-family: Georgia, "Times New Roman", serif; font-size: 2.4rem; margin: 32px 0 12px; }
+h2 { font-size: 1.5rem; margin: 40px 0 16px; }
+h3 { font-size: 1.1rem; margin: 0 0 8px; }
+
+/* Buttons */
+.btn { display: inline-block; background: #1a1a1a; color: #fff; padding: 12px 24px; border: 0; border-radius: 4px; text-decoration: none; font-size: 1rem; cursor: pointer; }
+
+/* Homepage hero */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(rgba(10, 24, 35, 0.56), rgba(10, 24, 35, 0.56)),
+    url("images/chicago-lakefront-sunset.png") center center / cover no-repeat;
+  color: #fff;
+  padding: 80px 0;
+  text-align: center;
+}
+.hero h1, .hero p { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.hero .btn { background: #fff; color: #1a1a1a; }
+.hero .btn:hover { background: #e9eef2; }
+.hero h1 { margin-top: 0; font-size: 3rem; }
+.hero p { font-size: 1.2rem; margin-bottom: 24px; }
+
+/* Category tiles */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-width: 0; border: 1px solid #ddd; padding: 32px 16px; text-align: center; text-decoration: none; font-weight: 600; }
+
+/* Product grid and cards */
+.product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.product-card { position: relative; }
+.product-card a { text-decoration: none; }
+.product-card img, .img-placeholder { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #eee; margin-bottom: 8px; }
+.img-placeholder { display: flex; align-items: center; justify-content: center; color: #888; font-size: 0.85rem; }
+.product-card h3 { font-size: 1rem; margin: 4px 0; }
+.price { font-weight: 600; }
+.price-old { color: #888; text-decoration: line-through; font-weight: 400; margin-right: 6px; }
+.badge-sale { position: absolute; top: 8px; left: 8px; background: #1a1a1a; color: #fff; font-size: 0.75rem; padding: 2px 8px; border-radius: 3px; }
+
+/* Breadcrumb */
+.breadcrumb { font-size: 0.9rem; color: #555; margin: 24px 0 0; }
+
+/* Product detail page */
+.product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 16px; }
+.gallery .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.buybox .price { font-size: 1.5rem; margin: 8px 0 16px; }
+.buybox label { display: block; font-weight: 600; margin-bottom: 4px; }
+.buybox select, .buybox input[type="number"] { padding: 8px; font-size: 1rem; margin-bottom: 16px; }
+.buybox input[type="number"] { width: 70px; }
+.product-meta { font-size: 0.9rem; color: #555; margin-top: 24px; }
+.tab-section { border-top: 1px solid #ddd; margin-top: 32px; padding-top: 8px; }
+table.specs { border-collapse: collapse; width: 100%; max-width: 600px; }
+table.specs td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+table.specs td:first-child { font-weight: 600; width: 40%; }
+
+/* Blog */
+.post-list article { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 24px 0; border-bottom: 1px solid #eee; }
+.post-list article.no-image { grid-template-columns: 1fr; }
+.post-meta { font-size: 0.85rem; color: #666; margin: 0 0 4px; }
+.post-list h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.article { max-width: 720px; }
+.article h2 { font-size: 1.3rem; }
+
+/* Page intro text */
+.page-intro { max-width: 720px; color: #555; margin-bottom: 24px; }
+
+/* Footer */
+.site-footer { border-top: 1px solid #ddd; margin-top: 64px; padding: 40px 0; font-size: 0.9rem; color: #555; }
+.site-footer .container { display: flex; justify-content: space-between; }
+.site-footer a { margin-left: 16px; }
+
+/* Two-image hero slideshow */
+.hero-slides, .hero-slide { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-slides { z-index: -2; background: #0a1823; }
+.hero-slide { object-fit: cover; opacity: 0; transition: opacity 1.2s ease; }
+.hero-slide.is-active { opacity: 1; }
+.hero-slide-pavilion { object-position: center 76%; }
+.hero::after { content: ""; position: absolute; inset: 0; background: rgba(10,24,35,.56); z-index: -1; pointer-events: none; }
+.hero-pause { position: absolute; right: 16px; bottom: 12px; background: rgba(0,0,0,.65); color: white; border: 1px solid rgba(255,255,255,.6); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.hero-pause:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .hero-slide { transition: none; } }
+
+/* Simple slowly spinning jacket icon */
+.jacket-float { display: block; flex-shrink: 0; width: 48px; height: 48px; margin: 0; perspective: 240px; }
+.jacket-icon { display: block; transform-origin: center; animation: jacket-spin 12s linear infinite; }
+@keyframes jacket-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { .jacket-icon { animation: none; } }
+
+/* Navy page palette */
+.tile { border-color: #3b526f; border-radius: 18px; }
+.tile:hover { background: #142e50; }
+.jacket-icon { stroke: #8fcfff; }
+.price-old, .breadcrumb, .product-meta, .post-meta, .page-intro, .site-footer { color: #b8c7da; }
+.site-footer, .tab-section, table.specs td, .post-list article { border-color: #3b526f; }
+
+/* Product interaction highlights */
+.product-card img {
+  border-radius: 10px;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.product-card .badge-sale { z-index: 1; pointer-events: none; }
+.product-card a:focus-visible { outline: 2px solid #8fcfff; outline-offset: 6px; border-radius: 10px; }
+.product-card:focus-within img {
+  transform: translateY(-3px) scale(1.025);
+  box-shadow: 0 0 0 2px #8fcfff, 0 0 22px rgba(93,185,255,.45);
+}
+@media (hover: hover) {
+  .product-card:hover img {
+    transform: translateY(-3px) scale(1.025);
+    box-shadow: 0 0 0 2px #8fcfff, 0 0 22px rgba(93,185,255,.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card img { transition: none; }
+  .product-card:hover img, .product-card:focus-within img { transform: none; }
+}
+
+/* Student welcome offer */
+#student-discount-dialog { box-sizing: border-box; width: min(440px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 36px 28px 24px; border: 1px solid #496582; border-radius: 20px; background: #0b1f3a; color: #f4f7fc; box-shadow: 0 24px 80px #0008; }
+#student-discount-dialog::backdrop { background: rgba(0, 10, 25, .72); }
+.discount-close { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; background: transparent; border: 0; color: white; font-size: 28px; cursor: pointer; }
+.discount-eyebrow { color: #8fcfff; font-size: .75rem; letter-spacing: .12em; font-weight: 700; }
+#student-discount-title { margin: 12px 0; font-size: 2.4rem; }
+#student-discount-description { color: #c8d5e5; }
+#student-discount-form label { display: block; margin: 20px 0 8px; font-weight: 600; }
+#student-email { box-sizing: border-box; width: 100%; padding: 13px; border: 1px solid #829bb8; border-radius: 8px; font: inherit; background: white; color: #142239; }
+#discount-note { font-size: .78rem; color: #b8c7da; }
+.discount-submit { width: 100%; background: #8fcfff; color: #0b1f3a; font-weight: 700; border-radius: 8px; }
+.discount-later { display: block; margin: 12px auto 0; background: transparent; border: 0; color: #c8d5e5; text-decoration: underline; cursor: pointer; padding: 10px; }
+#discount-status { color: #8fcfff; }
+#student-discount-dialog :focus-visible { outline: 3px solid #8fcfff; outline-offset: 3px; }
